@@ -1,7 +1,6 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Wind, AlertTriangle, Volume2, Zap, Clock, Activity } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import Link from "next/link"
+import { useStationData, StationDataPoint } from "@/hooks/useStationData"
+import { useState } from "react"
 
 // Standort-spezifische Farben für konsistente Darstellung
 const locationColors = {
@@ -26,73 +27,28 @@ const locationRoutes = {
   Bandbuehne: "/dashboard/band",
 }
 
-// Mock-Daten Generator für realistische Lärmwerte
-const generateMockData = () => {
-  const locations = ["Ort", "Heuballern", "TechnoFloor", "Bandbuehne"]
-  const now = new Date()
-  const data = []
-
-  // Generiere 48 Datenpunkte (12 Stunden in 15-Minuten Intervallen)
-  for (let i = 0; i < 48; i++) {
-    const timestamp = new Date(now.getTime() - (47 - i) * 15 * 60 * 1000)
-    const entry: any = {
-      time: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
-      timestamp: timestamp.getTime(),
-    }
-
-    // Standort-spezifische Lärmwerte basierend auf Tageszeit
-    locations.forEach((location) => {
-      const baseLevel =
-        location === "TechnoFloor" ? 65 : location === "Bandbuehne" ? 58 : location === "Heuballern" ? 38 : 45
-      const variation = Math.random() * 15 - 7.5
-      const timeOfDay = timestamp.getHours()
-      const nightReduction = timeOfDay < 6 || timeOfDay > 22 ? -10 : 0
-      const windSpeed = 8 + Math.random() * 12
-
-      entry[location] = Math.max(30, baseLevel + variation + nightReduction)
-      entry.windSpeed = windSpeed
-    })
-
-    data.push(entry)
-  }
-
-  return data
-}
-
-// Aktuelle Lärmwerte für KPI Cards
-const getCurrentLevels = () => ({
-  Ort: 42.3,
-  Heuballern: 38.7,
-  TechnoFloor: 67.2,
-  Bandbuehne: 55.8,
-})
-
-// Aktuelle Winddaten
-const getWindData = () => ({
-  speed: 12.4,
-  direction: "SW",
-  gust: 18.7,
-})
-
 export default function AllLocationsPage() {
-  // State Management für Live-Daten
-  const [data, setData] = useState(generateMockData())
-  const [currentLevels, setCurrentLevels] = useState(getCurrentLevels())
-  const [windData, setWindData] = useState(getWindData())
-  const [isLive, setIsLive] = useState(true)
+  // Chart-Intervall-Button-State
+  const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
+  // Fetch live data für jede Station mit Intervall
+  const ortData = useStationData("ort", chartInterval)
+  const heuballernData = useStationData("heuballern", chartInterval)
+  const technoData = useStationData("techno", chartInterval)
+  const bandData = useStationData("band", chartInterval)
 
-  // Live-Daten Update Effekt
-  useEffect(() => {
-    if (!isLive) return
+  // Debug-Ausgabe für alle Daten
+  console.log('ortData', ortData)
+  console.log('heuballernData', heuballernData)
+  console.log('technoData', technoData)
+  console.log('bandData', bandData)
 
-    const interval = setInterval(() => {
-      setData(generateMockData())
-      setCurrentLevels(getCurrentLevels())
-      setWindData(getWindData())
-    }, 5000) // Update alle 5 Sekunden
-
-    return () => clearInterval(interval)
-  }, [isLive])
+  // Compose current levels for KPI cards (last value in each array)
+  const currentLevels = {
+    Ort: ortData.length > 0 ? ortData[ortData.length - 1].las : 0,
+    Heuballern: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].las : 0,
+    TechnoFloor: technoData.length > 0 ? technoData[technoData.length - 1].las : 0,
+    Bandbuehne: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
+  }
 
   // Status-Farbe basierend auf Lärmwert bestimmen
   const getStatusColor = (level: number, isNight = false) => {
@@ -128,6 +84,35 @@ export default function AllLocationsPage() {
         )
     }
   }
+
+  // Aktuellste Wetterdaten (letzter Wert pro Station)
+  const lastWeatherRaw = [ortData, heuballernData, technoData, bandData]
+    .map(arr => arr.length > 0 ? arr[arr.length - 1] : null)
+  const lastWeather = lastWeatherRaw.filter((d): d is StationDataPoint => d !== null)
+  const avgWindSpeed = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.ws ?? 0), 0) / lastWeather.length).toFixed(1) : 'N/A'
+  const avgWindDir = lastWeather.length > 0 ? lastWeather[0].wd ?? 'N/A' : 'N/A'
+  const avgRelHumidity = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.rh ?? 0), 0) / lastWeather.length).toFixed(0) : 'N/A'
+
+  // Chart-Daten für alle Standorte und Windgeschwindigkeit zusammenführen
+  // Wir nehmen die Zeitpunkte von ortData als Basis
+  const chartTimes = ortData.map(d => d.time)
+  const chartData = chartTimes.map(time => {
+    const ort = ortData.find(d => d.time === time)
+    const heuballern = heuballernData.find(d => d.time === time)
+    const techno = technoData.find(d => d.time === time)
+    const band = bandData.find(d => d.time === time)
+    // Windgeschwindigkeit: Mittelwert der vier Standorte, falls vorhanden
+    const windVals = [ort, heuballern, techno, band].map(d => d?.ws).filter(v => typeof v === 'number')
+    const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => (a ?? 0) + (b ?? 0), 0) / windVals.length) : undefined
+    return {
+      time,
+      Ort: ort?.las ?? null,
+      Heuballern: heuballern?.las ?? null,
+      TechnoFloor: techno?.las ?? null,
+      Bandbuehne: band?.las ?? null,
+      windSpeed: windSpeed ?? null,
+    }
+  })
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -187,15 +172,15 @@ export default function AllLocationsPage() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Geschwindigkeit</p>
-                <p className="text-lg lg:text-xl font-bold text-pink-400">{windData.speed} km/h</p>
+                <p className="text-lg lg:text-xl font-bold text-pink-400">{avgWindSpeed} km/h</p>
               </div>
               <div>
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Richtung</p>
-                <p className="text-lg lg:text-xl font-bold text-pink-400">{windData.direction}</p>
+                <p className="text-lg lg:text-xl font-bold text-pink-400">{avgWindDir}</p>
               </div>
               <div>
-                <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Böen</p>
-                <p className="text-lg lg:text-xl font-bold text-pink-400">{windData.gust} km/h</p>
+                <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Luftfeuchte</p>
+                <p className="text-lg lg:text-xl font-bold text-pink-400">{avgRelHumidity} %</p>
               </div>
             </div>
           </CardContent>
@@ -221,20 +206,29 @@ export default function AllLocationsPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center space-x-2">
-                {/* Live/Pause Toggle */}
                 <Button
-                  variant={isLive ? "default" : "outline"}
+                  asChild
+                  variant="outline"
                   size="sm"
-                  onClick={() => setIsLive(!isLive)}
-                  className={cn(
-                    "flex items-center space-x-1 text-xs lg:text-sm",
-                    isLive
-                      ? "bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
-                      : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800",
-                  )}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 bg-transparent"
                 >
-                  <Zap className="w-3 h-3" />
-                  <span>{isLive ? "Live" : "Pausiert"}</span>
+                  <Link href="/dashboard/all/table">Tabelle</Link>
+                </Button>
+                <Button
+                  variant={chartInterval === "24h" ? "default" : "outline"}
+                  size="sm"
+                  className={chartInterval === "24h" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
+                  onClick={() => setChartInterval("24h")}
+                >
+                  24h
+                </Button>
+                <Button
+                  variant={chartInterval === "7d" ? "default" : "outline"}
+                  size="sm"
+                  className={chartInterval === "7d" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
+                  onClick={() => setChartInterval("7d")}
+                >
+                  7d
                 </Button>
               </div>
             </div>
@@ -242,7 +236,7 @@ export default function AllLocationsPage() {
           <CardContent>
             <div className="h-64 lg:h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data}>
+                <LineChart data={chartData}>
                   {/* Diagramm Gitter */}
                   <CartesianGrid
                     strokeDasharray="3 3"

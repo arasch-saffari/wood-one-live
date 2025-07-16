@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useStationData } from "@/hooks/useStationData"
 
 // Navigation Menü Konfiguration
 const navigation = [
@@ -31,6 +32,51 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
+
+  // Letzte Aktualisierung: Hole Daten von allen Stationen und berechne das neueste Datum
+  const ortData = useStationData("ort", "24h")
+  const heuballernData = useStationData("heuballern", "24h")
+  const technoData = useStationData("techno", "24h")
+  const bandData = useStationData("band", "24h")
+  // Alle Zeitpunkte sammeln
+  const allTimes = [
+    ...ortData.map(d => d.time),
+    ...heuballernData.map(d => d.time),
+    ...technoData.map(d => d.time),
+    ...bandData.map(d => d.time),
+  ].filter(Boolean)
+  // Neueste Zeit finden (Format: 'HH:MM' oder 'YYYY-MM-DD HH:MM:SS')
+  const latestTime = allTimes.sort().reverse()[0]
+  // Hilfsfunktion: Zeitdifferenz in Minuten berechnen
+  function getRelativeTime(latest: string | undefined) {
+    if (!latest) return "-"
+    // Versuche, ein Date-Objekt zu bauen
+    let date
+    if (latest.length > 5) {
+      // Format: 'YYYY-MM-DD HH:MM:SS'
+      date = new Date(latest.replace(" ", "T"))
+    } else {
+      // Format: 'HH:MM'
+      const now = new Date()
+      const [h, m] = latest.split(":").map(Number)
+      date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m)
+    }
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMin = Math.floor(diffMs / 60000)
+    if (diffMin < 1) return "vor wenigen Sekunden"
+    if (diffMin === 1) return "vor 1 Min"
+    return `vor ${diffMin} Min`
+  }
+  // Hilfsfunktion: Uhrzeit formatieren
+  function formatTime(latest: string | undefined) {
+    if (!latest) return "-"
+    if (latest.length > 5) {
+      // Format: 'YYYY-MM-DD HH:MM:SS'
+      return latest.split(" ")[1] + " Uhr"
+    }
+    return latest + ":00 Uhr"
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-black dark:to-gray-800">
@@ -164,7 +210,7 @@ export default function DashboardLayout({
                 Online
               </Badge>
             </div>
-            <div className="text-xs text-gray-500">Letzte Aktualisierung: vor 2 Min</div>
+            <div className="text-xs text-gray-500">Letzte Aktualisierung: {formatTime(latestTime)} ({getRelativeTime(latestTime)})</div>
           </div>
         </div>
       </motion.div>

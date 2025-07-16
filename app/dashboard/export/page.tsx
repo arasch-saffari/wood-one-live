@@ -49,8 +49,8 @@ export default function ExportPage() {
     }
   }
 
-  const generateSampleData = () => {
-    const data = []
+  const generateSampleData = (): Record<string, string | number>[] => {
+    const data: Record<string, string | number>[] = []
     const now = new Date()
 
     for (let i = 0; i < 96; i++) {
@@ -65,7 +65,7 @@ export default function ExportPage() {
         else if (locationId === "band") baseLevel = 50
         else if (locationId === "heuballern") baseLevel = 35
 
-        const row: any = {
+        const row: Record<string, string | number> = {
           timestamp: timestamp.toISOString(),
           location: location.name,
           date: timestamp.toLocaleDateString("de-DE"),
@@ -83,7 +83,7 @@ export default function ExportPage() {
         }
 
         if (selectedDataTypes.includes("violations")) {
-          const level = Number.parseFloat(row.noise_level_db || "40")
+          const level = Number.parseFloat(row.noise_level_db as string || "40")
           row.warning_threshold_exceeded = level > 55 ? "true" : "false"
           row.alarm_threshold_exceeded = level > 60 ? "true" : "false"
         }
@@ -171,7 +171,7 @@ export default function ExportPage() {
             <Download className="w-4 lg:w-5 h-4 lg:h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-white dark:text-white text-gray-900">Daten Export</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-pink-600 dark:text-white">Daten Export</h1>
             <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
               Exportieren Sie Lärm- und Wetterdaten von allen Überwachungsstandorten
             </p>
@@ -188,7 +188,7 @@ export default function ExportPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                   <MapPin className="w-4 lg:w-5 h-4 lg:h-5 text-pink-400" />
-                  <span className="text-gray-900 dark:text-white">Standorte auswählen</span>
+                  <span className="text-pink-600 dark:text-white">Standorte auswählen</span>
                 </CardTitle>
                 <CardDescription className="text-xs lg:text-sm">
                   Wählen Sie die Überwachungsstandorte aus, die in den Export aufgenommen werden sollen
@@ -228,7 +228,7 @@ export default function ExportPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                   <Database className="w-4 lg:w-5 h-4 lg:h-5 text-purple-400" />
-                  <span className="text-gray-900 dark:text-white">Datentypen auswählen</span>
+                  <span className="text-purple-600 dark:text-white">Datentypen auswählen</span>
                 </CardTitle>
                 <CardDescription className="text-xs lg:text-sm">
                   Wählen Sie die Datentypen aus, die in den Export aufgenommen werden sollen
@@ -272,7 +272,7 @@ export default function ExportPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                   <FileText className="w-4 lg:w-5 h-4 lg:h-5 text-cyan-400" />
-                  <span className="text-gray-900 dark:text-white">Export-Optionen</span>
+                  <span className="text-cyan-600 dark:text-white">Export-Optionen</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -320,7 +320,7 @@ export default function ExportPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
             <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
               <CardHeader>
-                <CardTitle className="text-base lg:text-lg text-gray-900 dark:text-white">
+                <CardTitle className="text-base lg:text-lg text-purple-600 dark:text-white">
                   Export-Zusammenfassung
                 </CardTitle>
               </CardHeader>
@@ -403,7 +403,7 @@ export default function ExportPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
             <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
               <CardHeader>
-                <CardTitle className="text-base lg:text-lg text-gray-900 dark:text-white">Letzte Exporte</CardTitle>
+                <CardTitle className="text-base lg:text-lg text-pink-600 dark:text-white">Letzte Exporte</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">

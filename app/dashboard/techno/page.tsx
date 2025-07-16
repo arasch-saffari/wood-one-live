@@ -1,77 +1,56 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useStationData } from "@/hooks/useStationData"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Volume2, TrendingUp, Wind, Download, AlertTriangle } from "lucide-react"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Area } from "recharts"
-
-// Generiert detaillierte Mock-Daten für den Standort "Techno Floor"
-const generateTechnoData = () => {
-  const now = new Date()
-  const data = []
-
-  for (let i = 0; i < 96; i++) {
-    const timestamp = new Date(now.getTime() - (95 - i) * 15 * 60 * 1000)
-    const hour = timestamp.getHours()
-
-    // Techno Floor - hohe Aktivität während der Partyzeiten
-    let baseLevel = 50
-    if (hour >= 20 || hour <= 3)
-      baseLevel = 72 // Partyzeit
-    else if (hour >= 18 && hour < 20)
-      baseLevel = 65 // Aufbauzeit
-    else if (hour >= 4 && hour <= 10)
-      baseLevel = 45 // Aufräumen/Ruhe
-    else baseLevel = 55 // Vorbereitung
-
-    const windSpeed = 8 + Math.random() * 12
-    const windDirection = Math.floor(Math.random() * 360)
-    const variation = Math.random() * 10 - 5
-    const windInfluence = windSpeed > 15 ? -1 : 0 // Wind könnte Schall wegtragen
-
-    const level = Math.max(40, baseLevel + variation + windInfluence)
-
-    data.push({
-      time: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
-      timestamp: timestamp.getTime(),
-      level: level,
-      windSpeed: windSpeed,
-      windDirection: windDirection,
-      date: timestamp.toLocaleDateString("de-DE"),
-    })
-  }
-
-  return data
-}
-
-// Generiert KPI-Werte für den Standort "Techno Floor"
-const getKPIs = () => ({
-  current: 68.7,
-  avg24h: 61.2,
-  max24h: 78.4,
-  min24h: 42.1,
-  violations: 15,
-  trend: 3.2,
-  currentWind: 14.8,
-  windDirection: "NW",
-})
+import { useState } from "react"
+import Link from "next/link"
 
 export default function TechnoPage() {
-  const [data, setData] = useState(generateTechnoData())
-  const [kpis, setKpis] = useState(getKPIs())
+  const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
+  const data = useStationData("techno", chartInterval)
+  // Compose KPIs from data (e.g., current, avg24h, max24h, min24h, violations, trend)
+  const current = data.length > 0 ? data[data.length - 1].las : 0
+  const max24h = data.length > 0 ? Math.max(...data.map(d => d.las)) : 0
+  const violations = data.length > 0 ? data.filter(d => d.las >= 60).length : 0
+  const currentWind = data.length > 0 ? data[data.length - 1].ws : 0
+  const windDirection = data.length > 0 ? data[data.length - 1].wd : "N/A"
+  const avg24h = data.length > 0 ? (data.reduce((a, b) => a + b.las, 0) / data.length).toFixed(1) : 0
+  const min24h = data.length > 0 ? Math.min(...data.map(d => d.las)) : 0
+  const trend = data.length > 1 ? ((data[data.length - 1].las - data[data.length - 2].las) / data[data.length - 2].las * 100).toFixed(1) : 0
 
-  // Aktualisiert Daten und KPIs in Intervallen
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setData(generateTechnoData())
-      setKpis(getKPIs())
-    }, 8000)
-
-    return () => clearInterval(interval)
-  }, [])
+  // Alert-Status und -Text bestimmen
+  let alertStatus: 'normal' | 'warn' | 'alarm' = 'normal'
+  if (current >= 60) alertStatus = 'alarm'
+  else if (current >= 55) alertStatus = 'warn'
+  // Alert-Farben und Texte
+  const alertConfig = {
+    normal: {
+      bg: 'from-pink-500/10 to-pink-600/10 border-pink-500/20',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-pink-400" />,
+      title: 'Lärmpegel im Normalbereich',
+      text: `Aktueller Pegel: ${current.toFixed(1)} dB. Keine Grenzwertüberschreitung.`,
+      textColor: 'text-pink-400',
+    },
+    warn: {
+      bg: 'from-yellow-500/20 to-yellow-600/20 border-yellow-500/30',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-yellow-400" />,
+      title: 'Warnung: Lärmpegel erhöht',
+      text: `Pegel liegt im Warnbereich (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind ? currentWind : "N/A"} km/h`,
+      textColor: 'text-yellow-400',
+    },
+    alarm: {
+      bg: 'from-red-500/20 to-red-600/20 border-red-500/30',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-red-400" />,
+      title: 'Alarm: Hoher Lärmpegel',
+      text: `Pegel überschreitet Alarmgrenzwert (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind ? currentWind : "N/A"} km/h`,
+      textColor: 'text-red-400',
+    },
+  }[alertStatus]
 
   // Bestimmt die Statusfarbe basierend auf dem Lärmpegel
   const getStatusColor = (level: number) => {
@@ -100,14 +79,22 @@ export default function TechnoPage() {
             <Volume2 className="w-4 lg:w-5 h-4 lg:h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-white dark:text-white text-gray-900">Techno Floor</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-pink-600 dark:text-white">Techno Floor</h1>
             <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
               Hochenergie-Tanzfläche mit Wetter-Einfluss-Analyse
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          {getStatusBadge(kpis.current)}
+          {getStatusBadge(current)}
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 bg-transparent"
+          >
+            <Link href="/dashboard/techno/table">Tabelle</Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -116,31 +103,46 @@ export default function TechnoPage() {
             <Download className="w-3 lg:w-4 h-3 lg:h-4 mr-2" />
             Daten Exportieren
           </Button>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={chartInterval === "24h" ? "default" : "outline"}
+              size="sm"
+              className={chartInterval === "24h" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
+              onClick={() => setChartInterval("24h")}
+            >
+              24h
+            </Button>
+            <Button
+              variant={chartInterval === "7d" ? "default" : "outline"}
+              size="sm"
+              className={chartInterval === "7d" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
+              onClick={() => setChartInterval("7d")}
+            >
+              7d
+            </Button>
+          </div>
         </div>
       </motion.div>
 
-      {/* Alarm Banner */}
+      {/* Alert Banner immer anzeigen */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card className="bg-gradient-to-r from-red-500/20 to-red-600/20 border-red-500/30">
+        <Card className={`bg-gradient-to-r ${alertConfig.bg}`}>
           <CardContent className="py-4">
             <div className="flex items-center space-x-3">
-              <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-red-400" />
+              {alertConfig.icon}
               <div>
-                <p className="font-medium text-red-300 text-sm lg:text-base">Hohe Lärmpegel erkannt</p>
-                <p className="text-xs lg:text-sm text-red-400">
-                  Aktueller Pegel überschreitet Alarmgrenzwert. Windrichtung: {kpis.windDirection} bei{" "}
-                  {kpis.currentWind} km/h
-                </p>
+                <p className={`font-medium ${alertConfig.textColor} text-sm lg:text-base`}>{alertConfig.title}</p>
+                <p className={`text-xs lg:text-sm ${alertConfig.textColor}`}>{alertConfig.text}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
-
       {/* KPI Karten */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+        {/* Aktueller Pegel */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl min-h-[7rem]">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
                 Aktueller Pegel
@@ -149,17 +151,36 @@ export default function TechnoPage() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Volume2 className="w-3 lg:w-4 h-3 lg:h-4 text-pink-400" />
-                <span className={`text-lg lg:text-2xl font-bold ${getStatusColor(kpis.current)}`}>
-                  {kpis.current.toFixed(1)}
-                </span>
+                <span className={`text-lg lg:text-2xl font-bold ${getStatusColor(current)}`}>{current.toFixed(1)}</span>
                 <span className="text-xs lg:text-sm text-gray-500">dB</span>
               </div>
             </CardContent>
           </Card>
         </motion.div>
-
+        {/* 24h Durchschnitt */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl min-h-[7rem]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
+                24h Durchschnitt
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Volume2 className="w-3 lg:w-4 h-3 lg:h-4 text-pink-400" />
+                <span className="text-lg lg:text-2xl font-bold text-pink-400">{avg24h}</span>
+                <span className="text-xs lg:text-sm text-gray-500">dB</span>
+              </div>
+              <div className="flex items-center mt-1">
+                <TrendingUp className="w-2 lg:w-3 h-2 lg:h-3 text-pink-400 mr-1" />
+                <span className="text-xs text-pink-400">{Number(trend) > 0 ? "+" : ""}{trend}% vs gestern</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        {/* 24h Spitze */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl min-h-[7rem]">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
                 24h Spitze
@@ -168,45 +189,28 @@ export default function TechnoPage() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 text-red-400" />
-                <span className="text-lg lg:text-2xl font-bold text-red-400">{kpis.max24h.toFixed(1)}</span>
+                <span className="text-lg lg:text-2xl font-bold text-red-400">{max24h.toFixed(1)}</span>
                 <span className="text-xs lg:text-sm text-gray-500">dB</span>
               </div>
               <div className="text-xs text-gray-500 mt-1">um 23:15 Uhr</div>
             </CardContent>
           </Card>
         </motion.div>
-
+        {/* Windgeschwindigkeit */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl min-h-[7rem]">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
-                Wind-Einfluss
+                Windgeschwindigkeit
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Wind className="w-3 lg:w-4 h-3 lg:h-4 text-purple-400" />
-                <span className="text-lg lg:text-2xl font-bold text-purple-400">{kpis.currentWind}</span>
+                <span className="text-lg lg:text-2xl font-bold text-purple-400">{currentWind ? currentWind : "N/A"}</span>
                 <span className="text-xs lg:text-sm text-gray-500">km/h</span>
               </div>
-              <div className="text-xs text-gray-500 mt-1">-1.2 dB Reduktion</div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
-                Verletzungen
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <span className="text-lg lg:text-2xl font-bold text-red-400">{kpis.violations}</span>
-                <span className="text-xs lg:text-sm text-gray-500">heute</span>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">Aktiv seit 20:00 Uhr</div>
+              <div className="text-xs text-gray-500 mt-1">Windrichtung: {windDirection}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -218,7 +222,7 @@ export default function TechnoPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
               <Volume2 className="w-4 lg:w-5 h-4 lg:h-5 text-pink-400" />
-              <span className="text-gray-900 dark:text-white">Techno Floor - Lärm- & Windanalyse</span>
+              <span className="text-pink-600 dark:text-white">Techno Floor - Lärm- & Windanalyse</span>
             </CardTitle>
             <CardDescription className="text-xs lg:text-sm">
               Echtzeit-Überwachung mit Windgeschwindigkeits-Korrelation und Schwellenwert-Indikatoren
@@ -267,16 +271,17 @@ export default function TechnoPage() {
                       boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
                       color: "hsl(var(--card-foreground))", // Dynamische Farbe
                     }}
-                    formatter={(value: any, name: string) => {
-                      if (name === "level") return [`${value.toFixed(1)} dB`, "Lärmpegel"]
-                      if (name === "windSpeed") return [`${value.toFixed(1)} km/h`, "Windgeschwindigkeit"]
-                      return [value, name]
+                    formatter={(value: number, name: string): [string, string] => {
+                      if (name === "las") return [`${value.toFixed(1)} dB`, "Lärmpegel"]
+                      if (name === "ws") return [`${value.toFixed(1)} km/h`, "Windgeschwindigkeit"]
+                      if (name === "rh") return [`${value.toFixed(0)} %`, "Luftfeuchtigkeit"]
+                      return [String(value), name]
                     }}
                   />
                   <Area
                     yAxisId="noise"
                     type="monotone"
-                    dataKey="level"
+                    dataKey="las"
                     stroke="#ec4899"
                     strokeWidth={3}
                     fillOpacity={1}
@@ -285,12 +290,22 @@ export default function TechnoPage() {
                   <Line
                     yAxisId="wind"
                     type="monotone"
-                    dataKey="windSpeed"
+                    dataKey="ws"
                     stroke="#a855f7"
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
                     name="Windgeschwindigkeit"
+                  />
+                  <Line
+                    yAxisId="wind"
+                    type="monotone"
+                    dataKey="rh"
+                    stroke="#f59e42"
+                    strokeWidth={2}
+                    strokeDasharray="2 2"
+                    dot={false}
+                    name="Luftfeuchtigkeit"
                   />
                   {/* Grenzwertlinien */}
                   <Line

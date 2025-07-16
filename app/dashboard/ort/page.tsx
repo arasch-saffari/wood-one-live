@@ -1,75 +1,56 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MapPin, TrendingUp, Volume2, Clock, BarChart3, Download, Wind } from "lucide-react"
+import { MapPin, TrendingUp, Volume2, Clock, BarChart3, Download, Wind, AlertTriangle } from "lucide-react"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart } from "recharts"
-
-// Generiert detaillierte Mock-Daten für den Standort "Ort"
-const generateDetailedData = () => {
-  const now = new Date()
-  const data = []
-
-  for (let i = 0; i < 96; i++) {
-    const timestamp = new Date(now.getTime() - (95 - i) * 15 * 60 * 1000)
-    const hour = timestamp.getHours()
-
-    // Simuliert realistische Lärmmuster für den Standort "Ort"
-    let baseLevel = 40
-    if (hour >= 6 && hour <= 8)
-      baseLevel = 48 // Morgenverkehr
-    else if (hour >= 12 && hour <= 14)
-      baseLevel = 45 // Mittagsaktivität
-    else if (hour >= 17 && hour <= 19)
-      baseLevel = 47 // Abendverkehr
-    else if (hour >= 22 || hour <= 6) baseLevel = 35 // Nachtruhe
-
-    const windSpeed = 8 + Math.random() * 12
-    const variation = Math.random() * 8 - 4
-    const windInfluence = windSpeed > 15 ? 1.5 : 0
-    const level = Math.max(30, baseLevel + variation + windInfluence)
-
-    data.push({
-      time: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
-      timestamp: timestamp.getTime(),
-      level: level,
-      windSpeed: windSpeed,
-      date: timestamp.toLocaleDateString("de-DE"),
-    })
-  }
-
-  return data
-}
-
-// Generiert KPI-Werte für den Standort "Ort"
-const getKPIs = () => ({
-  current: 42.3,
-  avg24h: 41.8,
-  max24h: 56.2,
-  min24h: 32.1,
-  violations: 3,
-  trend: 2.1,
-  currentWind: 11.4,
-})
+import { useStationData } from "@/hooks/useStationData"
+import { useState } from "react"
+import Link from "next/link"
 
 export default function OrtPage() {
-  const [data, setData] = useState(generateDetailedData())
-  const [kpis, setKpis] = useState(getKPIs())
-  const [timeRange, setTimeRange] = useState("24h")
+  const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
+  const data = useStationData("ort", chartInterval)
+  // Compose KPIs from data (e.g., current, avg24h, max24h, min24h, violations, trend)
+  const current = data.length > 0 ? data[data.length - 1].las : 0
+  const avg24h = data.length > 0 ? (data.reduce((a, b) => a + b.las, 0) / data.length).toFixed(1) : 0
+  const max24h = data.length > 0 ? Math.max(...data.map(d => d.las)) : 0
+  const min24h = data.length > 0 ? Math.min(...data.map(d => d.las)) : 0
+  const violations = data.length > 0 ? data.filter(d => d.las > 60).length : 0
+  const trend = data.length > 1 ? ((data[data.length - 1].las - data[data.length - 2].las) / data[data.length - 2].las * 100).toFixed(1) : 0
+  const currentWind = data.length > 0 ? data[data.length - 1].ws : 0
+  const windDirection = data.length > 0 ? data[data.length - 1].wd : "N/A"
 
-  // Aktualisiert Daten und KPIs in Intervallen
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setData(generateDetailedData())
-      setKpis(getKPIs())
-    }, 10000)
-
-    return () => clearInterval(interval)
-  }, [])
+  // Alert-Status und -Text bestimmen
+  let alertStatus: 'normal' | 'warn' | 'alarm' = 'normal'
+  if (current >= 60) alertStatus = 'alarm'
+  else if (current >= 55) alertStatus = 'warn'
+  // Alert-Farben und Texte
+  const alertConfig = {
+    normal: {
+      bg: 'from-emerald-500/10 to-emerald-600/10 border-emerald-500/20',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-emerald-400" />,
+      title: 'Lärmpegel im Normalbereich',
+      text: `Aktueller Pegel: ${current.toFixed(1)} dB. Keine Grenzwertüberschreitung.`,
+      textColor: 'text-emerald-400',
+    },
+    warn: {
+      bg: 'from-yellow-500/20 to-yellow-600/20 border-yellow-500/30',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-yellow-400" />,
+      title: 'Warnung: Lärmpegel erhöht',
+      text: `Pegel liegt im Warnbereich (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind ? currentWind : "N/A"} km/h`,
+      textColor: 'text-yellow-400',
+    },
+    alarm: {
+      bg: 'from-red-500/20 to-red-600/20 border-red-500/30',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-red-400" />,
+      title: 'Alarm: Hoher Lärmpegel',
+      text: `Pegel überschreitet Alarmgrenzwert (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind ? currentWind : "N/A"} km/h`,
+      textColor: 'text-red-400',
+    },
+  }[alertStatus]
 
   // Bestimmt die Statusfarbe basierend auf dem Lärmpegel
   const getStatusColor = (level: number) => {
@@ -99,6 +80,14 @@ export default function OrtPage() {
         </div>
         <div className="flex items-center space-x-2">
           <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 bg-transparent"
+          >
+            <Link href="/dashboard/ort/table">Tabelle</Link>
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 bg-transparent"
@@ -107,6 +96,21 @@ export default function OrtPage() {
             Daten Exportieren
           </Button>
         </div>
+      </motion.div>
+
+      {/* Alert Banner immer anzeigen */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <Card className={`bg-gradient-to-r ${alertConfig.bg}`}>
+          <CardContent className="py-4">
+            <div className="flex items-center space-x-3">
+              {alertConfig.icon}
+              <div>
+                <p className={`font-medium ${alertConfig.textColor} text-sm lg:text-base`}>{alertConfig.title}</p>
+                <p className={`text-xs lg:text-sm ${alertConfig.textColor}`}>{alertConfig.text}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* KPI Karten */}
@@ -121,8 +125,8 @@ export default function OrtPage() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Volume2 className="w-3 lg:w-4 h-3 lg:h-4 text-emerald-400" />
-                <span className={`text-lg lg:text-2xl font-bold ${getStatusColor(kpis.current)}`}>
-                  {kpis.current.toFixed(1)}
+                <span className={`text-lg lg:text-2xl font-bold ${getStatusColor(current)}`}>
+                  {current.toFixed(1)}
                 </span>
                 <span className="text-xs lg:text-sm text-gray-500">dB</span>
               </div>
@@ -140,12 +144,12 @@ export default function OrtPage() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <BarChart3 className="w-3 lg:w-4 h-3 lg:h-4 text-emerald-400" />
-                <span className="text-lg lg:text-2xl font-bold text-emerald-400">{kpis.avg24h.toFixed(1)}</span>
+                <span className="text-lg lg:text-2xl font-bold text-emerald-400">{avg24h}</span>
                 <span className="text-xs lg:text-sm text-gray-500">dB</span>
               </div>
               <div className="flex items-center mt-1">
                 <TrendingUp className="w-2 lg:w-3 h-2 lg:h-3 text-emerald-400 mr-1" />
-                <span className="text-xs text-emerald-400">+{kpis.trend}% vs gestern</span>
+                <span className="text-xs text-emerald-400">+{trend}% vs gestern</span>
               </div>
             </CardContent>
           </Card>
@@ -161,7 +165,7 @@ export default function OrtPage() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 text-red-400" />
-                <span className="text-lg lg:text-2xl font-bold text-red-400">{kpis.max24h.toFixed(1)}</span>
+                <span className="text-lg lg:text-2xl font-bold text-red-400">{max24h.toFixed(1)}</span>
                 <span className="text-xs lg:text-sm text-gray-500">dB</span>
               </div>
               <div className="text-xs text-gray-500 mt-1">um 18:45 Uhr</div>
@@ -179,7 +183,7 @@ export default function OrtPage() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Wind className="w-3 lg:w-4 h-3 lg:h-4 text-cyan-400" />
-                <span className="text-lg lg:text-2xl font-bold text-cyan-400">{kpis.currentWind}</span>
+                <span className="text-lg lg:text-2xl font-bold text-cyan-400">{currentWind}</span>
                 <span className="text-xs lg:text-sm text-gray-500">km/h</span>
               </div>
               <div className="text-xs text-gray-500 mt-1">+1.5 dB Einfluss</div>
@@ -204,28 +208,18 @@ export default function OrtPage() {
               </div>
               <div className="flex items-center space-x-2">
                 <Button
-                  variant={timeRange === "24h" ? "default" : "outline"}
+                  variant={chartInterval === "24h" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setTimeRange("24h")}
-                  className={cn(
-                    "text-xs lg:text-sm",
-                    timeRange === "24h"
-                      ? "bg-gradient-to-r from-pink-500 to-purple-600"
-                      : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800",
-                  )}
+                  className={chartInterval === "24h" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
+                  onClick={() => setChartInterval("24h")}
                 >
                   24h
                 </Button>
                 <Button
-                  variant={timeRange === "7d" ? "default" : "outline"}
+                  variant={chartInterval === "7d" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setTimeRange("7d")}
-                  className={cn(
-                    "text-xs lg:text-sm",
-                    timeRange === "7d"
-                      ? "bg-gradient-to-r from-pink-500 to-purple-600"
-                      : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800",
-                  )}
+                  className={chartInterval === "7d" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
+                  onClick={() => setChartInterval("7d")}
                 >
                   7d
                 </Button>
@@ -275,16 +269,17 @@ export default function OrtPage() {
                       boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
                       color: "hsl(var(--card-foreground))", // Dynamische Farbe
                     }}
-                    formatter={(value: any, name: string) => {
-                      if (name === "level") return [`${value.toFixed(1)} dB`, "Lärmpegel"]
-                      if (name === "windSpeed") return [`${value.toFixed(1)} km/h`, "Windgeschwindigkeit"]
-                      return [value, name]
+                    formatter={(value: number, name: string): [string, string] => {
+                      if (name === "las") return [`${value.toFixed(1)} dB`, "Lärmpegel"]
+                      if (name === "ws") return [`${value.toFixed(1)} km/h`, "Windgeschwindigkeit"]
+                      if (name === "rh") return [`${value.toFixed(0)} %`, "Luftfeuchtigkeit"]
+                      return [String(value), name]
                     }}
                   />
                   <Area
                     yAxisId="noise"
                     type="monotone"
-                    dataKey="level"
+                    dataKey="las"
                     stroke="#10b981"
                     strokeWidth={3}
                     fillOpacity={1}
@@ -293,12 +288,22 @@ export default function OrtPage() {
                   <Line
                     yAxisId="wind"
                     type="monotone"
-                    dataKey="windSpeed"
+                    dataKey="ws"
                     stroke="#06b6d4"
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
                     name="Windgeschwindigkeit"
+                  />
+                  <Line
+                    yAxisId="wind"
+                    type="monotone"
+                    dataKey="rh"
+                    stroke="#f59e42"
+                    strokeWidth={2}
+                    strokeDasharray="2 2"
+                    dot={false}
+                    name="Luftfeuchtigkeit"
                   />
                   {/* Grenzwertlinien */}
                   <Line
@@ -339,13 +344,13 @@ export default function OrtPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
               <div className="text-center">
                 <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                  {(100 - (kpis.violations / 24) * 100).toFixed(1)}%
+                  {(100 - (violations / 24) * 100).toFixed(1)}%
                 </div>
                 <div className="text-xs lg:text-sm text-gray-500">Konformitätsrate</div>
               </div>
               <div className="text-center">
                 <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                  {(kpis.max24h - kpis.min24h).toFixed(1)} dB
+                  {(max24h - min24h).toFixed(1)} dB
                 </div>
                 <div className="text-xs lg:text-sm text-gray-500">Tagesbereich</div>
               </div>

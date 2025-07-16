@@ -1,91 +1,56 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useStationData } from "@/hooks/useStationData"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Music, TrendingUp, Wind, Download, BarChart3, Clock } from "lucide-react"
-import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Area } from "recharts"
-
-// Generiert detaillierte Mock-Daten für den Standort "Band Bühne"
-const generateBandData = () => {
-  const now = new Date()
-  const data = []
-
-  for (let i = 0; i < 96; i++) {
-    const timestamp = new Date(now.getTime() - (95 - i) * 15 * 60 * 1000)
-    const hour = timestamp.getHours()
-
-    // Band Bühne - Live-Musik-Auftritte
-    let baseLevel = 42
-    if (hour >= 19 && hour <= 23)
-      baseLevel = 62 // Konzertzeit
-    else if (hour >= 17 && hour < 19)
-      baseLevel = 52 // Soundcheck
-    else if (hour >= 14 && hour < 17)
-      baseLevel = 48 // Aufbau
-    else if (hour >= 0 && hour <= 6) baseLevel = 38 // Nachtruhe
-
-    const windSpeed = 8 + Math.random() * 12
-    const windDirection = Math.floor(Math.random() * 360)
-    const variation = Math.random() * 8 - 4
-    const windInfluence = windSpeed > 15 ? -0.8 : 0 // Wind trägt Schall weg
-
-    const level = Math.max(35, baseLevel + variation + windInfluence)
-
-    data.push({
-      time: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
-      timestamp: timestamp.getTime(),
-      level: level,
-      windSpeed: windSpeed,
-      windDirection: windDirection,
-      date: timestamp.toLocaleDateString("de-DE"),
-    })
-  }
-
-  return data
-}
-
-// Generiert KPI-Werte für den Standort "Band Bühne"
-const getKPIs = () => ({
-  current: 57.3,
-  avg24h: 48.6,
-  max24h: 68.9,
-  min24h: 36.2,
-  violations: 8,
-  trend: 1.8,
-  currentWind: 11.2,
-  windDirection: "W",
-  nextShow: "20:30",
-})
+import { Music, TrendingUp, Wind, Download, BarChart3, AlertTriangle } from "lucide-react"
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart } from "recharts"
+import { useState } from "react"
+import Link from "next/link"
 
 export default function BandPage() {
-  const [data, setData] = useState(generateBandData())
-  const [kpis, setKpis] = useState(getKPIs())
+  const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
+  const data = useStationData("band", chartInterval)
+  const current = data.length > 0 ? data[data.length - 1].las : 0
+  const avg24h = data.length > 0 ? (data.reduce((a, b) => a + b.las, 0) / data.length).toFixed(1) : 0
+  const max24h = data.length > 0 ? Math.max(...data.map(d => d.las)) : 0
+  const currentWind = data.length > 0 ? data[data.length - 1].ws : 0
+  const windDirection = data.length > 0 ? data[data.length - 1].wd : "N/A"
 
-  // Aktualisiert Daten und KPIs in Intervallen
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setData(generateBandData())
-      setKpis(getKPIs())
-    }, 9000)
+  // Alert-Status und -Text bestimmen
+  let alertStatus: 'normal' | 'warn' | 'alarm' = 'normal'
+  if (current >= 60) alertStatus = 'alarm'
+  else if (current >= 55) alertStatus = 'warn'
+  const alertConfig = {
+    normal: {
+      bg: 'from-purple-500/10 to-purple-600/10 border-purple-500/20',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-purple-400" />,
+      title: 'Lärmpegel im Normalbereich',
+      text: `Aktueller Pegel: ${current.toFixed(1)} dB. Keine Grenzwertüberschreitung.`,
+      textColor: 'text-purple-400',
+    },
+    warn: {
+      bg: 'from-yellow-500/20 to-yellow-600/20 border-yellow-500/30',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-yellow-400" />,
+      title: 'Warnung: Lärmpegel erhöht',
+      text: `Pegel liegt im Warnbereich (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind ? currentWind : "N/A"} km/h`,
+      textColor: 'text-yellow-400',
+    },
+    alarm: {
+      bg: 'from-red-500/20 to-red-600/20 border-red-500/30',
+      icon: <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-red-400" />,
+      title: 'Alarm: Hoher Lärmpegel',
+      text: `Pegel überschreitet Alarmgrenzwert (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind ? currentWind : "N/A"} km/h`,
+      textColor: 'text-red-400',
+    },
+  }[alertStatus]
 
-    return () => clearInterval(interval)
-  }, [])
-
-  // Bestimmt die Statusfarbe basierend auf dem Lärmpegel
   const getStatusColor = (level: number) => {
     if (level >= 60) return "text-red-400"
     if (level >= 55) return "text-yellow-400"
     return "text-purple-400"
-  }
-
-  // Bestimmt das Status-Badge basierend auf dem Lärmpegel
-  const getStatusBadge = (level: number) => {
-    if (level >= 60) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
-    if (level >= 55) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
-    return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Normal</Badge>
   }
 
   return (
@@ -101,14 +66,21 @@ export default function BandPage() {
             <Music className="w-4 lg:w-5 h-4 lg:h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-white dark:text-white text-gray-900">Band Bühne</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Band Bühne</h1>
             <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
-              Live-Musik-Bühne mit Auftrittsplan-Verfolgung
+              Live-Musik-Bühne mit Wetter- und Windanalyse
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          {getStatusBadge(kpis.current)}
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 bg-transparent"
+          >
+            <Link href="/dashboard/band/table">Tabelle</Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -117,24 +89,35 @@ export default function BandPage() {
             <Download className="w-3 lg:w-4 h-3 lg:h-4 mr-2" />
             Daten Exportieren
           </Button>
+          <Button
+            variant={chartInterval === "24h" ? "default" : "outline"}
+            size="sm"
+            className={chartInterval === "24h" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
+            onClick={() => setChartInterval("24h")}
+          >
+            24h
+          </Button>
+          <Button
+            variant={chartInterval === "7d" ? "default" : "outline"}
+            size="sm"
+            className={chartInterval === "7d" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
+            onClick={() => setChartInterval("7d")}
+          >
+            7d
+          </Button>
         </div>
       </motion.div>
 
-      {/* Auftrittsplan */}
+      {/* Alert Banner immer anzeigen */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card className="bg-gradient-to-r from-purple-500/5 to-pink-500/5 dark:from-purple-500/20 dark:to-pink-500/20 border-purple-500/30">
+        <Card className={`bg-gradient-to-r ${alertConfig.bg}`}>
           <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Clock className="w-4 lg:w-5 h-4 lg:h-5 text-purple-400" />
-                <div>
-                  <p className="font-medium text-purple-300 text-sm lg:text-base">Nächster Auftritt</p>
-                  <p className="text-xs lg:text-sm text-purple-400">
-                    Geplant um {kpis.nextShow} - Windbedingungen günstig
-                  </p>
-                </div>
+            <div className="flex items-center space-x-3">
+              {alertConfig.icon}
+              <div>
+                <p className={`font-medium ${alertConfig.textColor} text-sm lg:text-base`}>{alertConfig.title}</p>
+                <p className={`text-xs lg:text-sm ${alertConfig.textColor}`}>{alertConfig.text}</p>
               </div>
-              <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Bevorstehend</Badge>
             </div>
           </CardContent>
         </Card>
@@ -142,7 +125,7 @@ export default function BandPage() {
 
       {/* KPI Karten */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -152,79 +135,73 @@ export default function BandPage() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Music className="w-3 lg:w-4 h-3 lg:h-4 text-purple-400" />
-                <span className={`text-lg lg:text-2xl font-bold ${getStatusColor(kpis.current)}`}>
-                  {kpis.current.toFixed(1)}
-                </span>
+                <span className={`text-lg lg:text-2xl font-bold ${getStatusColor(current)}`}>{current.toFixed(1)}</span>
                 <span className="text-xs lg:text-sm text-gray-500">dB</span>
               </div>
             </CardContent>
           </Card>
         </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
-                Spitze während Show
+                24h Durchschnitt
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
-                <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 text-yellow-400" />
-                <span className="text-lg lg:text-2xl font-bold text-yellow-400">{kpis.max24h.toFixed(1)}</span>
+                <BarChart3 className="w-3 lg:w-4 h-3 lg:h-4 text-purple-400" />
+                <span className="text-lg lg:text-2xl font-bold text-purple-400">{avg24h}</span>
                 <span className="text-xs lg:text-sm text-gray-500">dB</span>
               </div>
-              <div className="text-xs text-gray-500 mt-1">Letzte Show: 21:45 Uhr</div>
             </CardContent>
           </Card>
         </motion.div>
-
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
+                24h Spitze
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 text-red-400" />
+                <span className="text-lg lg:text-2xl font-bold text-red-400">{max24h.toFixed(1)}</span>
+                <span className="text-xs lg:text-sm text-gray-500">dB</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
-                Wind-Effekt
+                Windgeschwindigkeit
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Wind className="w-3 lg:w-4 h-3 lg:h-4 text-pink-400" />
-                <span className="text-lg lg:text-2xl font-bold text-pink-400">{kpis.currentWind}</span>
+                <span className="text-lg lg:text-2xl font-bold text-pink-400">{currentWind}</span>
                 <span className="text-xs lg:text-sm text-gray-500">km/h</span>
               </div>
-              <div className="text-xs text-emerald-400 mt-1">-0.8 dB Schalldispersion</div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
-                Show-Verletzungen
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <span className="text-lg lg:text-2xl font-bold text-yellow-400">{kpis.violations}</span>
-                <span className="text-xs lg:text-sm text-gray-500">heute</span>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">Während der Auftritte</div>
+              <div className="text-xs text-gray-500 mt-1">Windrichtung: {windDirection}</div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
       {/* Haupt-Diagramm */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
         <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
               <Music className="w-4 lg:w-5 h-4 lg:h-5 text-purple-400" />
-              <span className="text-gray-900 dark:text-white">Band Bühne - Performance & Wetter-Einfluss</span>
+              <span className="text-gray-900 dark:text-white">Band Bühne - Lärm & Wind</span>
             </CardTitle>
             <CardDescription className="text-xs lg:text-sm">
-              Live-Musik-Überwachung mit Winddispersionsanalyse
+              15-Minuten-Intervalle mit Windgeschwindigkeits-Overlay
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -239,18 +216,18 @@ export default function BandPage() {
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="hsl(var(--border))" // Dynamische Farbe
+                    stroke="hsl(var(--border))"
                   />
                   <XAxis
                     dataKey="time"
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis
                     yAxisId="noise"
                     domain={[30, 75]}
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}
                   />
@@ -258,28 +235,29 @@ export default function BandPage() {
                     yAxisId="wind"
                     orientation="right"
                     domain={[0, 25]}
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))", // Dynamische Farbe
-                      border: "1px solid hsl(var(--border))", // Dynamische Farbe
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
                       borderRadius: "12px",
                       boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
-                      color: "hsl(var(--card-foreground))", // Dynamische Farbe
+                      color: "hsl(var(--card-foreground))",
                     }}
-                    formatter={(value: any, name: string) => {
-                      if (name === "level") return [`${value.toFixed(1)} dB`, "Lärmpegel"]
-                      if (name === "windSpeed") return [`${value.toFixed(1)} km/h`, "Windgeschwindigkeit"]
-                      return [value, name]
+                    formatter={(value: number, name: string): [string, string] => {
+                      if (name === "las") return [`${value.toFixed(1)} dB`, "Lärmpegel"]
+                      if (name === "ws") return [`${value.toFixed(1)} km/h`, "Windgeschwindigkeit"]
+                      if (name === "rh") return [`${value.toFixed(0)} %`, "Luftfeuchtigkeit"]
+                      return [String(value), name]
                     }}
                   />
                   <Area
                     yAxisId="noise"
                     type="monotone"
-                    dataKey="level"
+                    dataKey="las"
                     stroke="#a855f7"
                     strokeWidth={3}
                     fillOpacity={1}
@@ -288,14 +266,23 @@ export default function BandPage() {
                   <Line
                     yAxisId="wind"
                     type="monotone"
-                    dataKey="windSpeed"
+                    dataKey="ws"
                     stroke="#ec4899"
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
                     name="Windgeschwindigkeit"
                   />
-                  {/* Performance-Zeit-Indikatoren */}
+                  <Line
+                    yAxisId="wind"
+                    type="monotone"
+                    dataKey="rh"
+                    stroke="#f59e42"
+                    strokeWidth={2}
+                    strokeDasharray="2 2"
+                    dot={false}
+                    name="Luftfeuchtigkeit"
+                  />
                   <Line
                     yAxisId="noise"
                     type="monotone"
@@ -318,34 +305,6 @@ export default function BandPage() {
                   />
                 </ComposedChart>
               </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Performance-Analyse */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-        <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
-              <BarChart3 className="w-4 lg:w-5 h-4 lg:h-5 text-purple-400" />
-              <span className="text-gray-900 dark:text-white">Performance-Einfluss-Analyse</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-              <div className="text-center">
-                <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">19:00-23:00</div>
-                <div className="text-xs lg:text-sm text-gray-500">Spitzen-Performance-Stunden</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">-0.8 dB</div>
-                <div className="text-xs lg:text-sm text-gray-500">Winddispersions-Effekt</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">92%</div>
-                <div className="text-xs lg:text-sm text-gray-500">Konformität während Shows</div>
-              </div>
             </div>
           </CardContent>
         </Card>

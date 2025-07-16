@@ -9,7 +9,13 @@ import { Activity, Calendar, Download, Filter } from "lucide-react"
 
 // Generiert Mock-Daten für die Heatmap basierend auf dem Standort
 const generateHeatmapData = (location: string) => {
-  const data = []
+  interface HeatmapDataPoint {
+    hour: number
+    quarter: number
+    level: number
+    time: string
+  }
+  const data: HeatmapDataPoint[] = []
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const quarters = Array.from({ length: 4 }, (_, i) => i * 15)
 
