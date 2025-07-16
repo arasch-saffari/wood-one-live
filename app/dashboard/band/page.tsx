@@ -68,7 +68,7 @@ export default function BandPage() {
           <div>
             <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Band Bühne</h1>
             <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
-              Live-Musik-Bühne mit Wetter- und Windanalyse
+              Live-Musik-Bühne mit Wetter-Einfluss-Analyse
             </p>
           </div>
         </div>

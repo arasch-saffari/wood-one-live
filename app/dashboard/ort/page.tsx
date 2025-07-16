@@ -72,7 +72,7 @@ export default function OrtPage() {
             <MapPin className="w-4 lg:w-5 h-4 lg:h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-white dark:text-white text-gray-900">Standort Ort</h1>
+            <h1 className="text-xl lg:text-2xl font-bold dark:text-white text-gray-900">Standort Ort</h1>
             <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
               Detaillierte Lärmüberwachung mit Windkorrelation
             </p>
@@ -200,7 +200,7 @@ export default function OrtPage() {
               <div>
                 <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                   <BarChart3 className="w-4 lg:w-5 h-4 lg:h-5 text-emerald-400" />
-                  <span className="text-gray-900 dark:text-white">Ort - Lärm- & Windkorrelation</span>
+                  <span className="text-emerald-600 dark:text-white">Ort - Lärm- & Windkorrelation</span>
                 </CardTitle>
                 <CardDescription className="text-xs lg:text-sm">
                   15-Minuten-Intervalle mit Windgeschwindigkeits-Overlay
@@ -248,7 +248,7 @@ export default function OrtPage() {
                   />
                   <YAxis
                     yAxisId="noise"
-                    domain={[30, 70]}
+                    domain={[40, 85]}
                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}
@@ -314,6 +314,7 @@ export default function OrtPage() {
                     strokeWidth={1}
                     strokeDasharray="3 3"
                     dot={false}
+                    name="Warnung"
                   />
                   <Line
                     yAxisId="noise"
@@ -323,6 +324,7 @@ export default function OrtPage() {
                     strokeWidth={1}
                     strokeDasharray="3 3"
                     dot={false}
+                    name="Alarm"
                   />
                 </ComposedChart>
               </ResponsiveContainer>

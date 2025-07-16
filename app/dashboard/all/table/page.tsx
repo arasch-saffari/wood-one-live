@@ -1,166 +1,102 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
-import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination"
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Download, BarChart3 } from "lucide-react"
 import { useStationData } from "@/hooks/useStationData"
 
-const STATIONS = [
-  { key: "ort", name: "Ort" },
-  { key: "heuballern", name: "Heuballern" },
-  { key: "techno", name: "TechnoFloor" },
-  { key: "band", name: "Bandbuehne" },
-]
-
-const PAGE_SIZE = 20
-
-function getStatus(level: number, isNight = false) {
-  const threshold = isNight ? 43 : 55
-  const alarmThreshold = isNight ? 45 : 60
-  if (level >= alarmThreshold) return { label: "Alarm", color: "bg-red-100 text-red-600" }
-  if (level >= threshold) return { label: "Warnung", color: "bg-yellow-100 text-yellow-700" }
-  return { label: "Normal", color: "bg-emerald-100 text-emerald-700" }
-}
-
-function isNightTime(time: string) {
-  // time: "HH:MM"
-  const [h] = time.split(":").map(Number)
-  return h < 6 || h >= 22
-}
-
 export default function AllTablePage() {
-  // Filter-State
-  const [interval, setInterval] = useState<"24h" | "7d">("24h")
-  const [stationFilter, setStationFilter] = useState<string | "all">("all")
-  const [showOnlyExceeded, setShowOnlyExceeded] = useState(false)
-  const [page, setPage] = useState(1)
+  const [selectedStation, setSelectedStation] = useState<string>("ort")
+  const data = useStationData(selectedStation, "24h")
 
-  // Daten laden
-  const allData = STATIONS.map(s => useStationData(s.key, interval).map(d => ({ ...d, station: s.name }))).flat()
+  const stations = [
+    { id: "ort", name: "Ort", color: "text-emerald-400" },
+    { id: "techno", name: "Techno Floor", color: "text-pink-400" },
+    { id: "heuballern", name: "Heuballern", color: "text-cyan-400" },
+    { id: "band", name: "Band", color: "text-purple-400" },
+  ]
 
-  // Filter anwenden
-  const filtered = useMemo(() => {
-    let data = allData
-    if (stationFilter !== "all") {
-      data = data.filter(d => d.station === stationFilter)
-    }
-    if (showOnlyExceeded) {
-      data = data.filter(d => {
-        const night = isNightTime(d.time)
-        const { label } = getStatus(d.las, night)
-        return label !== "Normal"
-      })
-    }
-    return data.sort((a, b) => b.time.localeCompare(a.time) || a.station.localeCompare(b.station))
-  }, [allData, stationFilter, showOnlyExceeded])
+  const exportData = () => {
+    const csvContent = [
+      "Zeit,Lärmpegel (dB),Windgeschwindigkeit (km/h),Windrichtung,Luftfeuchtigkeit (%)",
+      ...data.map((row) => 
+        `${row.time},${row.las},${row.ws || "N/A"},${row.wd || "N/A"},${row.rh || "N/A"}`
+      )
+    ].join("\n")
 
-  // Pagination
-  const pageCount = Math.ceil(filtered.length / PAGE_SIZE)
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
-  // Letzter Wert (neuester)
-  const last = filtered[0]
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", `${selectedStation}_data.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   return (
     <div className="space-y-6">
-      {/* Sticky Card für letzten Wert */}
-      {last && (
-        <Card className="sticky top-2 z-10 bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-lg">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold">Letzter Wert</CardTitle>
-            <Badge className={getStatus(last.las, isNightTime(last.time)).color}>{getStatus(last.las, isNightTime(last.time)).label}</Badge>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-4 text-sm">
-            <div><span className="font-medium">Zeit:</span> {last.time}</div>
-            <div><span className="font-medium">Station:</span> {last.station}</div>
-            <div><span className="font-medium">dB:</span> {last.las.toFixed(1)}</div>
-            <div><span className="font-medium">Wind:</span> {last.ws ?? "-"} km/h</div>
-            <div><span className="font-medium">Richtung:</span> {last.wd ?? "-"}</div>
-            <div><span className="font-medium">Luftfeuchte:</span> {last.rh ?? "-"} %</div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Filterleiste */}
-      <div className="flex flex-wrap gap-4 items-center">
-        <Select value={interval} onValueChange={v => { setInterval(v as any); setPage(1) }}>
-          <SelectTrigger className="w-32"><SelectValue /> </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="24h">Letzte 24h</SelectItem>
-            <SelectItem value="7d">Letzte 7 Tage</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={stationFilter} onValueChange={v => { setStationFilter(v); setPage(1) }}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle Stationen</SelectItem>
-            {STATIONS.map(s => <SelectItem key={s.key} value={s.name}>{s.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox" checked={showOnlyExceeded} onChange={e => { setShowOnlyExceeded(e.target.checked); setPage(1) }} className="accent-red-500" />
-          Nur Grenzwert-Überschreitungen
-        </label>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daten Tabelle</h1>
+          <p className="text-gray-600 dark:text-gray-400">Detaillierte Messwerte aller Stationen</p>
+        </div>
+        <Button onClick={exportData} className="bg-gradient-to-r from-pink-500 to-purple-600">
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
-      {/* Tabelle */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/60">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Zeit</TableHead>
-              <TableHead>Station</TableHead>
-              <TableHead>dB</TableHead>
-              <TableHead>Wind (km/h)</TableHead>
-              <TableHead>Richtung</TableHead>
-              <TableHead>Luftfeuchte (%)</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paged.map((row, i) => {
-              const night = isNightTime(row.time)
-              const status = getStatus(row.las, night)
-              return (
-                <TableRow key={i} className={status.label !== "Normal" ? (status.label === "Alarm" ? "bg-red-50 dark:bg-red-900/30" : "bg-yellow-50 dark:bg-yellow-900/30") : ""}>
-                  <TableCell>{row.time}</TableCell>
-                  <TableCell>{row.station}</TableCell>
-                  <TableCell className="font-semibold">{row.las.toFixed(1)}</TableCell>
-                  <TableCell>{row.ws ?? "-"}</TableCell>
-                  <TableCell>{row.wd ?? "-"}</TableCell>
-                  <TableCell>{row.rh ?? "-"}</TableCell>
-                  <TableCell><Badge className={status.color}>{status.label}</Badge></TableCell>
-                </TableRow>
-              )
-            })}
-            {paged.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-gray-400">Keine Daten gefunden.</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {stations.map((station) => (
+          <Button
+            key={station.id}
+            variant={selectedStation === station.id ? "default" : "outline"}
+            onClick={() => setSelectedStation(station.id)}
+            className={selectedStation === station.id ? "bg-gradient-to-r from-pink-500 to-purple-600" : ""}
+          >
+            <BarChart3 className={`w-4 h-4 mr-2 ${station.color}`} />
+            {station.name}
+          </Button>
+        ))}
       </div>
 
-      {/* Pagination */}
-      {pageCount > 1 && (
-        <Pagination className="mt-4">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious onClick={() => setPage(p => Math.max(1, p - 1))} aria-disabled={page === 1} />
-            </PaginationItem>
-            {Array.from({ length: pageCount }).map((_, idx) => (
-              <PaginationItem key={idx}>
-                <PaginationLink isActive={page === idx + 1} onClick={() => setPage(idx + 1)}>{idx + 1}</PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext onClick={() => setPage(p => Math.min(pageCount, p + 1))} aria-disabled={page === pageCount} />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <BarChart3 className="w-5 h-5 text-emerald-400" />
+            <span>Messwerte - {stations.find(s => s.id === selectedStation)?.name}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Zeit</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Lärmpegel (dB)</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Wind (km/h)</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Richtung</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Feuchtigkeit (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((row, index) => (
+                  <tr key={index} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.time}</td>
+                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.las.toFixed(1)}</td>
+                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.ws || "N/A"}</td>
+                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.wd || "N/A"}</td>
+                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.rh || "N/A"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 } 

@@ -10,7 +10,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing times parameter" }, { status: 400 })
     }
     const times = timesParam.split(",").map(t => t.trim()).filter(Boolean)
-    const result: Record<string, any> = {}
+    const result: Record<string, { windSpeed?: number; windDir?: string; relHumidity?: number } | null> = {}
     for (const time of times) {
       result[time] = await getOrFetchWeather(station, time)
     }

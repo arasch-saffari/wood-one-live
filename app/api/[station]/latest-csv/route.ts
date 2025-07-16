@@ -2,8 +2,8 @@ import { NextResponse } from "next/server"
 import fs from "fs"
 import path from "path"
 
-export async function GET(req: Request, context: { params: { station: string } }) {
-  const { params } = context
+export async function GET(req: Request, context: { params: Promise<{ station: string }> }) {
+  const params = await context.params
   const { station } = params
   const csvDir = path.join(process.cwd(), "public", "csv", station)
   let latestFile = null

@@ -10,9 +10,95 @@ export interface StationDataPoint {
   rh?: number  // relative humidity
 }
 
+// Notification sound function
+function playAlertSound() {
+  try {
+    const audio = new Audio('/alert-sound.mp3')
+    audio.volume = 0.7
+    audio.play().catch(() => {
+      // Fallback: create a beep sound using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1)
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2)
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3)
+      
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + 0.3)
+    })
+  } catch (e) {
+    console.log('Could not play alert sound')
+  }
+}
+
+// Request notification permission
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    console.log('This browser does not support notifications')
+    return false
+  }
+  
+  if (Notification.permission === 'granted') {
+    return true
+  }
+  
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission()
+    return permission === 'granted'
+  }
+  
+  return false
+}
+
+// Show expressive notification
+function showNoiseAlert(station: string, level: number, threshold: number) {
+  const stationNames: Record<string, string> = {
+    'ort': 'Standort Ort',
+    'techno': 'Techno Floor',
+    'heuballern': 'Heuballern',
+    'band': 'Band',
+    'triple': 'Triple'
+  }
+  
+  const stationName = stationNames[station] || station
+  
+  const notification = new Notification(`🚨 LÄRMALARM - ${stationName}`, {
+    body: `Grenzwert überschritten! Aktueller Pegel: ${level.toFixed(1)} dB (Grenze: ${threshold} dB)`,
+    icon: '/alert-icon.png', // You can add an alert icon to public/
+    tag: `noise-alert-${station}`,
+    requireInteraction: true,
+    silent: false
+  })
+  
+  // Play alert sound
+  playAlertSound()
+  
+  // Handle notification clicks
+  notification.onclick = () => {
+    window.focus()
+    notification.close()
+    // Navigate to the specific station dashboard
+    window.location.href = `/dashboard/${station}`
+  }
+  
+  // Auto-close after 10 seconds
+  setTimeout(() => {
+    notification.close()
+  }, 10000)
+}
+
 export function useStationData(station: string, interval: "24h" | "7d" = "24h") {
   const [data, setData] = useState<StationDataPoint[]>([])
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastAlertRef = useRef<{ level: number; time: number }>({ level: 0, time: 0 })
 
   async function fetchAndProcess() {
     try {
@@ -37,19 +123,22 @@ export function useStationData(station: string, interval: "24h" | "7d" = "24h") 
       if (!Array.isArray(rows) || rows.length < 2) return
       rows = rows.slice(1) // drop first row
 
-      // 4. Validate and process rows
+      // 4. Determine the correct column name for noise level based on station
+      const noiseColumn = station === "heuballern" ? "LAF" : "LAS"
+
+      // 5. Validate and process rows
       const validRows = rows.filter(
         (row) =>
           row["Systemzeit "] &&
-          row["LAS"] &&
-          !isNaN(Number(row["LAS"].replace(",", ".")))
+          row[noiseColumn] &&
+          !isNaN(Number(row[noiseColumn].replace(",", ".")))
       )
 
-      // 5. Aggregate into 15-min blocks
+      // 6. Aggregate into 15-min blocks
       const blocks: { [block: string]: number[] } = {}
       validRows.forEach((row) => {
         const sysTime = row["Systemzeit "]?.trim()
-        const las = Number(row["LAS"].replace(",", "."))
+        const las = Number(row[noiseColumn].replace(",", "."))
         if (!sysTime || isNaN(las)) return
         // Parse time as HH:MM:SS:MS, use only HH:MM
         const [h, m] = sysTime.split(":")
@@ -58,7 +147,7 @@ export function useStationData(station: string, interval: "24h" | "7d" = "24h") 
         if (!blocks[blockTime]) blocks[blockTime] = []
         blocks[blockTime].push(las)
       })
-      // 6. Für alle Blöcke: Wetterdaten im Batch holen
+      // 7. Für alle Blöcke: Wetterdaten im Batch holen
       const blockTimes = Object.keys(blocks).sort()
       const weatherBlocks = blockTimes.map(t => roundTo5MinBlock(t))
       const uniqueWeatherBlocks = Array.from(new Set(weatherBlocks))
@@ -71,7 +160,7 @@ export function useStationData(station: string, interval: "24h" | "7d" = "24h") 
       } catch (e) {
         // ignore weather errors
       }
-      // 7. Ergebnis bauen
+      // 8. Ergebnis bauen
       const result: StationDataPoint[] = []
       for (const time of blockTimes) {
         const lasArr = blocks[time]
@@ -87,7 +176,29 @@ export function useStationData(station: string, interval: "24h" | "7d" = "24h") 
       }
       // Anzahl der Blöcke je nach Intervall
       const keepBlocks = interval === "7d" ? 672 : 40
-      setData(result.slice(-keepBlocks))
+      const newData = result.slice(-keepBlocks)
+      setData(newData)
+      
+      // 9. Check for noise alerts
+      if (newData.length > 0) {
+        const currentLevel = newData[newData.length - 1].las
+        const now = Date.now()
+        
+        // Check if we should show an alert (avoid spam - only alert once per 5 minutes per threshold)
+        if (currentLevel >= 60 && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
+          const hasPermission = await requestNotificationPermission()
+          if (hasPermission) {
+            showNoiseAlert(station, currentLevel, 60)
+            lastAlertRef.current = { level: currentLevel, time: now }
+          }
+        } else if (currentLevel >= 55 && currentLevel < 60 && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
+          const hasPermission = await requestNotificationPermission()
+          if (hasPermission) {
+            showNoiseAlert(station, currentLevel, 55)
+            lastAlertRef.current = { level: currentLevel, time: now }
+          }
+        }
+      }
     } catch (e) {
       // Optionally handle error
     }

@@ -81,7 +81,7 @@ export default function TechnoPage() {
           <div>
             <h1 className="text-xl lg:text-2xl font-bold text-pink-600 dark:text-white">Techno Floor</h1>
             <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
-              Hochenergie-Tanzfläche mit Wetter-Einfluss-Analyse
+              Techno Floor mit Wetter-Einfluss-Analyse
             </p>
           </div>
         </div>

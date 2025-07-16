@@ -68,7 +68,7 @@ export default function HeuballernPage() {
           <div>
             <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Heuballern</h1>
             <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
-              Landwirtschaftliche Flächenüberwachung mit Wetter- und Windanalyse
+              Heuballern Floor mit Wetter-Einfluss-Analyse
             </p>
           </div>
         </div>
