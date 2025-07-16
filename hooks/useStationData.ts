@@ -10,35 +10,6 @@ export interface StationDataPoint {
   rh?: number  // relative humidity
 }
 
-// Notification sound function
-function playAlertSound() {
-  try {
-    const audio = new Audio('/alert-sound.mp3')
-    audio.volume = 0.7
-    audio.play().catch(() => {
-      // Fallback: create a beep sound using Web Audio API
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const oscillator = audioContext.createOscillator()
-      const gainNode = audioContext.createGain()
-      
-      oscillator.connect(gainNode)
-      gainNode.connect(audioContext.destination)
-      
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
-      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1)
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2)
-      
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3)
-      
-      oscillator.start(audioContext.currentTime)
-      oscillator.stop(audioContext.currentTime + 0.3)
-    })
-  } catch (e) {
-    console.log('Could not play alert sound')
-  }
-}
-
 // Request notification permission
 async function requestNotificationPermission() {
   if (!('Notification' in window)) {
@@ -72,14 +43,11 @@ function showNoiseAlert(station: string, level: number, threshold: number) {
   
   const notification = new Notification(`🚨 LÄRMALARM - ${stationName}`, {
     body: `Grenzwert überschritten! Aktueller Pegel: ${level.toFixed(1)} dB (Grenze: ${threshold} dB)`,
-    icon: '/alert-icon.png', // You can add an alert icon to public/
+    icon: '/alert-icon.png',
     tag: `noise-alert-${station}`,
     requireInteraction: true,
     silent: false
   })
-  
-  // Play alert sound
-  playAlertSound()
   
   // Handle notification clicks
   notification.onclick = () => {

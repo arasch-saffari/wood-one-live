@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { BarChart3, Home, MapPin, Wind, Moon, Sun, Bell, Volume2, Music, Download, Menu, X } from "lucide-react"
+import { BarChart3, Home, MapPin, Wind, Moon, Sun, Download, Volume2, Music, Menu, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useStationData } from "@/hooks/useStationData"
-import { NotificationPermission } from "@/components/notification-permission"
+// import { NotificationPermission } from "@/components/notification-permission"
 // import { EnableSoundBanner } from "@/components/enable-sound-banner"
 
 // Navigation Menü Konfiguration
@@ -268,70 +268,39 @@ export default function DashboardLayout({
             >
               {mounted && theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
-            {/* Benachrichtigungen */}
+            {/* Add to Home Screen - Mobile Only */}
             <Button
               variant="ghost"
               size="sm"
-              onClick={async () => {
-                // Sound-Aktivierung: Versuche einen AudioContext zu starten
-                let soundEnabled = false
-                if (typeof window !== 'undefined' && window.AudioContext) {
-                  try {
-                    const ctx = new window.AudioContext()
-                    if (ctx.state === 'suspended') {
-                      await ctx.resume()
-                    }
-                    // Kurzer Bestätigungston
-                    const osc = ctx.createOscillator()
-                    const gain = ctx.createGain()
-                    osc.connect(gain)
-                    gain.connect(ctx.destination)
-                    osc.type = 'sine'
-                    osc.frequency.value = 880
-                    gain.gain.value = 0.1
-                    osc.start()
-                    osc.stop(ctx.currentTime + 0.15)
-                    osc.onended = () => ctx.close()
-                    soundEnabled = true
-                  } catch (e) {
-                    // ignore
-                  }
-                }
-                // Notification-Logik wie gehabt
-                if (!('Notification' in window)) {
-                  alert('Ihr Browser unterstützt keine Benachrichtigungen.')
-                  return
-                }
-                if (Notification.permission === 'granted') {
-                  new Notification('🔔 Test-Benachrichtigung', {
-                    body: soundEnabled ? 'Sound-Alarm ist jetzt aktiviert!' : 'Benachrichtigungen sind aktiviert und funktionieren!',
-                    icon: '/alert-icon.svg',
-                    silent: false
-                  })
-                } else if (Notification.permission !== 'denied') {
-                  const permission = await Notification.requestPermission()
-                  if (permission === 'granted') {
-                    new Notification('🔔 Benachrichtigungen aktiviert!', {
-                      body: soundEnabled ? 'Sound-Alarm ist jetzt aktiviert!' : 'Sie werden jetzt über Lärmalarme informiert.',
-                      icon: '/alert-icon.svg',
-                      silent: false
-                    })
-                  }
+              onClick={() => {
+                if ('serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window) {
+                  // Trigger the install prompt
+                  const event = new Event('beforeinstallprompt')
+                  window.dispatchEvent(event)
                 } else {
-                  alert('Benachrichtigungen wurden verweigert. Bitte aktivieren Sie sie in Ihren Browser-Einstellungen.')
+                  // Fallback: Show instructions
+                  alert('Um diese App zum Startbildschirm hinzuzufügen:\n\n1. Tippen Sie auf das Teilen-Symbol\n2. Wählen Sie "Zum Startbildschirm hinzufügen"\n3. Bestätigen Sie die Installation')
                 }
               }}
-              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white lg:hidden"
             >
-              <Bell className="w-4 h-4" />
+              <Download className="w-4 h-4" />
             </Button>
-            {/* Members Icon entfernt wie gewünscht */}
           </div>
         </header>
         {/* Seiteninhalt */}
         <main className="p-4 lg:p-6">{children}</main>
+        
+        {/* Footer */}
+        <footer className="border-t border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-black/50 backdrop-blur-sm">
+          <div className="px-4 lg:px-6 py-3">
+            <div className="flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+              <span>© 2024 Arasch Saffari. Made with ❤️ and Club Mate</span>
+            </div>
+          </div>
+        </footer>
       </div>
-      <NotificationPermission />
+      {/* <NotificationPermission /> */}
       {/* <EnableSoundBanner /> */}
     </div>
   )
