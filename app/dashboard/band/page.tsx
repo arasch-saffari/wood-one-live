@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Music, TrendingUp, Wind, Download, AlertTriangle, Volume2 } from "lucide-react"
+import { Music, TrendingUp, Wind, Download, AlertTriangle, Volume2, Table as TableIcon } from "lucide-react"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart } from "recharts"
 import { useState } from "react"
 import Link from "next/link"
@@ -18,7 +18,8 @@ import {
 
 export default function BandPage() {
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
-  const data = useStationData("band", chartInterval)
+  const [granularity, setGranularity] = useState<"10min" | "5min" | "1min">("10min")
+  const data = useStationData("band", chartInterval, granularity)
   const current = data.length > 0 ? data[data.length - 1].las : 0
   const avg24h = data.length > 0 ? (data.reduce((a, b) => a + b.las, 0) / data.length).toFixed(1) : 0
   const max24h = data.length > 0 ? Math.max(...data.map(d => d.las)) : 0
@@ -99,68 +100,6 @@ export default function BandPage() {
                 <p className="text-xs text-muted-foreground">≥60dB: Alarm, ≥55dB: Warnung, &lt;55dB: Normal</p>
               </TooltipContent>
             </UITooltip>
-            <UITooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 bg-transparent"
-                >
-                  <Link href="/dashboard/band/table">Tabelle</Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Detaillierte Datenansicht in Tabellenform</p>
-              </TooltipContent>
-            </UITooltip>
-            <UITooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 bg-transparent"
-                >
-                  <Download className="w-3 lg:w-4 h-3 lg:h-4 mr-2" />
-                  Daten Exportieren
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Lädt alle Daten als CSV-Datei herunter</p>
-              </TooltipContent>
-            </UITooltip>
-            <div className="flex items-center space-x-2">
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={chartInterval === "24h" ? "default" : "outline"}
-                    size="sm"
-                    className={chartInterval === "24h" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
-                    onClick={() => setChartInterval("24h")}
-                  >
-                    24h
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Zeigt Daten der letzten 24 Stunden</p>
-                </TooltipContent>
-              </UITooltip>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={chartInterval === "7d" ? "default" : "outline"}
-                    size="sm"
-                    className={chartInterval === "7d" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
-                    onClick={() => setChartInterval("7d")}
-                  >
-                    7d
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Zeigt Daten der letzten 7 Tage</p>
-                </TooltipContent>
-              </UITooltip>
-            </div>
           </div>
         </motion.div>
 
@@ -292,10 +231,45 @@ export default function BandPage() {
           </UITooltip>
         </div>
 
+        {/* Tabellenansicht-Button */}
+        <div className="flex justify-end mb-4">
+          <UITooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 bg-transparent"
+              >
+                <Link href="/dashboard/band/table">
+                  <TableIcon className="w-4 h-4 mr-2" /> Tabellenansicht
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Detaillierte Datenansicht in Tabellenform</p>
+            </TooltipContent>
+          </UITooltip>
+        </div>
+
       {/* Haupt-Diagramm */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
         <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
           <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold mr-2">Zeitraum:</span>
+                <UITooltip><TooltipTrigger asChild><Button variant={chartInterval === "24h" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("24h")}>24h</Button></TooltipTrigger><TooltipContent><p>Letzte 24 Stunden</p></TooltipContent></UITooltip>
+                <UITooltip><TooltipTrigger asChild><Button variant={chartInterval === "7d" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("7d")}>7d</Button></TooltipTrigger><TooltipContent><p>Letzte 7 Tage</p></TooltipContent></UITooltip>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold mr-2">Granularität:</span>
+                <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1h" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1h")}>1h</Button></TooltipTrigger><TooltipContent><p>Stundenmittelwert</p></TooltipContent></UITooltip>
+                <UITooltip><TooltipTrigger asChild><Button variant={granularity === "10min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("10min")}>10min</Button></TooltipTrigger><TooltipContent><p>10-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                <UITooltip><TooltipTrigger asChild><Button variant={granularity === "5min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("5min")}>5min</Button></TooltipTrigger><TooltipContent><p>5-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1min")}>1min</Button></TooltipTrigger><TooltipContent><p>1-Minuten-Wert</p></TooltipContent></UITooltip>
+              </div>
+            </div>
             <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
               <Music className="w-4 lg:w-5 h-4 lg:h-5 text-purple-400" />
               <span className="text-gray-900 dark:text-white">Band Bühne - Lärm & Wind</span>
@@ -326,7 +300,7 @@ export default function BandPage() {
                   />
                   <YAxis
                     yAxisId="noise"
-                    domain={[30, 75]}
+                    domain={[30, 85]}
                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}

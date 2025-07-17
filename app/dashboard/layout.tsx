@@ -17,10 +17,10 @@ import { useStationData } from "@/hooks/useStationData"
 // Navigation Menü Konfiguration
 const navigation = [
   { name: "Alle Standorte", href: "/dashboard/all", icon: Home, color: "text-gray-400" },
-  { name: "Ort", href: "/dashboard/ort", icon: MapPin, color: "text-emerald-400" },
-  { name: "Heuballern", href: "/dashboard/heuballern", icon: MapPin, color: "text-cyan-400" },
-  { name: "Techno Floor", href: "/dashboard/techno", icon: Volume2, color: "text-pink-400" },
-  { name: "Band Bühne", href: "/dashboard/band", icon: Music, color: "text-purple-400" },
+  { name: "Ort", href: "/dashboard/ort", icon: MapPin, color: "text-green-500" },
+  { name: "Heuballern", href: "/dashboard/heuballern", icon: MapPin, color: "text-blue-500" },
+  { name: "Techno Floor", href: "/dashboard/techno", icon: Volume2, color: "text-fuchsia-500" },
+  { name: "Band Bühne", href: "/dashboard/band", icon: Music, color: "text-orange-500" },
   { name: "Daten Export", href: "/dashboard/export", icon: Download, color: "text-gray-400" },
 ]
 
@@ -237,7 +237,7 @@ export default function DashboardLayout({
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hidden lg:flex"
             >
-              <BarChart3 className="w-4 h-4" />
+              <Menu className="w-4 h-4" />
             </Button>
             {/* Mobile Menu Toggle */}
             <Button

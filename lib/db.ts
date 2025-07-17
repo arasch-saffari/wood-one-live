@@ -247,8 +247,7 @@ export function insertWeather(
 
 // Fast database queries with optimized indexing
 export function getMeasurementsForStation(station: string, interval: "24h" | "7d" = "24h") {
-  const limit = interval === "7d" ? 672 : 96 // 7 days = 672 blocks, 24h = 96 blocks
-  
+  const limit = interval === "7d" ? 5000 : 1000;
   // Use prepared statement with index for better performance
   const stmt = db.prepare(`
     SELECT time, las 
@@ -257,9 +256,8 @@ export function getMeasurementsForStation(station: string, interval: "24h" | "7d
     ORDER BY time DESC 
     LIMIT ?
   `)
-  
-  const results = stmt.all(station, limit) as Array<{ time: string; las: number }>
-  return results.reverse() // Return in chronological order
+  const results = stmt.all(station, limit) as Array<{ time: string; las: number }>;
+  return results.reverse(); // Return in chronological order
 }
 
 export function getWeatherForBlock(station: string, time: string) {

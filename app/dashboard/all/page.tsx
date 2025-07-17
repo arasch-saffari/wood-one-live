@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Wind, AlertTriangle, Volume2, Activity } from "lucide-react"
+import { Wind, AlertTriangle, Volume2, Activity, TrendingUp, Thermometer, Droplets, Table as TableIcon } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import Link from "next/link"
 import { useStationData, StationDataPoint } from "@/hooks/useStationData"
@@ -35,17 +35,12 @@ const locationRoutes = {
 export default function AllLocationsPage() {
   // Chart-Intervall-Button-State
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
-  // Fetch live data für jede Station mit Intervall
-  const ortData = useStationData("ort", chartInterval)
-  const heuballernData = useStationData("heuballern", chartInterval)
-  const technoData = useStationData("techno", chartInterval)
-  const bandData = useStationData("band", chartInterval)
-
-  // Debug-Ausgabe für alle Daten
-  console.log('ortData', ortData)
-  console.log('heuballernData', heuballernData)
-  console.log('technoData', technoData)
-  console.log('bandData', bandData)
+  const [granularity, setGranularity] = useState<"1h" | "10min" | "5min" | "1min">("10min")
+  // Fetch live data für jede Station mit Intervall und Granularity
+  const ortData = useStationData("ort", chartInterval, granularity)
+  const heuballernData = useStationData("heuballern", chartInterval, granularity)
+  const technoData = useStationData("techno", chartInterval, granularity)
+  const bandData = useStationData("band", chartInterval, granularity)
 
   // Compose current levels for KPI cards (last value in each array)
   const currentLevels = {
@@ -54,6 +49,15 @@ export default function AllLocationsPage() {
     TechnoFloor: technoData.length > 0 ? technoData[technoData.length - 1].las : 0,
     Bandbuehne: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
   }
+
+  // Aktuellste Wetterdaten (letzter Wert pro Station)
+  const lastWeatherRaw = [ortData, heuballernData, technoData, bandData]
+    .map(arr => arr.length > 0 ? arr[arr.length - 1] : null)
+  const lastWeather = lastWeatherRaw.filter((d): d is StationDataPoint => d !== null)
+  const avgWindSpeed = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.ws ?? 0), 0) / lastWeather.length).toFixed(1) : 'N/A'
+  const avgWindDir = lastWeather.length > 0 ? lastWeather[0].wd ?? 'N/A' : 'N/A'
+  const avgRelHumidity = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.rh ?? 0), 0) / lastWeather.length).toFixed(0) : 'N/A'
+  const avgTemperature = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.temp ?? 0), 0) / lastWeather.length).toFixed(1) : 'N/A'
 
   // Status-Farbe basierend auf Lärmwert bestimmen
   const getStatusColor = (level: number, isNight = false) => {
@@ -76,28 +80,6 @@ export default function AllLocationsPage() {
     return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Normal</Badge>
   }
 
-  // Icon für Standort basierend auf Typ
-  const getLocationIcon = (location: string) => {
-    switch (location) {
-      case "TechnoFloor":
-        return <Volume2 className="w-4 h-4" style={{ color: locationColors.TechnoFloor }} />
-      case "Bandbuehne":
-        return <Volume2 className="w-4 h-4" style={{ color: locationColors.Bandbuehne }} />
-      default:
-        return (
-          <Volume2 className="w-4 h-4" style={{ color: locationColors[location as keyof typeof locationColors] }} />
-        )
-    }
-  }
-
-  // Aktuellste Wetterdaten (letzter Wert pro Station)
-  const lastWeatherRaw = [ortData, heuballernData, technoData, bandData]
-    .map(arr => arr.length > 0 ? arr[arr.length - 1] : null)
-  const lastWeather = lastWeatherRaw.filter((d): d is StationDataPoint => d !== null)
-  const avgWindSpeed = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.ws ?? 0), 0) / lastWeather.length).toFixed(1) : 'N/A'
-  const avgWindDir = lastWeather.length > 0 ? lastWeather[0].wd ?? 'N/A' : 'N/A'
-  const avgRelHumidity = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.rh ?? 0), 0) / lastWeather.length).toFixed(0) : 'N/A'
-
   // Chart-Daten für alle Standorte und Windgeschwindigkeit zusammenführen
   // Wir nehmen die Zeitpunkte von ortData als Basis
   const chartTimes = ortData.map(d => d.time)
@@ -108,7 +90,7 @@ export default function AllLocationsPage() {
     const band = bandData.find(d => d.time === time)
     // Windgeschwindigkeit: Mittelwert der vier Standorte, falls vorhanden
     const windVals = [ort, heuballern, techno, band].map(d => d?.ws).filter(v => typeof v === 'number')
-    const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => (a ?? 0) + (b ?? 0), 0) / windVals.length) : undefined
+    const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
     return {
       time,
       Ort: ort?.las ?? null,
@@ -139,41 +121,9 @@ export default function AllLocationsPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <UITooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={chartInterval === "24h" ? "default" : "outline"}
-                  size="sm"
-                  className={chartInterval === "24h" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
-                  onClick={() => setChartInterval("24h")}
-                >
-                  24h
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Zeigt Daten der letzten 24 Stunden</p>
-              </TooltipContent>
-            </UITooltip>
-            <UITooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={chartInterval === "7d" ? "default" : "outline"}
-                  size="sm"
-                  className={chartInterval === "7d" ? "bg-gradient-to-r from-pink-500 to-purple-600" : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"}
-                  onClick={() => setChartInterval("7d")}
-                >
-                  7d
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Zeigt Daten der letzten 7 Tage</p>
-              </TooltipContent>
-            </UITooltip>
-          </div>
         </motion.div>
 
-        {/* Standort-Übersicht Cards - JETZT ANKLICKBAR */}
+        {/* Standort-Übersicht Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {Object.entries(currentLevels).map(([location, level]) => (
             <UITooltip key={location}>
@@ -196,7 +146,7 @@ export default function AllLocationsPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-center space-x-2">
-                          {getLocationIcon(location)}
+                          <Volume2 className="w-4 h-4" style={{ color: locationColors[location as keyof typeof locationColors] }} />
                           <span className={`text-xl lg:text-2xl font-bold ${getStatusColor(level)}`}>{level.toFixed(1)}</span>
                           <span className="text-xs lg:text-sm text-gray-500">dB</span>
                         </div>
@@ -215,7 +165,7 @@ export default function AllLocationsPage() {
           ))}
         </div>
 
-        {/* Wind-Daten Card */}
+        {/* Wetter-Übersicht Card */}
         <UITooltip>
           <TooltipTrigger asChild>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -223,28 +173,50 @@ export default function AllLocationsPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                     <Wind className="w-4 lg:w-5 h-4 lg:h-5 text-blue-400" />
-                    <span className="text-gray-900 dark:text-white">Wetter-Daten</span>
+                    <span className="text-gray-900 dark:text-white">Wetter-Übersicht aller Standorte</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
                     <div className="text-center">
+                      <div className="flex items-center justify-center space-x-2 mb-2">
+                        <Wind className="w-4 h-4 text-blue-400" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Windgeschwindigkeit</span>
+                      </div>
                       <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
                         {avgWindSpeed}
                       </div>
-                      <div className="text-xs lg:text-sm text-gray-500">Windgeschwindigkeit (km/h)</div>
+                      <div className="text-xs lg:text-sm text-gray-500">km/h</div>
                     </div>
                     <div className="text-center">
+                      <div className="flex items-center justify-center space-x-2 mb-2">
+                        <Activity className="w-4 h-4 text-purple-400" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Windrichtung</span>
+                      </div>
                       <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
                         {avgWindDir}
                       </div>
-                      <div className="text-xs lg:text-sm text-gray-500">Windrichtung</div>
+                      <div className="text-xs lg:text-sm text-gray-500">Durchschnitt</div>
                     </div>
                     <div className="text-center">
+                      <div className="flex items-center justify-center space-x-2 mb-2">
+                        <Droplets className="w-4 h-4 text-cyan-400" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Luftfeuchtigkeit</span>
+                      </div>
                       <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
                         {avgRelHumidity}%
                       </div>
-                      <div className="text-xs lg:text-sm text-gray-500">Luftfeuchtigkeit</div>
+                      <div className="text-xs lg:text-sm text-gray-500">Durchschnitt</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center space-x-2 mb-2">
+                        <Thermometer className="w-4 h-4 text-orange-400" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Temperatur</span>
+                      </div>
+                      <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
+                        {avgTemperature}°C
+                      </div>
+                      <div className="text-xs lg:text-sm text-gray-500">Durchschnitt</div>
                     </div>
                   </div>
                 </CardContent>
@@ -253,7 +225,7 @@ export default function AllLocationsPage() {
           </TooltipTrigger>
           <TooltipContent>
             <p>Aktuelle Wetterdaten von allen Standorten</p>
-            <p className="text-xs text-muted-foreground">Durchschnittswerte für Wind und Luftfeuchtigkeit</p>
+            <p className="text-xs text-muted-foreground">Durchschnittswerte für Wind, Luftfeuchtigkeit und Temperatur</p>
           </TooltipContent>
         </UITooltip>
 
@@ -263,6 +235,20 @@ export default function AllLocationsPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
               <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl cursor-help">
                 <CardHeader>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold mr-2">Zeitraum:</span>
+                      <UITooltip><TooltipTrigger asChild><Button variant={chartInterval === "24h" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("24h")}>24</Button></TooltipTrigger><TooltipContent><p>Letzte 24 Stunden</p></TooltipContent></UITooltip>
+                      <UITooltip><TooltipTrigger asChild><Button variant={chartInterval === "7d" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("7d")}>7d</Button></TooltipTrigger><TooltipContent><p>Letzte 7 Tage</p></TooltipContent></UITooltip>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold mr-2">Granularität:</span>
+                      <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1h" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1h")}>1h</Button></TooltipTrigger><TooltipContent><p>Stundenmittelwert</p></TooltipContent></UITooltip>
+                      <UITooltip><TooltipTrigger asChild><Button variant={granularity === "10min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("10min")}>10min</Button></TooltipTrigger><TooltipContent><p>10-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                      <UITooltip><TooltipTrigger asChild><Button variant={granularity === "5min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("5min")}>5min</Button></TooltipTrigger><TooltipContent><p>5-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                      <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1min")}>1min</Button></TooltipTrigger><TooltipContent><p>1-Minuten-Wert</p></TooltipContent></UITooltip>
+                    </div>
+                  </div>
                   <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                     <Activity className="w-4 lg:w-5 h-4 lg:h-5 text-blue-400" />
                     <span className="text-gray-900 dark:text-white">Vergleich aller Standorte</span>
@@ -289,6 +275,7 @@ export default function AllLocationsPage() {
                         />
                         {/* Y-Achse (Lärm) */}
                         <YAxis
+                          domain={[30, 85]}
                           tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
                           axisLine={{ stroke: "hsl(var(--border))" }}
                           tickLine={{ stroke: "hsl(var(--border))" }}
@@ -310,6 +297,10 @@ export default function AllLocationsPage() {
                             borderRadius: "12px",
                             boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
                             color: "hsl(var(--card-foreground))", // Dynamische Farbe
+                          }}
+                          formatter={(value: number, name: string): [string, string] => {
+                            if (name === "windSpeed") return [`${value.toFixed(1)} km/h`, "Windgeschwindigkeit"]
+                            return [`${value.toFixed(1)} dB`, name]
                           }}
                         />
                         {/* Legend */}

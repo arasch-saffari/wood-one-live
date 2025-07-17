@@ -11,10 +11,8 @@ export interface StationDataPoint {
 // Notification functions
 async function requestNotificationPermission(): Promise<boolean> {
   if (!("Notification" in window)) return false
-  
   if (Notification.permission === "granted") return true
   if (Notification.permission === "denied") return false
-  
   const permission = await Notification.requestPermission()
   return permission === "granted"
 }
@@ -22,13 +20,11 @@ async function requestNotificationPermission(): Promise<boolean> {
 function showNoiseAlert(station: string, level: number, threshold: number) {
   const stationNames = {
     ort: "Ort",
-    techno: "Techno Floor", 
+    techno: "Techno Floor",
     heuballern: "Heuballern",
     band: "Band-Bühne"
   }
-  
   const stationName = stationNames[station as keyof typeof stationNames] || station
-  
   new Notification("Lärmalarm", {
     body: `${stationName}: ${level.toFixed(1)} dB überschreitet ${threshold} dB Grenzwert`,
     icon: "/placeholder-logo.png",
@@ -37,7 +33,11 @@ function showNoiseAlert(station: string, level: number, threshold: number) {
   })
 }
 
-export function useStationData(station: string, interval: "24h" | "7d" = "24h") {
+export function useStationData(
+  station: string,
+  interval: "24h" | "7d" = "24h",
+  granularity: "10min" | "5min" | "1min" | "1h" = "10min"
+) {
   const [data, setData] = useState<StationDataPoint[]>([])
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastAlertRef = useRef<{ level: number; time: number }>({ level: 0, time: 0 })
@@ -45,21 +45,17 @@ export function useStationData(station: string, interval: "24h" | "7d" = "24h") 
   async function fetchAndProcess() {
     try {
       // Fetch data from API instead of direct database access
-      const response = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}`)
-      
+      const response = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=${granularity}`)
       if (!response.ok) {
         console.error('Failed to fetch station data')
         return
       }
-      
       const result: StationDataPoint[] = await response.json()
       setData(result)
-      
       // Check for noise alerts
       if (result.length > 0) {
         const currentLevel = result[result.length - 1].las
         const now = Date.now()
-        
         // Check if we should show an alert (avoid spam - only alert once per 5 minutes per threshold)
         if (currentLevel >= 60 && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
           const hasPermission = await requestNotificationPermission()
@@ -87,7 +83,7 @@ export function useStationData(station: string, interval: "24h" | "7d" = "24h") 
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [station, interval])
+  }, [station, interval, granularity])
 
   return data
 } 
