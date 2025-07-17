@@ -27,6 +27,7 @@ db.exec(`
     windSpeed REAL,
     windDir TEXT,
     relHumidity REAL,
+    temperature REAL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(station, time)
   );
@@ -95,6 +96,37 @@ function runMigrations() {
       }
     } else {
       console.log('✅ source_file column already exists, skipping migration')
+    }
+  } catch (e) {
+    console.error('❌ Migration check failed:', e)
+    // Don't throw - allow app to continue with existing schema
+  }
+  
+  // Migration 3: Add temperature column to weather table
+  try {
+    const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string; type: string; notnull: number; dflt_value: string | null; pk: number }>
+    const hasTemperature = columns.some(col => col.name === 'temperature')
+    
+    if (!hasTemperature) {
+      console.log('🔄 Running migration: Adding temperature column to weather table...')
+      
+      // Start transaction for safe migration
+      db.exec('BEGIN TRANSACTION')
+      
+      try {
+        // Add the new column
+        db.exec('ALTER TABLE weather ADD COLUMN temperature REAL')
+        
+        console.log('✅ Migration completed: temperature column added to weather table')
+        db.exec('COMMIT')
+        
+      } catch (migrationError) {
+        console.error('❌ Migration failed:', migrationError)
+        db.exec('ROLLBACK')
+        throw migrationError
+      }
+    } else {
+      console.log('✅ temperature column already exists, skipping migration')
     }
   } catch (e) {
     console.error('❌ Migration check failed:', e)
@@ -237,27 +269,45 @@ export function insertWeather(
   time: string,
   windSpeed: number,
   windDir: string,
-  relHumidity: number
+  relHumidity: number,
+  temperature?: number
 ) {
   const stmt = db.prepare(
-    'INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
+    'INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
   )
-  stmt.run(station, time, windSpeed, windDir, relHumidity)
+  stmt.run(station, time, windSpeed, windDir, relHumidity, temperature ?? null)
 }
 
 // Fast database queries with optimized indexing
 export function getMeasurementsForStation(station: string, interval: "24h" | "7d" = "24h") {
   const limit = interval === "7d" ? 5000 : 1000;
-  // Use prepared statement with index for better performance
-  const stmt = db.prepare(`
-    SELECT time, las 
-    FROM measurements 
-    WHERE station = ? 
-    ORDER BY time DESC 
-    LIMIT ?
-  `)
-  const results = stmt.all(station, limit) as Array<{ time: string; las: number }>;
-  return results.reverse(); // Return in chronological order
+  
+  // For 24h interval, we need to get recent measurements from all hours
+  // Since time is stored as HH:MM, we need a different approach
+  if (interval === "24h") {
+    // Try to get measurements from as many different hours as possible
+    // First, get a larger sample to increase chances of hour diversity
+    const stmt = db.prepare(`
+      SELECT time, las 
+      FROM measurements 
+      WHERE station = ? 
+      ORDER BY rowid DESC 
+      LIMIT ?
+    `)
+    const results = stmt.all(station, Math.min(limit * 2, 2000)) as Array<{ time: string; las: number }>;
+    return results.reverse(); // Return in chronological order
+  } else {
+    // For 7d interval, also use rowid DESC for better coverage
+    const stmt = db.prepare(`
+      SELECT time, las 
+      FROM measurements 
+      WHERE station = ? 
+      ORDER BY rowid DESC 
+      LIMIT ?
+    `)
+    const results = stmt.all(station, limit) as Array<{ time: string; las: number }>;
+    return results.reverse(); // Return in chronological order
+  }
 }
 
 export function getWeatherForBlock(station: string, time: string) {
@@ -280,6 +330,14 @@ export function isWeatherDataOld(station: string, time: string, maxAgeMinutes: n
   const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60)
   
   return diffMinutes > maxAgeMinutes
+}
+
+export function getRecentWeather(station: string) {
+  const stmt = db.prepare(
+    'SELECT windSpeed, windDir, relHumidity, temperature FROM weather WHERE station = ? ORDER BY created_at DESC LIMIT 1'
+  )
+  const result = stmt.get(station) as { windSpeed: number; windDir: string; relHumidity: number; temperature: number | null } | undefined
+  return result || null
 }
 
 // Utility function to check database health

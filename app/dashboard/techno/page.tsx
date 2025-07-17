@@ -18,7 +18,7 @@ import {
 
 export default function TechnoPage() {
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
-  const [granularity, setGranularity] = useState<"10min" | "5min" | "1min">("10min")
+  const [granularity, setGranularity] = useState<"1h" | "10min" | "5min" | "1min">("10min")
   const data = useStationData("techno", chartInterval, granularity)
   // Compose KPIs from data (e.g., current, avg24h, max24h, min24h, violations, trend)
   const current = data.length > 0 ? data[data.length - 1].las : 0

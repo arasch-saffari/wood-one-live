@@ -18,7 +18,7 @@ import {
 
 export default function BandPage() {
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
-  const [granularity, setGranularity] = useState<"10min" | "5min" | "1min">("10min")
+  const [granularity, setGranularity] = useState<"1h" | "10min" | "5min" | "1min">("10min")
   const data = useStationData("band", chartInterval, granularity)
   const current = data.length > 0 ? data[data.length - 1].las : 0
   const avg24h = data.length > 0 ? (data.reduce((a, b) => a + b.las, 0) / data.length).toFixed(1) : 0
