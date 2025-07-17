@@ -1,26 +1,19 @@
-import { JSDOM } from 'jsdom'
+// This file is for server-side weather fetching only
+// Client-side weather fetching is handled via API endpoints
 
 export async function fetchWeather() {
   const res = await fetch('https://www.weisserstein.info/pgs/wetteraktuell.php')
   if (!res.ok) throw new Error('Failed to fetch weather')
   const html = await res.text()
-  const dom = new JSDOM(html)
-  const text = dom.window.document.body.textContent || ''
+  
+  // Simple regex-based parsing without jsdom
+  const windSpeedMatch = html.match(/Windgeschwindigkeit\s*jetzt\s*[:：]\s*([\d.,]+)/i)
+  const windDirMatch = html.match(/Windrichtung\s*[:：]\s*([\wÄÖÜäöü]+)/i)
+  const relHumidityMatch = html.match(/Luftfeuchte\s*[:：]\s*([\d.,]+)/i)
 
-  // Debug: log the text for inspection
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
-    console.log('WETTER TEXT:', text)
-  }
-
-  // More robust RegEx: allow for any whitespace, non-breaking spaces, and possible encoding
-  const windSpeedMatch = text.match(/Windgeschwindigkeit\s*jetzt\s*[:：]\s*([\d.,]+)/i)
-  const windDirMatch = text.match(/Windrichtung\s*[:：]\s*([\wÄÖÜäöü]+)/i)
-  const relHumidityMatch = text.match(/Luftfeuchtigkeit\s*[:：]\s*([\d.,]+)/i)
-
-  if (!windSpeedMatch || !windDirMatch || !relHumidityMatch) {
-    // eslint-disable-next-line no-console
-    console.error('Weather parsing failed:', { windSpeedMatch, windDirMatch, relHumidityMatch, text })
+  // Only log if parsing completely fails (no matches at all)
+  if (!windSpeedMatch && !windDirMatch && !relHumidityMatch) {
+    console.warn('Weather parsing failed: No data found in response')
   }
 
   return {

@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from "react"
-import Papa from "papaparse"
-import { roundTo5MinBlock } from "@/lib/utils"
 
 export interface StationDataPoint {
   time: string // "HH:MM"
@@ -10,57 +8,33 @@ export interface StationDataPoint {
   rh?: number  // relative humidity
 }
 
-// Request notification permission
-async function requestNotificationPermission() {
-  if (!('Notification' in window)) {
-    console.log('This browser does not support notifications')
-    return false
-  }
+// Notification functions
+async function requestNotificationPermission(): Promise<boolean> {
+  if (!("Notification" in window)) return false
   
-  if (Notification.permission === 'granted') {
-    return true
-  }
+  if (Notification.permission === "granted") return true
+  if (Notification.permission === "denied") return false
   
-  if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission()
-    return permission === 'granted'
-  }
-  
-  return false
+  const permission = await Notification.requestPermission()
+  return permission === "granted"
 }
 
-// Show expressive notification
 function showNoiseAlert(station: string, level: number, threshold: number) {
-  const stationNames: Record<string, string> = {
-    'ort': 'Standort Ort',
-    'techno': 'Techno Floor',
-    'heuballern': 'Heuballern',
-    'band': 'Band',
-    'triple': 'Triple'
+  const stationNames = {
+    ort: "Ort",
+    techno: "Techno Floor", 
+    heuballern: "Heuballern",
+    band: "Band-Bühne"
   }
   
-  const stationName = stationNames[station] || station
+  const stationName = stationNames[station as keyof typeof stationNames] || station
   
-  const notification = new Notification(`🚨 LÄRMALARM - ${stationName}`, {
-    body: `Grenzwert überschritten! Aktueller Pegel: ${level.toFixed(1)} dB (Grenze: ${threshold} dB)`,
-    icon: '/alert-icon.png',
-    tag: `noise-alert-${station}`,
-    requireInteraction: true,
-    silent: false
+  new Notification("Lärmalarm", {
+    body: `${stationName}: ${level.toFixed(1)} dB überschreitet ${threshold} dB Grenzwert`,
+    icon: "/placeholder-logo.png",
+    tag: `noise-${station}-${threshold}`,
+    requireInteraction: false,
   })
-  
-  // Handle notification clicks
-  notification.onclick = () => {
-    window.focus()
-    notification.close()
-    // Navigate to the specific station dashboard
-    window.location.href = `/dashboard/${station}`
-  }
-  
-  // Auto-close after 10 seconds
-  setTimeout(() => {
-    notification.close()
-  }, 10000)
 }
 
 export function useStationData(station: string, interval: "24h" | "7d" = "24h") {
@@ -70,86 +44,20 @@ export function useStationData(station: string, interval: "24h" | "7d" = "24h") 
 
   async function fetchAndProcess() {
     try {
-      // 1. Get latest CSV file name
-      const res = await fetch(`/api/${station}/latest-csv`)
-      if (!res.ok) return
-      const { file } = await res.json()
-      if (!file) return
-
-      // 2. Fetch CSV file
-      const csvRes = await fetch(`/csv/${station}/${file}`)
-      if (!csvRes.ok) return
-      const csvText = await csvRes.text()
-
-      // 3. Parse CSV
-      const parsed = Papa.parse(csvText, {
-        header: true,
-        delimiter: ";",
-        skipEmptyLines: true,
-      })
-      let rows = parsed.data as Record<string, string>[]
-      if (!Array.isArray(rows) || rows.length < 2) return
-      rows = rows.slice(1) // drop first row
-
-      // 4. Determine the correct column name for noise level based on station
-      const noiseColumn = station === "heuballern" ? "LAF" : "LAS"
-
-      // 5. Validate and process rows
-      const validRows = rows.filter(
-        (row) =>
-          row["Systemzeit "] &&
-          row[noiseColumn] &&
-          !isNaN(Number(row[noiseColumn].replace(",", ".")))
-      )
-
-      // 6. Aggregate into 15-min blocks
-      const blocks: { [block: string]: number[] } = {}
-      validRows.forEach((row) => {
-        const sysTime = row["Systemzeit "]?.trim()
-        const las = Number(row[noiseColumn].replace(",", "."))
-        if (!sysTime || isNaN(las)) return
-        // Parse time as HH:MM:SS:MS, use only HH:MM
-        const [h, m] = sysTime.split(":")
-        if (!h || !m) return
-        const blockTime = `${h.padStart(2, "0")}:${m.padStart(2, "0")}`
-        if (!blocks[blockTime]) blocks[blockTime] = []
-        blocks[blockTime].push(las)
-      })
-      // 7. Für alle Blöcke: Wetterdaten im Batch holen
-      const blockTimes = Object.keys(blocks).sort()
-      const weatherBlocks = blockTimes.map(t => roundTo5MinBlock(t))
-      const uniqueWeatherBlocks = Array.from(new Set(weatherBlocks))
-      let weatherMap: Record<string, any> = {}
-      try {
-        const batchRes = await fetch(`/api/weather/batch?station=${encodeURIComponent(station)}&times=${uniqueWeatherBlocks.join(",")}`)
-        if (batchRes.ok) {
-          weatherMap = await batchRes.json()
-        }
-      } catch (e) {
-        // ignore weather errors
-      }
-      // 8. Ergebnis bauen
-      const result: StationDataPoint[] = []
-      for (const time of blockTimes) {
-        const lasArr = blocks[time]
-        const las = Number((lasArr.reduce((a, b) => a + b, 0) / lasArr.length).toFixed(2))
-        const weather = weatherMap[roundTo5MinBlock(time)] || {}
-        result.push({
-          time,
-          las,
-          ws: weather.windSpeed,
-          wd: weather.windDir,
-          rh: weather.relHumidity,
-        })
-      }
-      // Anzahl der Blöcke je nach Intervall
-      const keepBlocks = interval === "7d" ? 672 : 40
-      const newData = result.slice(-keepBlocks)
-      setData(newData)
+      // Fetch data from API instead of direct database access
+      const response = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}`)
       
-      // 9. Check for noise alerts
-      if (newData.length > 0) {
-        const currentLevel = newData[newData.length - 1].las
+      if (!response.ok) {
+        console.error('Failed to fetch station data')
+        return
+      }
+      
+      const result: StationDataPoint[] = await response.json()
+      setData(result)
+      
+      // Check for noise alerts
+      if (result.length > 0) {
+        const currentLevel = result[result.length - 1].las
         const now = Date.now()
         
         // Check if we should show an alert (avoid spam - only alert once per 5 minutes per threshold)
@@ -168,7 +76,7 @@ export function useStationData(station: string, interval: "24h" | "7d" = "24h") 
         }
       }
     } catch (e) {
-      // Optionally handle error
+      console.error('Error fetching station data:', e)
     }
   }
 

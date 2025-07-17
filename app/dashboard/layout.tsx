@@ -295,7 +295,7 @@ export default function DashboardLayout({
         <footer className="border-t border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-black/50 backdrop-blur-sm">
           <div className="px-4 lg:px-6 py-3">
             <div className="flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
-              <span>© 2024 Arasch Saffari. Made with ❤️ and Club Mate</span>
+              <span>© 2025 by Arasch Saffari. Made with ❤️ and Club Mate</span>
             </div>
           </div>
         </footer>

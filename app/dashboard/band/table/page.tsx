@@ -64,7 +64,7 @@ export default function BandTablePage() {
         </Card>
       )}
       <div className="flex flex-wrap gap-4 items-center">
-        <Select value={interval} onValueChange={v => { setInterval(v as any); setPage(1) }}>
+        <Select value={interval} onValueChange={v => { setInterval(v as "24h" | "7d"); setPage(1) }}>
           <SelectTrigger className="w-32"><SelectValue /> </SelectTrigger>
           <SelectContent>
             <SelectItem value="24h">Letzte 24h</SelectItem>

@@ -39,7 +39,6 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/jsdom": "^21.1.7",
     "@types/papaparse": "^5.3.16",
     "autoprefixer": "^10.4.20",
     "better-sqlite3": "^12.2.0",
@@ -50,7 +49,6 @@
     "embla-carousel-react": "8.5.1",
     "framer-motion": "latest",
     "input-otp": "1.4.1",
-    "jsdom": "^26.1.0",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
     "next-themes": "latest",
@@ -81,7 +79,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3",
-      "sharp"
+      "sharp",
+      "unrs-resolver"
     ]
   }
 }
