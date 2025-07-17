@@ -10,6 +10,7 @@ import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, 
 import { useStationData } from "@/hooks/useStationData"
 import { useState } from "react"
 import Link from "next/link"
+import { STATION_COLORS, CHART_COLORS } from "@/lib/colors"
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -330,54 +331,52 @@ export default function OrtPage() {
                       return [String(value), name]
                     }}
                   />
-                  <Area
-                    yAxisId="noise"
+                  <Line
                     type="monotone"
                     dataKey="las"
-                    stroke="#10b981"
+                    stroke={STATION_COLORS.ort.primary}
                     strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorOrt)"
+                    dot={false}
+                    activeDot={{ r: 6, fill: STATION_COLORS.ort.primary }}
                   />
                   <Line
-                    yAxisId="wind"
                     type="monotone"
                     dataKey="ws"
-                    stroke="#06b6d4"
+                    stroke={CHART_COLORS.wind}
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
-                    name="Windgeschwindigkeit"
+                    activeDot={{ r: 4, fill: CHART_COLORS.wind }}
+                    yAxisId="right"
                   />
                   <Line
-                    yAxisId="wind"
                     type="monotone"
                     dataKey="rh"
-                    stroke="#f59e42"
+                    stroke={CHART_COLORS.humidity}
                     strokeWidth={2}
                     strokeDasharray="2 2"
                     dot={false}
-                    name="Luftfeuchtigkeit"
+                    activeDot={{ r: 4, fill: CHART_COLORS.humidity }}
+                    yAxisId="right"
                   />
                   {/* Grenzwertlinien */}
                   <Line
-                    yAxisId="noise"
                     type="monotone"
                     dataKey={() => 55}
-                    stroke="#facc15"
+                    stroke={CHART_COLORS.warning}
                     strokeWidth={1}
                     strokeDasharray="3 3"
                     dot={false}
-                    name="Warnung"
+                    activeDot={{ r: 3, fill: CHART_COLORS.warning }}
                   />
                   <Line
-                    yAxisId="noise"
                     type="monotone"
                     dataKey={() => 60}
-                    stroke="#f87171"
+                    stroke={CHART_COLORS.alarm}
                     strokeWidth={1}
                     strokeDasharray="3 3"
                     dot={false}
+                    activeDot={{ r: 3, fill: CHART_COLORS.alarm }}
                     name="Alarm"
                   />
                 </ComposedChart>

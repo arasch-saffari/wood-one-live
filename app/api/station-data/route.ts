@@ -77,66 +77,61 @@ function parseCSVFallback(station: string, interval: "24h" | "7d" = "24h") {
 }
 
 async function getWeatherWithCache(station: string, time: string) {
+  // Check cache first
   const cacheKey = `${station}-${time}`;
-  const now = Date.now();
   const cached = weatherCache.get(cacheKey);
-  if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data;
   }
-  let weather = getWeatherForBlock(station, time);
-  if (!weather || isWeatherDataOld(station, time, 10)) {
+
+  // Try to fetch from database if time is provided
+  if (time) {
     try {
-      const live = await fetchWeather();
-      if (live) {
-        insertWeather(
-          station,
-          time,
-          live.windSpeed ?? 0,
-          live.windDir ?? "N/A",
-          live.relHumidity ?? 0,
-          live.temperature ?? undefined
-        );
-        weather = getWeatherForBlock(station, time);
+      const weatherData = await getWeatherForBlock(station, time);
+      if (weatherData) {
+        weatherCache.set(cacheKey, { data: weatherData, timestamp: Date.now() });
+        return weatherData;
       }
-    } catch (e) {
-      console.warn('Weather service unavailable, using fallback data:', e instanceof Error ? e.message : 'Unknown error');
-      
-      // Try to get the most recent weather data from database as fallback
-      if (!weather) {
-        try {
-          const recentWeather = getRecentWeather(station);
-          if (recentWeather) {
-            weather = recentWeather;
-          } else {
-            // Last resort: use default values
-            weather = {
-              windSpeed: 0,
-              windDir: "N/A",
-              relHumidity: 50, // More realistic default than 0
-              temperature: 15 // Realistic default temperature for the region
-            };
-          }
-        } catch (dbError) {
-          // Database also failed, use defaults
-          weather = {
-            windSpeed: 0,
-            windDir: "N/A",
-            relHumidity: 50,
-            temperature: 15 // Realistic default temperature for the region
-          };
-        }
-      }
+    } catch (error) {
+      console.warn(`Failed to fetch weather from database for ${station} at ${time}:`, error);
     }
   }
-  if (!weather) {
-    weather = {
+
+  // Try live fetch
+  try {
+    const liveData = await fetchWeather();
+    // Save to database if we have station and time context
+    if (station && time) {
+      await insertWeather(station, time, liveData.windSpeed || 0, liveData.windDir || '', liveData.relHumidity || 0, liveData.temperature || 15);
+    }
+    weatherCache.set(cacheKey, { data: liveData, timestamp: Date.now() });
+    return liveData;
+  } catch (error) {
+    console.warn(`Weather service unavailable, using fallback data:`, error);
+    
+    // Try to get the most recent weather data from database
+    try {
+      const recentWeather = await getRecentWeather(station);
+      if (recentWeather) {
+        console.log(`Using recent weather data from database for ${station}`);
+        weatherCache.set(cacheKey, { data: recentWeather, timestamp: Date.now() });
+        return recentWeather;
+      }
+    } catch (dbError) {
+      console.warn(`Failed to fetch recent weather from database for ${station}:`, dbError);
+    }
+
+    // Ultimate fallback to reasonable defaults
+    console.log(`Using default fallback weather data for ${station}`);
+    const fallbackData = {
       windSpeed: 0,
-      windDir: "N/A",
-      relHumidity: 0
+      windDir: 'N',
+      relHumidity: 50, // More realistic default
+      temperature: 15
     };
+    weatherCache.set(cacheKey, { data: fallbackData, timestamp: Date.now() });
+    return fallbackData;
   }
-  weatherCache.set(cacheKey, { data: weather, timestamp: now });
-  return weather;
 }
 
 export async function GET(req: Request) {

@@ -5,10 +5,11 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Volume2, TrendingUp, Wind, Download, AlertTriangle, Table as TableIcon } from "lucide-react"
-import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Area } from "recharts"
+import { Volume2, TrendingUp, Clock, BarChart3, Download, Wind, AlertTriangle, Table as TableIcon } from "lucide-react"
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart } from "recharts"
 import { useState } from "react"
 import Link from "next/link"
+import { STATION_COLORS, CHART_COLORS } from "@/lib/colors"
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -296,7 +297,7 @@ export default function TechnoPage() {
                     yAxisId="noise"
                     type="monotone"
                     dataKey="las"
-                    stroke="#ec4899"
+                    stroke={STATION_COLORS.techno.primary}
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorTechno)"
@@ -305,7 +306,7 @@ export default function TechnoPage() {
                     yAxisId="wind"
                     type="monotone"
                     dataKey="ws"
-                    stroke="#a855f7"
+                    stroke={CHART_COLORS.wind}
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={false}
@@ -315,7 +316,7 @@ export default function TechnoPage() {
                     yAxisId="wind"
                     type="monotone"
                     dataKey="rh"
-                    stroke="#f59e42"
+                    stroke={CHART_COLORS.humidity}
                     strokeWidth={2}
                     strokeDasharray="2 2"
                     dot={false}
@@ -326,7 +327,7 @@ export default function TechnoPage() {
                     yAxisId="noise"
                     type="monotone"
                     dataKey={() => 55}
-                    stroke="#facc15"
+                    stroke={CHART_COLORS.warning}
                     strokeWidth={1}
                     strokeDasharray="3 3"
                     dot={false}
@@ -336,7 +337,7 @@ export default function TechnoPage() {
                     yAxisId="noise"
                     type="monotone"
                     dataKey={() => 60}
-                    stroke="#f87171"
+                    stroke={CHART_COLORS.alarm}
                     strokeWidth={1}
                     strokeDasharray="3 3"
                     dot={false}

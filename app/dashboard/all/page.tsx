@@ -2,13 +2,14 @@
 
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Wind, AlertTriangle, Volume2, Activity, TrendingUp, Thermometer, Droplets, Table as TableIcon } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
-import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
+import { Home, TrendingUp, Volume2, Clock, BarChart3, Download, Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer } from "lucide-react"
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart, LineChart, Legend } from "recharts"
 import { useStationData, StationDataPoint } from "@/hooks/useStationData"
 import { useState } from "react"
+import Link from "next/link"
+import { STATION_COLORS, CHART_COLORS } from "@/lib/colors"
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -309,7 +310,7 @@ export default function AllLocationsPage() {
                         <Line
                           type="monotone"
                           dataKey="Ort"
-                          stroke="#10b981"
+                          stroke={STATION_COLORS.ort.primary}
                           strokeWidth={2}
                           dot={false}
                           name="Ort"
@@ -317,7 +318,7 @@ export default function AllLocationsPage() {
                         <Line
                           type="monotone"
                           dataKey="Heuballern"
-                          stroke="#06b6d4"
+                          stroke={STATION_COLORS.heuballern.primary}
                           strokeWidth={2}
                           dot={false}
                           name="Heuballern"
@@ -325,7 +326,7 @@ export default function AllLocationsPage() {
                         <Line
                           type="monotone"
                           dataKey="TechnoFloor"
-                          stroke="#ec4899"
+                          stroke={STATION_COLORS.techno.primary}
                           strokeWidth={2}
                           dot={false}
                           name="Techno Floor"
@@ -333,7 +334,7 @@ export default function AllLocationsPage() {
                         <Line
                           type="monotone"
                           dataKey="Bandbuehne"
-                          stroke="#a855f7"
+                          stroke={STATION_COLORS.band.primary}
                           strokeWidth={2}
                           dot={false}
                           name="Band Bühne"
@@ -343,7 +344,7 @@ export default function AllLocationsPage() {
                           yAxisId="wind"
                           type="monotone"
                           dataKey="windSpeed"
-                          stroke="#f59e0b"
+                          stroke={CHART_COLORS.warning}
                           strokeWidth={2}
                           strokeDasharray="5 5"
                           dot={false}

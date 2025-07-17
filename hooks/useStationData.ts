@@ -6,6 +6,7 @@ export interface StationDataPoint {
   ws?: number // wind speed
   wd?: string  // wind direction
   rh?: number  // relative humidity
+  temp?: number // temperature
 }
 
 // Notification functions

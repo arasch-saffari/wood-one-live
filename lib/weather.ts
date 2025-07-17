@@ -2,7 +2,7 @@
 // Client-side weather fetching is handled via API endpoints
 
 export async function fetchWeather() {
-  const maxRetries = 2;
+  const maxRetries = 3;
   const timeoutMs = 5000; // 5 second timeout
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -44,7 +44,7 @@ export async function fetchWeather() {
       }
       
     } catch (error) {
-      console.warn(`Weather fetch attempt ${attempt}/${maxRetries} failed:`, error instanceof Error ? error.message : 'Unknown error');
+      console.warn(`Weather fetch attempt ${attempt}/${maxRetries} failed:`, error instanceof Error ? error.message : 'Unknown error', 'Details:', error);
       
       // If this was the last attempt, throw the error
       if (attempt === maxRetries) {
