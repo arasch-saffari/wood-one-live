@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Database, FileText, Activity, Eye } from "lucide-react"
 import { motion } from "framer-motion"
+import { runTerminalCommand } from '@/lib/utils' // Hilfsfunktion für serverseitige Shell-Kommandos (ggf. anlegen)
 
 interface CSVFile {
   name: string
@@ -32,6 +33,8 @@ export default function AdminPage() {
   const [lastResult, setLastResult] = useState<{ success: boolean; error?: string; message?: string; processedFiles?: number } | null>(null)
   const [watcherStatus, setWatcherStatus] = useState<WatcherStatus | null>(null)
   const [isLoadingStatus, setIsLoadingStatus] = useState(true)
+  const [weatherTestResult, setWeatherTestResult] = useState<{ success: boolean; error?: string; time?: string } | null>(null)
+  const [resetting, setResetting] = useState(false)
 
   const processCSVFiles = async () => {
     setIsProcessing(true)
@@ -74,6 +77,42 @@ export default function AdminPage() {
     }
   }
 
+  const testWeatherFetch = async () => {
+    setWeatherTestResult(null)
+    try {
+      const now = new Date()
+      const iso = now.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM
+      // API erwartet ?station=global&time=YYYY-MM-DDTHH:MM
+      const url = `/api/weather?station=global&time=${encodeURIComponent(iso.replace('T', ' '))}`
+      const res = await fetch(url)
+      const data = await res.json()
+      if (res.ok && data && (data.windSpeed !== undefined || data.ws !== undefined)) {
+        setWeatherTestResult({ success: true, time: iso.replace('T', ' ') })
+      } else {
+        setWeatherTestResult({ success: false, error: data?.error || 'Unbekannter Fehler' })
+      }
+    } catch (e: any) {
+      setWeatherTestResult({ success: false, error: e?.message || 'Fehler beim Fetch' })
+    }
+  }
+
+  const handleFactoryReset = async () => {
+    if (!window.confirm('Wirklich ALLE Daten (Messwerte, Wetter, CSVs) löschen und System zurücksetzen?')) return;
+    setResetting(true)
+    try {
+      // API-Route zum Löschen und Re-Init anstoßen
+      const res = await fetch('/api/admin/factory-reset', { method: 'POST' })
+      const data = await res.json()
+      alert(data.message || 'Zurücksetzen abgeschlossen.')
+      // Optional: Seite neu laden
+      window.location.reload()
+    } catch (e) {
+      alert('Fehler beim Zurücksetzen: ' + (e?.message || e))
+    } finally {
+      setResetting(false)
+    }
+  }
+
   useEffect(() => {
     fetchWatcherStatus()
   }, [])
@@ -88,6 +127,20 @@ export default function AdminPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('de-DE')
+  }
+
+  // Hilfsfunktion für Berlin-Zeit (auch für 'HH:MM')
+  function formatBerlinTime(iso: string | null | undefined): string {
+    if (!iso) return '-';
+    if (/^\d{2}:\d{2}$/.test(iso)) {
+      // Nur Uhrzeit, baue Date-Objekt für heute
+      const now = new Date();
+      const [h, m] = iso.split(':').map(Number);
+      const berlin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+      return berlin.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
+    }
+    const date = new Date(iso);
+    return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
   }
 
   return (
@@ -294,6 +347,51 @@ export default function AdminPage() {
                 <li>• Reduzierte Server-Last</li>
               </ul>
             </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Activity className="w-5 h-5 text-blue-400" />
+              <span>Wetterdaten-Test</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <button
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 rounded-lg font-semibold text-xs shadow hover:scale-105 transition"
+              onClick={testWeatherFetch}
+            >
+              Wetterdaten jetzt abrufen & speichern
+            </button>
+            {weatherTestResult && (
+              <div className={weatherTestResult.success ? 'text-green-600' : 'text-red-600'}>
+                {weatherTestResult.success
+                  ? `Erfolg: Wetterdaten für ${formatBerlinTime(weatherTestResult.time)} gespeichert.`
+                  : `Fehler: ${weatherTestResult.error}`}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <Card className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-red-700 dark:text-red-300">
+              <Activity className="w-5 h-5 text-red-500" />
+              <span>Werkseinstellungen / Factory Reset</span>
+            </CardTitle>
+            <CardDescription>
+              <span className="text-red-600 dark:text-red-300">Achtung: Löscht unwiderruflich alle Messwerte, Wetterdaten und CSV-Dateien!</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleFactoryReset} disabled={resetting} className="w-full bg-gradient-to-r from-red-500 to-red-700 text-white hover:from-red-600 hover:to-red-800">
+              {resetting ? 'Zurücksetzen läuft...' : 'Datenbank & CSVs löschen und System zurücksetzen'}
+            </Button>
           </CardContent>
         </Card>
       </motion.div>

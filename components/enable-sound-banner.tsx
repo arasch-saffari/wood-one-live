@@ -33,4 +33,47 @@ export function EnableSoundBanner() {
       )}
     </AnimatePresence>
   )
+}
+
+export function EnablePwaBanner() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [showBanner, setShowBanner] = useState(false)
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setShowBanner(true)
+    }
+    window.addEventListener("beforeinstallprompt", handler)
+    return () => window.removeEventListener("beforeinstallprompt", handler)
+  }, [])
+
+  if (!showBanner) return null
+
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg px-6 py-4 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-8">
+      <span className="font-medium text-sm text-gray-900 dark:text-white">App zum Startbildschirm hinzufügen?</span>
+      <button
+        className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold text-xs shadow hover:scale-105 transition"
+        onClick={async () => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt()
+            const { outcome } = await deferredPrompt.userChoice
+            if (outcome === "accepted") {
+              setShowBanner(false)
+            }
+          }
+        }}
+      >
+        Hinzufügen
+      </button>
+      <button
+        className="ml-2 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white"
+        onClick={() => setShowBanner(false)}
+      >
+        Schließen
+      </button>
+    </div>
+  )
 } 

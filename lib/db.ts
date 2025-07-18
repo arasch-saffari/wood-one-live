@@ -3,9 +3,10 @@ import path from 'path'
 import fs from 'fs'
 import Papa from 'papaparse'
 import csvWatcher from './csv-watcher'
+import { addWeatherCron } from './weather'
 
 const dbPath = path.join(process.cwd(), 'data.sqlite')
-const db = new Database(dbPath)
+export const db = new Database(dbPath)
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file
@@ -370,4 +371,5 @@ checkDatabaseHealth()
 if (process.env.NODE_ENV !== 'production') {
   console.log('🚀 Starting automatic CSV processing...')
   csvWatcher.start()
+  addWeatherCron()
 } 

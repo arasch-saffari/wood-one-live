@@ -4,18 +4,20 @@
 
 ## 📖 Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Implemented Features](#implemented-features)
-3. [System Architecture](#system-architecture)
-4. [Technology Stack](#technology-stack)
-5. [Project Structure](#project-structure)
-6stallation & Setup](#installation--setup)7 [Configuration](#configuration)
-8sage Guide](#usage-guide)9 [API Reference](#api-reference)
-10. [Database Schema](#database-schema)
-11. [Security & Privacy](#security--privacy)
-12. [Deployment](#deployment)
-13. [Troubleshooting](#troubleshooting)
-14lossary](#glossary)
+1. [Project Overview](#1-project-overview)
+2. [Implemented Features](#2-implemented-features)
+3. [System Architecture](#3-system-architecture)
+4. [Technology Stack](#4-technology-stack)
+5. [Project Structure](#5-project-structure)
+6. [Installation & Setup](#6-installation--setup)
+7. [Configuration](#7-configuration)
+8. [Usage Guide](#8-usage-guide)
+9. [API Reference](#9-api-reference)
+10. [Database Schema](#10-database-schema)
+11. [Security & Privacy](#11-security--privacy)
+12. [Deployment](#12-deployment)
+13. [Troubleshooting](#13-troubleshooting)
+14. [Glossary](#14-glossary)
 
 ---
 
@@ -185,7 +187,7 @@ noise-monitoring-dashboard/
 
 ---
 
-##6stallation & Setup
+## 6. Installation & Setup
 
 ### Prerequisites
 - Node.js 18 pnpm (recommended) or npm
@@ -234,7 +236,7 @@ WEATHER_API_URL=https://weisserstein.info
 
 ---
 
-## 7Configuration
+## 7. Configuration
 
 ### Station Configuration
 Stations are configured in the file structure:
@@ -272,7 +274,7 @@ const MAX_DATA_POINTS = 50
 - **Data Export**: CSV export for analysis
 
 ### Chart Controls
-1Interval Selection**:
+1. **Interval Selection**:
    - 7s: Shows data from the last 7 days
    - 24 Hours: Shows data from the last 24urs2nularity Selection**:
    - 10e Average: Average over10minute blocks
@@ -297,7 +299,7 @@ const MAX_DATA_POINTS = 50
 
 ---
 
-## 9API Reference
+## 9. API Reference
 
 ### Station Data API
 ```typescript
@@ -342,7 +344,7 @@ Body:
 
 ---
 
-## 10 Database Schema
+## 10. Database Schema
 
 ### Measurements Table
 ```sql
@@ -401,7 +403,7 @@ CREATE INDEX idx_measurements_source_file ON measurements(source_file);
 
 ---
 
-## 12nt
+## 12. Deployment
 
 ### Production Build
 ```bash
@@ -446,7 +448,7 @@ server[object Object]    listen 80  server_name your-domain.com;
 
 ---
 
-## 13 Troubleshooting
+## 13. Troubleshooting
 
 ### Common Issues
 
@@ -499,7 +501,7 @@ grep "ERROR" logs/app.log
 
 ---
 
-##14ary
+## 14. Glossary
 
 ### Technical Terms
 - **LAS**: A-weighted sound pressure level

@@ -91,6 +91,7 @@ export default function DashboardLayout({
   // Wetter-Status: Letztes Wetter-Update
   const [lastWeatherUpdate, setLastWeatherUpdate] = useState<string | null>(null)
   const [lastWeatherAgo, setLastWeatherAgo] = useState<string | null>(null)
+  const [lastWeatherIso, setLastWeatherIso] = useState<string | null>(null)
   useEffect(() => {
     async function fetchLastWeather() {
       try {
@@ -99,6 +100,7 @@ export default function DashboardLayout({
           const data = await res.json()
           setLastWeatherUpdate(data.time)
           setLastWeatherAgo(data.ago)
+          setLastWeatherIso(data.iso)
         }
       } catch {}
     }
@@ -106,6 +108,59 @@ export default function DashboardLayout({
     const interval = setInterval(fetchLastWeather, 60000)
     return () => clearInterval(interval)
   }, [])
+
+  // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
+  function windDirectionText(dir: number | string | null | undefined): string {
+    if (dir === null || dir === undefined) return '–';
+    let deg = typeof dir === 'string' ? parseFloat(dir) : dir;
+    if (isNaN(deg)) {
+      // Falls es eine Abkürzung ist
+      const map: Record<string, string> = {
+        n: 'Norden', nne: 'Nordnordost', ne: 'Nordost', ene: 'Ostnordost',
+        e: 'Osten', ese: 'Ostsüdost', se: 'Südost', sse: 'Südsüdost',
+        s: 'Süden', ssw: 'Südsüdwest', sw: 'Südwest', wsw: 'Westsüdwest',
+        w: 'Westen', wnw: 'Westnordwest', nw: 'Nordwest', nnw: 'Nordnordwest'
+      };
+      const key = typeof dir === 'string' ? dir.toLowerCase() : '';
+      return map[key] || dir.toString();
+    }
+    // Gradzahl in Richtungstext
+    const directions = [
+      'Norden', 'Nordnordost', 'Nordost', 'Ostnordost',
+      'Osten', 'Ostsüdost', 'Südost', 'Südsüdost',
+      'Süden', 'Südsüdwest', 'Südwest', 'Westsüdwest',
+      'Westen', 'Westnordwest', 'Nordwest', 'Nordnordwest', 'Norden'
+    ];
+    const idx = Math.round(((deg % 360) / 22.5));
+    return directions[idx];
+  }
+
+  // Wetterdaten für Sidebar laden
+  const [sidebarWeather, setSidebarWeather] = useState<{ windSpeed?: number; windDir?: string | number; relHumidity?: number; temperature?: number } | null>(null)
+  useEffect(() => {
+    async function fetchSidebarWeather() {
+      try {
+        const res = await fetch('/api/weather?station=global&time=now')
+        if (res.ok) {
+          const data = await res.json()
+          setSidebarWeather(data)
+        }
+      } catch {}
+    }
+    fetchSidebarWeather()
+    const interval = setInterval(fetchSidebarWeather, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Hilfsfunktion: Zeitstring (z.B. '17:05') in Date-Objekt für heute (Europe/Berlin) umwandeln
+  function parseBerlinTime(time: string | null | undefined): Date | null {
+    if (!time || typeof time !== 'string' || !/^\d{2}:\d{2}$/.test(time)) return null;
+    const now = new Date();
+    const [h, m] = time.split(':').map(Number);
+    // Erzeuge ein Date-Objekt für heute in Europe/Berlin
+    const berlin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+    return berlin;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -293,7 +348,7 @@ export default function DashboardLayout({
                 Letzte Aktualisierung: {formatTime(latestTime)} ({getRelativeTime(latestTime)})
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                Letztes Wetter-Update: {lastWeatherUpdate ? `${lastWeatherUpdate} (${lastWeatherAgo})` : '–'}
+                Letztes Wetter-Update: {lastWeatherIso && parseBerlinTime(lastWeatherIso) ? `${parseBerlinTime(lastWeatherIso)!.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })} (${lastWeatherAgo})` : '-'}
               </div>
             </motion.div>
           )}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { toast } from "@/components/ui/use-toast"
 
 export interface StationDataPoint {
   time: string // "HH:MM"
@@ -26,11 +27,18 @@ function showNoiseAlert(station: string, level: number, threshold: number) {
     band: "Band-Bühne"
   }
   const stationName = stationNames[station as keyof typeof stationNames] || station
+  // Push Notification
   new Notification("Lärmalarm", {
     body: `${stationName}: ${level.toFixed(1)} dB überschreitet ${threshold} dB Grenzwert`,
     icon: "/placeholder-logo.png",
     tag: `noise-${station}-${threshold}`,
     requireInteraction: false,
+  })
+  // UI-Toast
+  toast({
+    title: `Lärmalarm: ${stationName}`,
+    description: `${level.toFixed(1)} dB überschreitet ${threshold} dB Grenzwert`,
+    variant: threshold === 60 ? "destructive" : "default"
   })
 }
 

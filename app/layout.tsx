@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { EnablePwaBanner } from "@/components/enable-sound-banner"
+import { useEffect } from 'react'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,6 +28,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      window.location.reload()
+    }, 300000) // 5 Minuten
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <html lang="de" suppressHydrationWarning>
       <head>
@@ -47,6 +56,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <EnablePwaBanner />
         </ThemeProvider>
       </body>
     </html>

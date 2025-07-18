@@ -1,6 +1,8 @@
 // This file is for server-side weather fetching only
 // Client-side weather fetching is handled via API endpoints
 
+import { db } from './db'
+
 export async function fetchWeather() {
   const maxRetries = 3;
   const timeoutMs = 5000; // 5 second timeout
@@ -20,9 +22,9 @@ export async function fetchWeather() {
       const current = data.current || {};
       return {
         windSpeed: typeof current.windspeed_10m === 'number' ? current.windspeed_10m : null,
-        windDir: typeof current.winddirection_10m === 'number' ? `${current.winddirection_10m}°` : null,
+        windDir: typeof current.winddirection_10m === 'number' ? `${current.winddirection_10m}\u00b0` : null,
         relHumidity: typeof current.relativehumidity_2m === 'number' ? current.relativehumidity_2m : null,
-        temperature: typeof current.temperature_2m === 'number' ? current.temperature_2m : null,
+        temperature: current.temperature_2m !== undefined ? Math.round(current.temperature_2m) : null,
       };
     } catch (error) {
       console.warn(`Weather fetch attempt ${attempt}/${maxRetries} failed:`, error instanceof Error ? error.message : 'Unknown error', 'Details:', error);
@@ -33,4 +35,29 @@ export async function fetchWeather() {
     }
   }
   throw new Error('Unexpected end of function');
+}
+
+// Wetterdaten alle 10 Minuten automatisch abrufen und speichern (nur im Server-Umfeld)
+export function addWeatherCron() {
+  if (typeof process === 'undefined' || process.env.NODE_ENV === 'test') return
+  console.log('[Wetter-Cron] Initialisiert. Alle 10 Minuten wird ein Wetter-Update versucht.')
+  setInterval(async () => {
+    try {
+      const now = new Date()
+      const berlin = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
+      const min = berlin.getMinutes()
+      const blockMin = Math.floor(min / 5) * 5
+      const blockTime = berlin.getHours().toString().padStart(2, '0') + ':' + blockMin.toString().padStart(2, '0')
+      console.log(`[Wetter-Cron] UTC: ${now.toISOString()}, Berlin: ${berlin.toISOString()}, blockTime: ${blockTime}`)
+      const weather = await fetchWeather()
+      console.log('[Wetter-Cron] API-Werte:', weather)
+      // Station 'global', Zeit = aktuelle 5min-Block
+      const { windSpeed, windDir, relHumidity, temperature } = weather
+      const stmt = db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+      const result = stmt.run('global', blockTime, windSpeed ?? 0, windDir ?? '', relHumidity ?? 0, temperature ?? null)
+      console.log('[Wetter-Cron] Wetterdaten gespeichert:', { blockTime, windSpeed, windDir, relHumidity, temperature, result })
+    } catch (e) {
+      console.error('[Wetter-Cron] Fehler beim Abrufen/Speichern:', e)
+    }
+  }, 10 * 60 * 1000) // alle 10 Minuten
 } 

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Home, TrendingUp, Volume2, Clock, BarChart3, Download, Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer } from "lucide-react"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart, LineChart, Legend } from "recharts"
 import { useStationData, StationDataPoint } from "@/hooks/useStationData"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { STATION_COLORS, CHART_COLORS } from "@/lib/colors"
 import {
@@ -33,6 +33,39 @@ const locationRoutes = {
   Heuballern: "/dashboard/heuballern",
 }
 
+// Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
+function windDirectionText(dir: number | string | null | undefined): string {
+  if (dir === null || dir === undefined) return '–';
+  let deg = typeof dir === 'string' ? parseFloat(dir) : dir;
+  if (isNaN(deg)) {
+    // Falls es eine Abkürzung ist
+    const map: Record<string, string> = {
+      n: 'Norden', nne: 'Nordnordost', ne: 'Nordost', ene: 'Ostnordost',
+      e: 'Osten', ese: 'Ostsüdost', se: 'Südost', sse: 'Südsüdost',
+      s: 'Süden', ssw: 'Südsüdwest', sw: 'Südwest', wsw: 'Westsüdwest',
+      w: 'Westen', wnw: 'Westnordwest', nw: 'Nordwest', nnw: 'Nordnordwest'
+    };
+    const key = typeof dir === 'string' ? dir.toLowerCase() : '';
+    return map[key] || dir.toString();
+  }
+  // Gradzahl in Richtungstext
+  const directions = [
+    'Norden', 'Nordnordost', 'Nordost', 'Ostnordost',
+    'Osten', 'Ostsüdost', 'Südost', 'Südsüdost',
+    'Süden', 'Südsüdwest', 'Südwest', 'Westsüdwest',
+    'Westen', 'Westnordwest', 'Nordwest', 'Nordnordwest', 'Norden'
+  ];
+  const idx = Math.round(((deg % 360) / 22.5));
+  return directions[idx];
+}
+
+// Hilfsfunktion: Zeit in Europe/Berlin anzeigen
+function formatBerlinTime(iso: string | null | undefined): string {
+  if (!iso) return '-';
+  const date = new Date(iso);
+  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
+}
+
 export default function AllLocationsPage() {
   // Chart-Intervall-Button-State
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
@@ -51,14 +84,22 @@ export default function AllLocationsPage() {
     Heuballern: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].las : 0,
   }
 
-  // Aktuellste Wetterdaten (letzter Wert pro Station)
-  const lastWeatherRaw = [ortData, heuballernData, technoData, bandData]
-    .map(arr => arr.length > 0 ? arr[arr.length - 1] : null)
-  const lastWeather = lastWeatherRaw.filter((d): d is StationDataPoint => d !== null)
-  const avgWindSpeed = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.ws ?? 0), 0) / lastWeather.length).toFixed(1) : 'N/A'
-  const avgWindDir = lastWeather.length > 0 ? lastWeather[0].wd ?? 'N/A' : 'N/A'
-  const avgRelHumidity = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.rh ?? 0), 0) / lastWeather.length).toFixed(0) : 'N/A'
-  const avgTemperature = lastWeather.length > 0 ? (lastWeather.reduce((sum, d) => sum + (d.temp ?? 0), 0) / lastWeather.length).toFixed(1) : 'N/A'
+  // Aktuellster Wetterwert (aus API)
+  const [latestWeather, setLatestWeather] = useState<{ windSpeed?: number; windDir?: string; relHumidity?: number; temperature?: number } | null>(null)
+  useEffect(() => {
+    async function fetchLatestWeather() {
+      try {
+        const res = await fetch("/api/weather?station=global&time=now")
+        if (res.ok) {
+          const data = await res.json()
+          setLatestWeather(data)
+        }
+      } catch {}
+    }
+    fetchLatestWeather()
+    const interval = setInterval(fetchLatestWeather, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Status-Farbe basierend auf Lärmwert bestimmen
   const getStatusColor = (level: number, isNight = false) => {
@@ -174,7 +215,7 @@ export default function AllLocationsPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                     <Wind className="w-4 lg:w-5 h-4 lg:h-5 text-blue-400" />
-                    <span className="text-gray-900 dark:text-white">Wetter-Übersicht aller Standorte</span>
+                    <span className="text-gray-900 dark:text-white">Wetter – aktuellster Wert</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -185,7 +226,7 @@ export default function AllLocationsPage() {
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Windgeschwindigkeit</span>
                       </div>
                       <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                        {avgWindSpeed}
+                        {latestWeather?.windSpeed !== undefined ? latestWeather.windSpeed.toFixed(1) : '–'}
                       </div>
                       <div className="text-xs lg:text-sm text-gray-500">km/h</div>
                     </div>
@@ -195,9 +236,9 @@ export default function AllLocationsPage() {
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Windrichtung</span>
                       </div>
                       <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                        {avgWindDir}
+                        {windDirectionText(latestWeather?.windDir)}
                       </div>
-                      <div className="text-xs lg:text-sm text-gray-500">Durchschnitt</div>
+                      <div className="text-xs lg:text-sm text-gray-500">aktuell</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center space-x-2 mb-2">
@@ -205,9 +246,9 @@ export default function AllLocationsPage() {
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Luftfeuchtigkeit</span>
                       </div>
                       <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                        {avgRelHumidity}%
+                        {latestWeather?.relHumidity !== undefined ? latestWeather.relHumidity.toFixed(0) : '–'}%
                       </div>
-                      <div className="text-xs lg:text-sm text-gray-500">Durchschnitt</div>
+                      <div className="text-xs lg:text-sm text-gray-500">aktuell</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center space-x-2 mb-2">
@@ -215,9 +256,9 @@ export default function AllLocationsPage() {
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Temperatur</span>
                       </div>
                       <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                        {avgTemperature}°C
+                        {typeof latestWeather?.temperature === 'number' ? Math.round(latestWeather.temperature) : '–'}°C
                       </div>
-                      <div className="text-xs lg:text-sm text-gray-500">Durchschnitt</div>
+                      <div className="text-xs lg:text-sm text-gray-500">aktuell</div>
                     </div>
                   </div>
                 </CardContent>
@@ -225,8 +266,8 @@ export default function AllLocationsPage() {
             </motion.div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Aktuelle Wetterdaten von allen Standorten</p>
-            <p className="text-xs text-muted-foreground">Durchschnittswerte für Wind, Luftfeuchtigkeit und Temperatur</p>
+            <p>Aktuellster Wetterwert (Open-Meteo, station=global)</p>
+            <p className="text-xs text-muted-foreground">Wird minütlich aktualisiert</p>
           </TooltipContent>
         </UITooltip>
 
