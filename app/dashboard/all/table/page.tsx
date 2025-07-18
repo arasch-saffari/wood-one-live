@@ -7,21 +7,34 @@ import { Download, BarChart3 } from "lucide-react"
 import { useStationData } from "@/hooks/useStationData"
 
 export default function AllTablePage() {
-  const [selectedStation, setSelectedStation] = useState<string>("ort")
-  const data = useStationData(selectedStation, "24h")
+  const [interval, setInterval] = useState<"24h" | "7d">("24h")
+  const ortData = useStationData("ort", interval)
+  const technoData = useStationData("techno", interval)
+  const bandData = useStationData("band", interval)
+  const heuballernData = useStationData("heuballern", interval)
 
   const stations = [
     { id: "ort", name: "Ort", color: "text-emerald-400" },
     { id: "techno", name: "Techno Floor", color: "text-pink-400" },
+    { id: "band", name: "Band Bühne", color: "text-purple-400" },
     { id: "heuballern", name: "Heuballern", color: "text-cyan-400" },
-    { id: "band", name: "Band", color: "text-purple-400" },
   ]
+
+  // Kombiniere alle Daten in eine Liste
+  const allRows = [
+    ...ortData.map(row => ({ ...row, station: "Ort" })),
+    ...technoData.map(row => ({ ...row, station: "Techno Floor" })),
+    ...bandData.map(row => ({ ...row, station: "Band Bühne" })),
+    ...heuballernData.map(row => ({ ...row, station: "Heuballern" })),
+  ]
+  // Sortiere nach Zeit absteigend (neueste oben)
+  allRows.sort((a, b) => b.time.localeCompare(a.time))
 
   const exportData = () => {
     const csvContent = [
-      "Zeit,Lärmpegel (dB),Windgeschwindigkeit (km/h),Windrichtung,Luftfeuchtigkeit (%)",
-      ...data.map((row) => 
-        `${row.time},${row.las},${row.ws || "N/A"},${row.wd || "N/A"},${row.rh || "N/A"}`
+      "Station,Zeit,Lärmpegel (dB),Windgeschwindigkeit (km/h),Windrichtung,Luftfeuchtigkeit (%)",
+      ...allRows.map((row) => 
+        `${row.station},${row.time},${row.las},${row.ws || "N/A"},${row.wd || "N/A"},${row.rh || "N/A"}`
       )
     ].join("\n")
 
@@ -29,7 +42,7 @@ export default function AllTablePage() {
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
     link.setAttribute("href", url)
-    link.setAttribute("download", `${selectedStation}_data.csv`)
+    link.setAttribute("download", `all_data.csv`)
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
@@ -38,36 +51,27 @@ export default function AllTablePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daten Tabelle</h1>
-          <p className="text-gray-600 dark:text-gray-400">Detaillierte Messwerte aller Stationen</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Alle Messwerte – Listenansicht</h1>
+          <p className="text-gray-600 dark:text-gray-400">Kombinierte Tabelle aller Stationen ({stations.map(s => s.name).join(", ")})</p>
         </div>
-        <Button onClick={exportData} className="bg-gradient-to-r from-pink-500 to-purple-600">
-          <Download className="w-4 h-4 mr-2" />
-          Export CSV
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {stations.map((station) => (
-          <Button
-            key={station.id}
-            variant={selectedStation === station.id ? "default" : "outline"}
-            onClick={() => setSelectedStation(station.id)}
-            className={selectedStation === station.id ? "bg-gradient-to-r from-pink-500 to-purple-600" : ""}
-          >
-            <BarChart3 className={`w-4 h-4 mr-2 ${station.color}`} />
-            {station.name}
+        <div className="flex gap-2 items-center">
+          <select value={interval} onChange={e => (setInterval(e.target.value as "24h" | "7d"))} className="border rounded px-2 py-1 text-sm">
+            <option value="24h">Letzte 24h</option>
+            <option value="7d">Letzte 7 Tage</option>
+          </select>
+          <Button onClick={exportData} className="bg-gradient-to-r from-pink-500 to-purple-600">
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
           </Button>
-        ))}
+        </div>
       </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <BarChart3 className="w-5 h-5 text-emerald-400" />
-            <span>Messwerte - {stations.find(s => s.id === selectedStation)?.name}</span>
+            <span>Alle Messwerte</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -75,6 +79,7 @@ export default function AllTablePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Station</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Zeit</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Lärmpegel (dB)</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Wind (km/h)</th>
@@ -83,15 +88,21 @@ export default function AllTablePage() {
                 </tr>
               </thead>
               <tbody>
-                {data.map((row, index) => (
+                {allRows.map((row, index) => (
                   <tr key={index} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="py-3 px-4 font-semibold">
+                      {row.station}
+                    </td>
                     <td className="py-3 px-4 text-gray-900 dark:text-white">{row.time}</td>
                     <td className="py-3 px-4 text-gray-900 dark:text-white">{row.las.toFixed(1)}</td>
-                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.ws || "N/A"}</td>
-                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.wd || "N/A"}</td>
-                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.rh || "N/A"}</td>
+                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.ws ?? "-"}</td>
+                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.wd ?? "-"}</td>
+                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.rh ?? "-"}</td>
                   </tr>
                 ))}
+                {allRows.length === 0 && (
+                  <tr><td colSpan={6} className="text-center text-gray-400">Keine Daten gefunden.</td></tr>
+                )}
               </tbody>
             </table>
           </div>

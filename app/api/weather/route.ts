@@ -36,6 +36,27 @@ export async function getOrFetchWeather(station: string, time: string) {
 }
 
 export async function GET(req: Request) {
+  const { pathname } = new URL(req.url)
+  if (pathname.endsWith('/last-update')) {
+    // Spezialroute für letztes Wetter-Update
+    try {
+      const db = require('@/lib/db')
+      const stmt = db.default.prepare('SELECT created_at FROM weather ORDER BY created_at DESC LIMIT 1')
+      const row = stmt.get()
+      if (!row || !row.created_at) {
+        return NextResponse.json({ time: null, ago: null })
+      }
+      const createdAt = new Date(row.created_at)
+      const now = new Date()
+      const diffMin = Math.floor((now.getTime() - createdAt.getTime()) / 60000)
+      let ago = 'gerade eben'
+      if (diffMin === 1) ago = 'vor 1 Min'
+      else if (diffMin > 1) ago = `vor ${diffMin} Min`
+      return NextResponse.json({ time: createdAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }), ago })
+    } catch (e) {
+      return NextResponse.json({ time: null, ago: null })
+    }
+  }
   try {
     const { searchParams } = new URL(req.url)
     const station = searchParams.get("station") || "global"

@@ -12,6 +12,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useStationData } from "@/hooks/useStationData"
 import { STATION_COLORS } from "@/lib/colors"
+import { getRecentWeather } from "@/lib/db"
 // import { NotificationPermission } from "@/components/notification-permission"
 // import { EnableSoundBanner } from "@/components/enable-sound-banner"
 
@@ -19,9 +20,9 @@ import { STATION_COLORS } from "@/lib/colors"
 const navigation = [
   { name: "Alle Standorte", href: "/dashboard/all", icon: Home, color: STATION_COLORS.all.menuColor },
   { name: "Ort", href: "/dashboard/ort", icon: MapPin, color: STATION_COLORS.ort.menuColor },
-  { name: "Heuballern", href: "/dashboard/heuballern", icon: MapPin, color: STATION_COLORS.heuballern.menuColor },
   { name: "Techno Floor", href: "/dashboard/techno", icon: Volume2, color: STATION_COLORS.techno.menuColor },
   { name: "Band Bühne", href: "/dashboard/band", icon: Music, color: STATION_COLORS.band.menuColor },
+  { name: "Heuballern", href: "/dashboard/heuballern", icon: MapPin, color: STATION_COLORS.heuballern.menuColor },
   { name: "Daten Export", href: "/dashboard/export", icon: Download, color: STATION_COLORS.export.menuColor },
 ]
 
@@ -86,6 +87,25 @@ export default function DashboardLayout({
     }
     return latest + ":00 Uhr"
   }
+
+  // Wetter-Status: Letztes Wetter-Update
+  const [lastWeatherUpdate, setLastWeatherUpdate] = useState<string | null>(null)
+  const [lastWeatherAgo, setLastWeatherAgo] = useState<string | null>(null)
+  useEffect(() => {
+    async function fetchLastWeather() {
+      try {
+        const res = await fetch("/api/weather/last-update")
+        if (res.ok) {
+          const data = await res.json()
+          setLastWeatherUpdate(data.time)
+          setLastWeatherAgo(data.ago)
+        }
+      } catch {}
+    }
+    fetchLastWeather()
+    const interval = setInterval(fetchLastWeather, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -271,6 +291,9 @@ export default function DashboardLayout({
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 Letzte Aktualisierung: {formatTime(latestTime)} ({getRelativeTime(latestTime)})
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                Letztes Wetter-Update: {lastWeatherUpdate ? `${lastWeatherUpdate} (${lastWeatherAgo})` : '–'}
               </div>
             </motion.div>
           )}

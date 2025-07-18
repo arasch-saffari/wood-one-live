@@ -4,59 +4,33 @@
 export async function fetchWeather() {
   const maxRetries = 3;
   const timeoutMs = 5000; // 5 second timeout
-  
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=50.414&longitude=6.387&current=temperature_2m,relativehumidity_2m,windspeed_10m,winddirection_10m&timezone=Europe%2FBerlin';
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
-      const res = await fetch('https://www.weisserstein.info/pgs/wetteraktuell.php', {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; WeatherBot/1.0)'
-        }
-      });
-      
+      const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
-      
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-      
-      const html = await res.text();
-      
-      // Simple regex-based parsing without jsdom
-      const windSpeedMatch = html.match(/Windgeschwindigkeit\s*jetzt\s*[:：]\s*([\d.,]+)/i)
-      const windDirMatch = html.match(/Windrichtung\s*[:：]\s*([\wÄÖÜäöü]+)/i)
-      const relHumidityMatch = html.match(/Luftfeuchte\s*[:：]\s*([\d.,]+)/i)
-      const temperatureMatch = html.match(/Lufttemperatur\s*[:：]\s*([\d.,]+)/i)
-
-      // Only log if parsing completely fails (no matches at all)
-      if (!windSpeedMatch && !windDirMatch && !relHumidityMatch && !temperatureMatch) {
-        console.warn('Weather parsing failed: No data found in response')
-      }
-
+      const data = await res.json();
+      // Open-Meteo liefert aktuelle Werte unter data.current
+      const current = data.current || {};
       return {
-        windSpeed: windSpeedMatch ? parseFloat(windSpeedMatch[1].replace(',', '.')) : null,
-        windDir: windDirMatch ? windDirMatch[1] : null,
-        relHumidity: relHumidityMatch ? parseFloat(relHumidityMatch[1].replace(',', '.')) : null,
-        temperature: temperatureMatch ? parseFloat(temperatureMatch[1].replace(',', '.')) : null,
-      }
-      
+        windSpeed: typeof current.windspeed_10m === 'number' ? current.windspeed_10m : null,
+        windDir: typeof current.winddirection_10m === 'number' ? `${current.winddirection_10m}°` : null,
+        relHumidity: typeof current.relativehumidity_2m === 'number' ? current.relativehumidity_2m : null,
+        temperature: typeof current.temperature_2m === 'number' ? current.temperature_2m : null,
+      };
     } catch (error) {
       console.warn(`Weather fetch attempt ${attempt}/${maxRetries} failed:`, error instanceof Error ? error.message : 'Unknown error', 'Details:', error);
-      
-      // If this was the last attempt, throw the error
       if (attempt === maxRetries) {
         throw new Error(`Failed to fetch weather after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-      
-      // Wait before retrying (exponential backoff)
       await new Promise(resolve => setTimeout(resolve, attempt * 1000));
     }
   }
-  
-  // This should never be reached due to the throw in the catch block,
-  // but TypeScript requires a return statement
   throw new Error('Unexpected end of function');
 } 

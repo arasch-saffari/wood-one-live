@@ -20,7 +20,7 @@ import {
 
 export default function OrtPage() {
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
-  const [granularity, setGranularity] = useState<"10min" | "5min" | "1min" | "1h">("10min")
+  const [granularity, setGranularity] = useState<"15min" | "10min" | "5min" | "1min" | "1h">("15min")
   const data = useStationData("ort", chartInterval, granularity)
   // Compose KPIs from data (e.g., current, avg24h, max24h, min24h, violations, trend)
   const current = data.length > 0 ? data[data.length - 1].las : 0
@@ -272,17 +272,20 @@ export default function OrtPage() {
                 <UITooltip><TooltipTrigger asChild><Button variant={chartInterval === "24h" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("24h")}>24h</Button></TooltipTrigger><TooltipContent><p>Letzte 24 Stunden</p></TooltipContent></UITooltip>
                 <UITooltip><TooltipTrigger asChild><Button variant={chartInterval === "7d" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("7d")}>7d</Button></TooltipTrigger><TooltipContent><p>Letzte 7 Tage</p></TooltipContent></UITooltip>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold mr-2">Granularität:</span>
-                <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1h" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1h")}>1h</Button></TooltipTrigger><TooltipContent><p>Stundenmittelwert</p></TooltipContent></UITooltip>
-                <UITooltip><TooltipTrigger asChild><Button variant={granularity === "10min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("10min")}>10min</Button></TooltipTrigger><TooltipContent><p>10-Minuten-Mittelwert</p></TooltipContent></UITooltip>
-                <UITooltip><TooltipTrigger asChild><Button variant={granularity === "5min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("5min")}>5min</Button></TooltipTrigger><TooltipContent><p>5-Minuten-Mittelwert</p></TooltipContent></UITooltip>
-                <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1min")}>1min</Button></TooltipTrigger><TooltipContent><p>1-Minuten-Wert</p></TooltipContent></UITooltip>
+              <div className="flex items-center gap-2 overflow-x-auto md:gap-2 md:overflow-visible pb-2 md:pb-0">
+                <span className="text-xs font-semibold mr-2 shrink-0">Granularität:</span>
+                <div className="flex flex-row gap-2 min-w-max">
+                  <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1h" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1h")}>1h</Button></TooltipTrigger><TooltipContent><p>Stundenmittelwert</p></TooltipContent></UITooltip>
+                  <UITooltip><TooltipTrigger asChild><Button variant={granularity === "15min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("15min")}>15min</Button></TooltipTrigger><TooltipContent><p>15-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                  <UITooltip><TooltipTrigger asChild><Button variant={granularity === "10min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("10min")}>10min</Button></TooltipTrigger><TooltipContent><p>10-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                  <UITooltip><TooltipTrigger asChild><Button variant={granularity === "5min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("5min")}>5min</Button></TooltipTrigger><TooltipContent><p>5-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                  <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1min")}>1min</Button></TooltipTrigger><TooltipContent><p>1-Minuten-Wert</p></TooltipContent></UITooltip>
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-64 lg:h-96">
+            <div className="h-48 md:h-64 lg:h-96">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={data}>
                   <defs>

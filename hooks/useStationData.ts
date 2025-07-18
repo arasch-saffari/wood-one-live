@@ -37,7 +37,7 @@ function showNoiseAlert(station: string, level: number, threshold: number) {
 export function useStationData(
   station: string,
   interval: "24h" | "7d" = "24h",
-  granularity: "10min" | "5min" | "1min" | "1h" = "10min"
+  granularity: "15min" | "10min" | "5min" | "1min" | "1h" = "15min"
 ) {
   const [data, setData] = useState<StationDataPoint[]>([])
   const intervalRef = useRef<NodeJS.Timeout | null>(null)

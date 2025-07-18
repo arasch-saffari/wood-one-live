@@ -20,23 +20,23 @@ import {
 // Standort-spezifische Farben für konsistente Darstellung
 const locationColors = {
   Ort: "#10b981", // emerald
-  Heuballern: "#06b6d4", // cyan
   TechnoFloor: "#ec4899", // pink
   Bandbuehne: "#a855f7", // purple
+  Heuballern: "#06b6d4", // cyan
 }
 
 // Standort-Routing Mapping
 const locationRoutes = {
   Ort: "/dashboard/ort",
-  Heuballern: "/dashboard/heuballern",
   TechnoFloor: "/dashboard/techno",
   Bandbuehne: "/dashboard/band",
+  Heuballern: "/dashboard/heuballern",
 }
 
 export default function AllLocationsPage() {
   // Chart-Intervall-Button-State
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
-  const [granularity, setGranularity] = useState<"1h" | "10min" | "5min" | "1min">("10min")
+  const [granularity, setGranularity] = useState<"1h" | "15min" | "10min" | "5min" | "1min">("15min")
   // Fetch live data für jede Station mit Intervall und Granularity
   const ortData = useStationData("ort", chartInterval, granularity)
   const heuballernData = useStationData("heuballern", chartInterval, granularity)
@@ -46,9 +46,9 @@ export default function AllLocationsPage() {
   // Compose current levels for KPI cards (last value in each array)
   const currentLevels = {
     Ort: ortData.length > 0 ? ortData[ortData.length - 1].las : 0,
-    Heuballern: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].las : 0,
     TechnoFloor: technoData.length > 0 ? technoData[technoData.length - 1].las : 0,
     Bandbuehne: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
+    Heuballern: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].las : 0,
   }
 
   // Aktuellste Wetterdaten (letzter Wert pro Station)
@@ -86,18 +86,18 @@ export default function AllLocationsPage() {
   const chartTimes = ortData.map(d => d.time)
   const chartData = chartTimes.map(time => {
     const ort = ortData.find(d => d.time === time)
-    const heuballern = heuballernData.find(d => d.time === time)
     const techno = technoData.find(d => d.time === time)
     const band = bandData.find(d => d.time === time)
+    const heuballern = heuballernData.find(d => d.time === time)
     // Windgeschwindigkeit: Mittelwert der vier Standorte, falls vorhanden
-    const windVals = [ort, heuballern, techno, band].map(d => d?.ws).filter(v => typeof v === 'number')
+    const windVals = [ort, techno, band, heuballern].map(d => d?.ws).filter(v => typeof v === 'number')
     const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
     return {
       time,
       Ort: ort?.las ?? null,
-      Heuballern: heuballern?.las ?? null,
       TechnoFloor: techno?.las ?? null,
       Bandbuehne: band?.las ?? null,
+      Heuballern: heuballern?.las ?? null,
       windSpeed: windSpeed ?? null,
     }
   })
@@ -242,12 +242,15 @@ export default function AllLocationsPage() {
                       <UITooltip><TooltipTrigger asChild><Button variant={chartInterval === "24h" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("24h")}>24</Button></TooltipTrigger><TooltipContent><p>Letzte 24 Stunden</p></TooltipContent></UITooltip>
                       <UITooltip><TooltipTrigger asChild><Button variant={chartInterval === "7d" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("7d")}>7d</Button></TooltipTrigger><TooltipContent><p>Letzte 7 Tage</p></TooltipContent></UITooltip>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold mr-2">Granularität:</span>
-                      <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1h" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1h")}>1h</Button></TooltipTrigger><TooltipContent><p>Stundenmittelwert</p></TooltipContent></UITooltip>
-                      <UITooltip><TooltipTrigger asChild><Button variant={granularity === "10min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("10min")}>10min</Button></TooltipTrigger><TooltipContent><p>10-Minuten-Mittelwert</p></TooltipContent></UITooltip>
-                      <UITooltip><TooltipTrigger asChild><Button variant={granularity === "5min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("5min")}>5min</Button></TooltipTrigger><TooltipContent><p>5-Minuten-Mittelwert</p></TooltipContent></UITooltip>
-                      <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1min")}>1min</Button></TooltipTrigger><TooltipContent><p>1-Minuten-Wert</p></TooltipContent></UITooltip>
+                    <div className="flex items-center gap-2 overflow-x-auto md:gap-2 md:overflow-visible pb-2 md:pb-0">
+                      <span className="text-xs font-semibold mr-2 shrink-0">Granularität:</span>
+                      <div className="flex flex-row gap-2 min-w-max">
+                        <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1h" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1h")}>1h</Button></TooltipTrigger><TooltipContent><p>Stundenmittelwert</p></TooltipContent></UITooltip>
+                        <UITooltip><TooltipTrigger asChild><Button variant={granularity === "15min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("15min")}>15min</Button></TooltipTrigger><TooltipContent><p>15-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                        <UITooltip><TooltipTrigger asChild><Button variant={granularity === "10min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("10min")}>10min</Button></TooltipTrigger><TooltipContent><p>10-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                        <UITooltip><TooltipTrigger asChild><Button variant={granularity === "5min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("5min")}>5min</Button></TooltipTrigger><TooltipContent><p>5-Minuten-Mittelwert</p></TooltipContent></UITooltip>
+                        <UITooltip><TooltipTrigger asChild><Button variant={granularity === "1min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1min")}>1min</Button></TooltipTrigger><TooltipContent><p>1-Minuten-Wert</p></TooltipContent></UITooltip>
+                      </div>
                     </div>
                   </div>
                   <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
@@ -259,7 +262,7 @@ export default function AllLocationsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64 lg:h-96">
+                  <div className="h-48 md:h-64 lg:h-96">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
                         {/* Diagramm Gitter */}
@@ -317,14 +320,6 @@ export default function AllLocationsPage() {
                         />
                         <Line
                           type="monotone"
-                          dataKey="Heuballern"
-                          stroke={STATION_COLORS.heuballern.primary}
-                          strokeWidth={2}
-                          dot={false}
-                          name="Heuballern"
-                        />
-                        <Line
-                          type="monotone"
                           dataKey="TechnoFloor"
                           stroke={STATION_COLORS.techno.primary}
                           strokeWidth={2}
@@ -338,6 +333,14 @@ export default function AllLocationsPage() {
                           strokeWidth={2}
                           dot={false}
                           name="Band Bühne"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="Heuballern"
+                          stroke={STATION_COLORS.heuballern.primary}
+                          strokeWidth={2}
+                          dot={false}
+                          name="Heuballern"
                         />
                         {/* Windgeschwindigkeit */}
                         <Line
