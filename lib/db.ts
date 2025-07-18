@@ -368,8 +368,6 @@ export function checkDatabaseHealth() {
 checkDatabaseHealth()
 
 // Start CSV watcher for automatic processing
-if (process.env.NODE_ENV !== 'production') {
-  console.log('🚀 Starting automatic CSV processing...')
-  csvWatcher.start()
-  addWeatherCron()
-} 
+console.log('🚀 Starting automatic CSV processing...')
+csvWatcher.start()
+addWeatherCron() 
