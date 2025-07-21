@@ -150,9 +150,17 @@ class CSVWatcher {
       try {
         const files = fs.readdirSync(dir.path)
           .filter(file => file.endsWith('.csv') && !file.startsWith('_gsdata_'))
-        // ... bestehende Verarbeitung ...
+        for (const file of files) {
+          const filePath = path.join(dir.path, file)
+          const inserted = processCSVFile(dir.station, filePath)
+          if (inserted > 0) {
+            console.log(`  ✅ ${file} (${dir.station}): ${inserted} measurements inserted`)
+          } else {
+            console.log(`  ⏭️  ${file} (${dir.station}): Already processed or no new data`)
+          }
+        }
       } catch (e) {
-        // ...
+        console.error(`❌ Error processing files in ${dir.path}:`, e)
       }
     }
   }
