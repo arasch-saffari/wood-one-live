@@ -161,3 +161,10 @@ MIT License - siehe LICENSE-Datei für Details.
 - **API-Tests:** Prüfen jetzt auch Pagination und das neue Response-Format `{ data, totalCount }`.
 - **Performance-Tests:** Sicherstellen, dass große Datenmengen paginiert und performant verarbeitet werden.
 - **UI-Tests:** Prüfen, dass Fehler und Systemwarnungen korrekt als Toast/Push angezeigt werden.
+
+## Tooltips für KPI-Werte und Charts
+
+- Alle wichtigen Werte und Interaktionspunkte in den Dashboards sind mit Tooltips versehen (shadcn/ui).
+- Tooltips werden mit TooltipProvider, Tooltip, TooltipTrigger, TooltipContent aus @/components/ui/tooltip implementiert.
+- Best Practice: TooltipTrigger immer mit asChild verwenden.
+- Tooltips sind barrierefrei und funktionieren mit Tastatur und Screenreader.

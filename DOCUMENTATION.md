@@ -792,3 +792,12 @@ Weitere Endpunkte und Details werden fortlaufend ergänzt.
 - **API-Tests:** Prüfen jetzt auch Pagination und das neue Response-Format `{ data, totalCount }`.
 - **Performance-Tests:** Sicherstellen, dass große Datenmengen paginiert und performant verarbeitet werden.
 - **UI-Tests:** Prüfen, dass Fehler und Systemwarnungen korrekt als Toast/Push angezeigt werden. 
+
+## Tooltips (shadcn/ui)
+
+- Alle KPI-Werte und Chart-Interaktionspunkte sind mit shadcn Tooltips versehen.
+- Tooltips werden mit TooltipProvider, Tooltip, TooltipTrigger, TooltipContent aus @/components/ui/tooltip implementiert.
+- Jeder Wert, der einen Fragezeichen-Cursor zeigt, hat einen Tooltip mit Erklärung.
+- Tooltips sind barrierefrei und funktionieren auch mit Tastatur und Screenreader.
+- Best Practice: Immer TooltipTrigger asChild verwenden, wenn ein Button, Icon oder Wert als Trigger dient.
+- TooltipProvider ist im Root-Layout gesetzt und muss nicht pro Seite verwendet werden. 
