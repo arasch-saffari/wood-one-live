@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useMemo, memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Download, BarChart3 } from "lucide-react"
@@ -8,10 +8,13 @@ import { useStationData } from "@/hooks/useStationData"
 
 export default function AllTablePage() {
   const [interval, setInterval] = useState<"24h" | "7d">("24h")
-  const ortData = useStationData("ort", interval)
-  const technoData = useStationData("techno", interval)
-  const bandData = useStationData("band", interval)
-  const heuballernData = useStationData("heuballern", interval)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
+  // Für jede Station aktuelle Seite laden
+  const { data: ortRows, totalCount: ortCount } = useStationData("ort", interval, "15min", page, PAGE_SIZE)
+  const { data: technoRows, totalCount: technoCount } = useStationData("techno", interval, "15min", page, PAGE_SIZE)
+  const { data: bandRows, totalCount: bandCount } = useStationData("band", interval, "15min", page, PAGE_SIZE)
+  const { data: heuballernRows, totalCount: heuballernCount } = useStationData("heuballern", interval, "15min", page, PAGE_SIZE)
 
   const stations = [
     { id: "ort", name: "Ort", color: "text-emerald-400" },
@@ -22,13 +25,17 @@ export default function AllTablePage() {
 
   // Kombiniere alle Daten in eine Liste
   const allRows = [
-    ...ortData.map(row => ({ ...row, station: "Ort" })),
-    ...technoData.map(row => ({ ...row, station: "Techno Floor" })),
-    ...bandData.map(row => ({ ...row, station: "Band Bühne" })),
-    ...heuballernData.map(row => ({ ...row, station: "Heuballern" })),
+    ...ortRows.map(row => ({ ...row, station: "Ort" })),
+    ...technoRows.map(row => ({ ...row, station: "Techno Floor" })),
+    ...bandRows.map(row => ({ ...row, station: "Band Bühne" })),
+    ...heuballernRows.map(row => ({ ...row, station: "Heuballern" })),
   ]
   // Sortiere nach Zeit absteigend (neueste oben)
   allRows.sort((a, b) => b.time.localeCompare(a.time))
+
+  // Gesamtanzahl für Pagination (Summe aller Stationen)
+  const totalCount = ortCount + technoCount + bandCount + heuballernCount
+  const pageCount = Math.ceil(totalCount / PAGE_SIZE)
 
   const exportData = () => {
     const csvContent = [
@@ -48,6 +55,21 @@ export default function AllTablePage() {
     link.click()
     document.body.removeChild(link)
   }
+
+  const MemoTableRow = memo(function MemoTableRow({ row }: { row: any }) {
+    return (
+      <tr className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
+        <td className="py-3 px-4 font-semibold">{row.station}</td>
+        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.time}</td>
+        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.las.toFixed(1)}</td>
+        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.ws ?? "-"}</td>
+        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.wd ?? "-"}</td>
+        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.rh ?? "-"}</td>
+      </tr>
+    )
+  })
+
+  const memoRows = useMemo(() => allRows.map((row, index) => <MemoTableRow key={index} row={row} />), [allRows])
 
   return (
     <div className="space-y-6">
@@ -88,18 +110,7 @@ export default function AllTablePage() {
                 </tr>
               </thead>
               <tbody>
-                {allRows.map((row, index) => (
-                  <tr key={index} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <td className="py-3 px-4 font-semibold">
-                      {row.station}
-                    </td>
-                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.time}</td>
-                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.las.toFixed(1)}</td>
-                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.ws ?? "-"}</td>
-                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.wd ?? "-"}</td>
-                    <td className="py-3 px-4 text-gray-900 dark:text-white">{row.rh ?? "-"}</td>
-                  </tr>
-                ))}
+                {memoRows}
                 {allRows.length === 0 && (
                   <tr><td colSpan={6} className="text-center text-gray-400">Keine Daten gefunden.</td></tr>
                 )}
@@ -108,6 +119,13 @@ export default function AllTablePage() {
           </div>
         </CardContent>
       </Card>
+      {pageCount > 1 && (
+        <div className="flex justify-center mt-4">
+          <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Zurück</button>
+          <span className="mx-2">Seite {page} von {pageCount}</span>
+          <button disabled={page === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>Weiter</button>
+        </div>
+      )}
     </div>
   )
 } 

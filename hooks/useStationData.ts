@@ -47,9 +47,12 @@ function showNoiseAlert(station: string, level: number, threshold: number) {
 export function useStationData(
   station: string,
   interval: "24h" | "7d" = "24h",
-  granularity: "15min" | "10min" | "5min" | "1min" | "1h" = "15min"
+  granularity: "15min" | "10min" | "5min" | "1min" | "1h" = "15min",
+  page?: number,
+  pageSize?: number
 ) {
   const [data, setData] = useState<StationDataPoint[]>([])
+  const [totalCount, setTotalCount] = useState<number>(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastAlertRef = useRef<{ level: number; time: number }>({ level: 0, time: 0 })
   const [config, setConfig] = useState<any>(null)
@@ -60,8 +63,11 @@ export function useStationData(
 
   async function fetchAndProcess() {
     try {
-      // Fetch data from API instead of direct database access
-      const response = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=${granularity}`)
+      let url = `/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=${granularity}`
+      if (page && pageSize) {
+        url += `&page=${page}&pageSize=${pageSize}`
+      }
+      const response = await fetch(url)
       if (!response.ok) {
         if (response.status === 404) {
           toast({
@@ -73,10 +79,20 @@ export function useStationData(
           console.error('Failed to fetch station data')
         }
         setData([])
+        setTotalCount(0)
         return
       }
-      const result: StationDataPoint[] = await response.json()
-      setData(result)
+      const result = await response.json()
+      if (result && Array.isArray(result.data)) {
+        setData(result.data)
+        setTotalCount(result.totalCount || result.data.length)
+      } else if (Array.isArray(result)) {
+        setData(result)
+        setTotalCount(result.length)
+      } else {
+        setData([])
+        setTotalCount(0)
+      }
       // Check for noise alerts
       if (result.length === 0) {
         toast({
@@ -126,7 +142,7 @@ export function useStationData(
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [station, interval, granularity])
+  }, [station, interval, granularity, page, pageSize])
 
-  return data
+  return { data, totalCount }
 } 

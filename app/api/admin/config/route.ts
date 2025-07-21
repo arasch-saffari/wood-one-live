@@ -19,6 +19,7 @@ const defaultConfig = {
   calculationMode: 'max', // 'max' | 'average' | 'median'
   adminEmail: '',
   weatherApiKey: '',
+  apiCacheDuration: 60, // Sekunden, wie lange API-Responses gecacht werden
   thresholdsByStationAndTime: {
     ort: [
       { from: '08:00', to: '20:00', warning: 55, alarm: 60, las: 50, laf: 52 },
@@ -65,6 +66,6 @@ export async function PATCH(req: Request) {
     fs.writeFileSync(configPath, JSON.stringify(allowed, null, 2))
     return NextResponse.json({ success: true })
   } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Speichern.' }, { status: 500 })
+    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Speichern.', notify: true }, { status: 500 })
   }
 } 

@@ -165,11 +165,23 @@ function runMigrations() {
 // Run migrations on startup
 runMigrations()
 
+// Integritäts-Check nach Migrationen
+try {
+  const nulls = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get() as { count: number }
+  if (nulls.count > 0) {
+    console.warn(`⚠️  Integritätsproblem: ${nulls.count} Messungen mit NULL in NOT NULL-Spalten gefunden!`)
+  }
+} catch (e) {
+  console.error('❌ Integritäts-Check nach Migrationen fehlgeschlagen:', e)
+}
+
 // Create indexes for better performance
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_measurements_station_time ON measurements(station, time);
   CREATE INDEX IF NOT EXISTS idx_weather_station_time ON weather(station, time);
   CREATE INDEX IF NOT EXISTS idx_measurements_source_file ON measurements(source_file);
+  CREATE INDEX IF NOT EXISTS idx_measurements_datetime ON measurements(datetime);
+  CREATE INDEX IF NOT EXISTS idx_weather_created_at ON weather(created_at);
 `)
 
 export function insertMeasurement(station: string, time: string, las: number) {
@@ -281,4 +293,61 @@ export function addDatabaseBackupCron() {
 
 addDatabaseBackupCron() 
 
-export { db } 
+// Automatischer Health-Check alle 24h
+cron.schedule('0 3 * * *', () => {
+  try {
+    const weatherCount = db.prepare('SELECT COUNT(*) as count FROM weather').get() as { count: number }
+    const measurementsCount = db.prepare('SELECT COUNT(*) as count FROM measurements').get() as { count: number }
+    const missingCreatedAt = db.prepare('SELECT COUNT(*) as count FROM weather WHERE created_at IS NULL').get() as { count: number }
+    const nulls = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get() as { count: number }
+    const health = {
+      time: new Date().toISOString(),
+      weatherCount: weatherCount.count,
+      measurementsCount: measurementsCount.count,
+      missingCreatedAt: missingCreatedAt.count,
+      nulls: nulls.count,
+      notify: (missingCreatedAt.count > 0 || nulls.count > 0)
+    }
+    if (health.notify) {
+      const fs = require('fs')
+      const path = require('path')
+      const file = path.join(process.cwd(), 'backups', 'last-health-problem.json')
+      fs.writeFileSync(file, JSON.stringify(health, null, 2))
+      console.warn('[HealthCheck] Integritätsproblem erkannt und notify-Flag gesetzt:', health)
+    }
+  } catch (e) {
+    console.error('[HealthCheck] Fehler beim automatischen Health-Check:', e)
+  }
+})
+
+// Monitoring für wiederkehrende Fehler (täglich)
+cron.schedule('30 3 * * *', () => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const logPath = path.join(process.cwd(), 'logs', 'system.log')
+    if (!fs.existsSync(logPath)) return
+    const lines = fs.readFileSync(logPath, 'utf-8').split('\n').filter(Boolean)
+    const importErrors = lines.filter((line: string) => line.includes('[ImportError]')).length
+    const dbErrors = lines.filter((line: string) => line.includes('[DatabaseError]')).length
+    const integrityProblems = lines.filter((line: string) => line.includes('Integritätsproblem')).length
+    const threshold = 5
+    if (importErrors > threshold || dbErrors > threshold || integrityProblems > 0) {
+      const file = path.join(process.cwd(), 'backups', 'last-health-problem.json')
+      const health = {
+        time: new Date().toISOString(),
+        importErrors,
+        dbErrors,
+        integrityProblems,
+        notify: true,
+        message: `Monitoring: ${importErrors} ImportError, ${dbErrors} DatabaseError, ${integrityProblems} Integritätsprobleme in den letzten 24h.`
+      }
+      fs.writeFileSync(file, JSON.stringify(health, null, 2))
+      console.warn('[Monitoring] Wiederkehrende Fehler erkannt und notify-Flag gesetzt:', health)
+    }
+  } catch (e) {
+    console.error('[Monitoring] Fehler bei der Fehleranalyse:', e)
+  }
+})
+
+export { db, processAllCSVFiles } 

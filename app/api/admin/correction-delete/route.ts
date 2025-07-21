@@ -14,6 +14,6 @@ export async function POST(req: NextRequest) {
     }
     return Response.json({ success: true })
   } catch (e: any) {
-    return Response.json({ success: false, message: e?.message || 'Fehler beim Löschen' })
+    return Response.json({ success: false, message: e?.message || 'Fehler beim Löschen', notify: true })
   }
 } 

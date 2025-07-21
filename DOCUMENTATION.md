@@ -500,6 +500,16 @@ tail -f logs/app.log
 grep "ERROR" logs/app.log
 ```
 
+### Fehlerbenachrichtigung (Toast & Push)
+
+- Kritische Fehler (z.B. Integritätsprobleme, Import-/Backup-/Restore-Fehler) werden im API-Response mit `notify: true` gekennzeichnet.
+- Das Admin-Frontend zeigt dann automatisch einen destruktiven Toast und – falls erlaubt – eine Browser-Push-Notification an.
+- Beispiel-Response:
+  ```json
+  { "success": false, "error": "Fehler beim Backup", "notify": true }
+  ```
+- Vorteil: Keine E-Mail/Slack nötig, User sieht sofort im UI und per Push, wenn ein kritischer Fehler auftritt.
+
 ---
 
 ## 14. Glossary
@@ -727,3 +737,58 @@ Weitere Endpunkte und Details werden fortlaufend ergänzt.
 - Wetterdaten: Erfolgreiche und fehlerhafte API-Responses, Fallback-Logik
 - API: Fehlende Parameter, Rate-Limiting, korrekte Datenstruktur
 - UI: Threshold-Tab, Formularvalidierung, Fehleranzeigen 
+
+### CSV-Import: Fallback-Logik für Datum
+
+- Wenn in einer CSV-Zeile kein explizites Datum (Spalte 'Datum' oder 'Date') vorhanden ist, wird das Änderungsdatum der CSV-Datei als Datum für die Messung verwendet.
+- Dies stellt sicher, dass auch unvollständige CSVs verarbeitet werden können, aber das tatsächliche Messdatum kann abweichen, wenn die Datei nachträglich verändert wurde.
+- Siehe auch Kommentar im Code (`lib/csv-processing.ts`). 
+
+### Integritäts-Check nach Migrationen
+
+- Nach jeder Migration wird geprüft, ob in der Tabelle `measurements` in den NOT NULL-Spalten (`station`, `time`, `las`) NULL-Werte vorkommen.
+- Falls ja, wird eine Warnung im Log ausgegeben.
+- Ziel: Früherkennung von Dateninkonsistenzen nach Schema-Änderungen. 
+
+## 16. Robustheit & Monitoring
+
+### Automatischer Health-Check
+- Täglicher Integritäts-Check (per cron), prüft DB-Integrität, Wetterdaten, Messwerte
+- Bei Problemen wird ein notify-Flag gesetzt und ein Systemhinweis im Admin angezeigt
+
+### Fehlerklassen & zentrales Logging
+- Fehler werden mit Klasse (ValidationError, DatabaseError, ImportError, ExternalApiError) und Kontext ins Log geschrieben
+- Log-Analyse erkennt wiederkehrende Fehler und setzt notify-Flag
+
+### notify-Mechanismus & UI-Benachrichtigung
+- Kritische Fehler (API, Import, Backup, Restore, Korrektur, Schwellenwert, Rebuild) liefern notify: true im Response
+- Admin-UI zeigt Toast, Push-Notification und System-Banner bei notify-Fehlern
+
+### System-Banner
+- Zeigt prominente Warnung im Admin-UI bei Integritätsproblemen oder wiederkehrenden Fehlern
+- Fragt /api/admin/monitoring-status ab
+
+### Teststrategie
+- Integrationstests für alle notify/Fehlerfälle (API, UI, Push)
+- Health-Check und Monitoring werden regelmäßig getestet
+
+### Monitoring
+- Tägliche Log-Analyse auf wiederkehrende Fehler (ImportError, DatabaseError, Integritätsprobleme)
+- Systemhinweis im Admin-UI bei Überschreiten von Schwellwerten 
+
+## API-Änderungen & Performance
+
+- **API-Response:** `/api/station-data` liefert jetzt immer ein Objekt `{ data, totalCount }`.
+- **Pagination:** Optional können `page` und `pageSize` als Query-Parameter übergeben werden. Die API liefert dann nur die gewünschte Seite.
+- **Performance:** Tabellen im Dashboard laden nur noch die aktuelle Seite, nicht mehr alle Daten auf einmal.
+- **Fehlerbenachrichtigung:** Kritische Fehler werden mit `notify: true` im API-Response markiert. Das Frontend zeigt dann einen destruktiven Toast und (falls erlaubt) eine Push-Notification. Keine E-Mail/Slack-Benachrichtigung mehr.
+- **Robustheit & Monitoring:**
+  - Automatischer Health-Check prüft täglich die Datenbank und Wetterdaten.
+  - System-Banner im Admin-UI bei Integritätsproblemen oder wiederkehrenden Fehlern.
+  - Zentrales Logging mit Fehlerklassen (ValidationError, DatabaseError, ImportError, ExternalApiError).
+
+## Tests & Qualitätssicherung (Update)
+
+- **API-Tests:** Prüfen jetzt auch Pagination und das neue Response-Format `{ data, totalCount }`.
+- **Performance-Tests:** Sicherstellen, dass große Datenmengen paginiert und performant verarbeitet werden.
+- **UI-Tests:** Prüfen, dass Fehler und Systemwarnungen korrekt als Toast/Push angezeigt werden. 

@@ -14,7 +14,8 @@ export async function POST() {
     console.error('❌ CSV processing failed:', e)
     return NextResponse.json({ 
       success: false, 
-      error: (e as Error).message 
+      error: (e as Error).message,
+      notify: true
     }, { status: 500 })
   }
 }

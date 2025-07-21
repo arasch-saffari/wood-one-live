@@ -144,3 +144,20 @@ MIT License - siehe LICENSE-Datei für Details.
   - UI-Tests für Formulare, Validierung und Interaktion (Testing Library)
 - **Mocking**: Externe APIs und Browser-APIs (z.B. matchMedia) werden für Tests gemockt.
 - **CI-ready**: Tests laufen headless und können in CI/CD integriert werden.
+
+## API-Änderungen & Performance
+
+- **API-Response:** `/api/station-data` liefert jetzt immer ein Objekt `{ data, totalCount }`.
+- **Pagination:** Optional können `page` und `pageSize` als Query-Parameter übergeben werden. Die API liefert dann nur die gewünschte Seite.
+- **Performance:** Tabellen im Dashboard laden nur noch die aktuelle Seite, nicht mehr alle Daten auf einmal.
+- **Fehlerbenachrichtigung:** Kritische Fehler werden mit `notify: true` im API-Response markiert. Das Frontend zeigt dann einen destruktiven Toast und (falls erlaubt) eine Push-Notification. Keine E-Mail/Slack-Benachrichtigung mehr.
+- **Robustheit & Monitoring:**
+  - Automatischer Health-Check prüft täglich die Datenbank und Wetterdaten.
+  - System-Banner im Admin-UI bei Integritätsproblemen oder wiederkehrenden Fehlern.
+  - Zentrales Logging mit Fehlerklassen (ValidationError, DatabaseError, ImportError, ExternalApiError).
+
+## Tests & Qualitätssicherung (Update)
+
+- **API-Tests:** Prüfen jetzt auch Pagination und das neue Response-Format `{ data, totalCount }`.
+- **Performance-Tests:** Sicherstellen, dass große Datenmengen paginiert und performant verarbeitet werden.
+- **UI-Tests:** Prüfen, dass Fehler und Systemwarnungen korrekt als Toast/Push angezeigt werden.

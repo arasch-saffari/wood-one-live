@@ -2,6 +2,7 @@
 // Client-side weather fetching is handled via API endpoints
 
 import db from './database'
+import { ExternalApiError, logError } from './logger'
 
 export async function fetchWeather() {
   const maxRetries = 3;
@@ -29,6 +30,7 @@ export async function fetchWeather() {
     } catch (error) {
       console.warn(`Weather fetch attempt ${attempt}/${maxRetries} failed:`, error instanceof Error ? error.message : 'Unknown error', 'Details:', error);
       if (attempt === maxRetries) {
+        logError(new ExternalApiError('Failed to fetch weather after retries', { error, notify: true }))
         throw new Error(`Failed to fetch weather after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       await new Promise(resolve => setTimeout(resolve, attempt * 1000));

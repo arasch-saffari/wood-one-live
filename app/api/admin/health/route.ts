@@ -48,6 +48,16 @@ export async function GET() {
       const row = db.prepare('SELECT created_at FROM weather ORDER BY created_at DESC LIMIT 1').get()
       if (row && row.created_at) lastWeather = row.created_at
     } catch {}
+    // Integritäts-Check: Messungen mit NULL in NOT NULL-Spalten
+    let integrityProblem = false, integrityCount = 0
+    try {
+      const db = require('@/lib/database').default
+      const row = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get()
+      if (row && row.count > 0) {
+        integrityProblem = true
+        integrityCount = row.count
+      }
+    } catch {}
     return NextResponse.json({
       dbSize,
       lastBackup,
@@ -57,6 +67,9 @@ export async function GET() {
       watcherActive,
       watcherHeartbeat,
       lastWeather,
+      integrityProblem,
+      integrityCount,
+      notify: integrityProblem ? true : undefined,
     })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Fehler beim Health-Check.' }, { status: 500 })

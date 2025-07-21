@@ -31,6 +31,6 @@ export async function POST() {
 
     return NextResponse.json({ success: true, message: 'Alle Daten gelöscht, Wetterdaten neu abgefragt, CSVs neu eingelesen.' })
   } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Zurücksetzen.' }, { status: 500 })
+    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Zurücksetzen.', notify: true }, { status: 500 })
   }
 } 

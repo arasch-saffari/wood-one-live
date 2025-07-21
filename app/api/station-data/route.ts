@@ -13,9 +13,20 @@ function getConfig() {
   return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 }
 
+function getCacheDuration() {
+  try {
+    const configPath = path.join(process.cwd(), 'config.json')
+    if (!fs.existsSync(configPath)) return 60 * 1000
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
+    return typeof config.apiCacheDuration === 'number' ? config.apiCacheDuration * 1000 : 60 * 1000
+  } catch { return 60 * 1000 }
+}
+
 // Weather cache for performance
 const weatherCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const apiCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 60 * 1000 // 1 Minute
 
 function roundTo5MinBlock(time: string): string {
   const [h, m] = time.split(":");
@@ -141,6 +152,19 @@ export async function GET(req: Request) {
   if (!checkRateLimit(ip, '/api/station-data', 30, 60_000)) {
     return NextResponse.json({ error: 'Zu viele Anfragen. Bitte warte einen Moment.' }, { status: 429 })
   }
+  const { searchParams } = new URL(req.url)
+  const station = searchParams.get("station")
+  const interval = (searchParams.get("interval") as "24h" | "7d") || "24h"
+  const granularity = searchParams.get("granularity") || "10min"
+  const page = parseInt(searchParams.get("page") || "1", 10)
+  const pageSize = parseInt(searchParams.get("pageSize") || "0", 10) // 0 = alles
+  const cacheKey = `${station}-${interval}-${granularity}-${page}-${pageSize}`
+  const CACHE_DURATION = getCacheDuration()
+  // Cache-Check
+  const cached = apiCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return new Response(JSON.stringify(cached.data), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  }
   try {
     const { searchParams } = new URL(req.url);
     const station = searchParams.get("station");
@@ -227,6 +251,13 @@ export async function GET(req: Request) {
     
     // Begrenze auf das dynamische Limit VOR Wetteranreicherung
     const limitedAggregated = aggregated.slice(-chartLimit);
+    // Pagination anwenden (optional)
+    let pagedAggregated = limitedAggregated
+    const totalCount = limitedAggregated.length
+    if (pageSize > 0) {
+      const start = (page - 1) * pageSize
+      pagedAggregated = limitedAggregated.slice(start, start + pageSize)
+    }
     let result: Array<{
       time: string;
       las: number;
@@ -240,7 +271,7 @@ export async function GET(req: Request) {
       alarmThreshold: number;
       datetime?: string | undefined;
     }> = [];
-    if (limitedAggregated.length === 0) {
+    if (pagedAggregated.length === 0) {
       // parseCSVFallback liefert nur time, las, ws, wd, rh
       const fallback = parseCSVFallback(station, interval);
       result = fallback.map(row => ({
@@ -252,7 +283,7 @@ export async function GET(req: Request) {
         alarmThreshold,
       }));
     } else {
-      const weatherBlocks = limitedAggregated.map(m => roundTo5MinBlock(m.time));
+      const weatherBlocks = pagedAggregated.map(m => roundTo5MinBlock(m.time));
       const uniqueWeatherBlocks = Array.from(new Set(weatherBlocks));
       const weatherPromises = uniqueWeatherBlocks.map(async (time) => {
         const weather = await getWeatherWithCache(station, time);
@@ -262,7 +293,7 @@ export async function GET(req: Request) {
       const weatherMap: Record<string, { windSpeed: number; windDir: string; relHumidity: number }> = Object.fromEntries(
         weatherResults.map(({ time, weather }) => [time, weather])
       );
-      result = limitedAggregated.map(measurement => {
+      result = pagedAggregated.map(measurement => {
         const w = weatherMap[roundTo5MinBlock(measurement.time)];
         const weather = (w && typeof w.windSpeed === 'number' && typeof w.windDir === 'string' && typeof w.relHumidity === 'number')
           ? { windSpeed: w.windSpeed, windDir: w.windDir, relHumidity: w.relHumidity, temperature: (w as any).temperature ?? null }
@@ -284,7 +315,8 @@ export async function GET(req: Request) {
         };
       });
     }
-    return NextResponse.json(result);
+    apiCache.set(cacheKey, { data: { data: result, totalCount }, timestamp: Date.now() })
+    return new Response(JSON.stringify({ data: result, totalCount }), { status: 200, headers: { 'Content-Type': 'application/json' } })
   } catch (e) {
     console.error('Error in station-data API:', e);
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

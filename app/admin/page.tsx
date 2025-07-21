@@ -88,7 +88,22 @@ export default function AdminDashboard() {
       })
     }
     if (segment === 'overview' || segment === 'system') {
-      fetch('/api/admin/health').then(res => res.json()).then(setHealth)
+      fetch('/api/admin/health').then(res => res.json()).then(data => {
+        setHealth(data)
+        if (data.notify || data.integrityProblem) {
+          toast({
+            title: 'Integritätsproblem',
+            description: `Es wurden ${data.integrityCount || 'einige'} fehlerhafte Messungen (NULL in NOT NULL-Spalten) gefunden! Bitte prüfe die Datenbank.`,
+            variant: 'destructive',
+          })
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('Integritätsproblem', {
+              body: `Es wurden ${data.integrityCount || 'einige'} fehlerhafte Messungen gefunden!`,
+              icon: '/alert-icon.png',
+            })
+          }
+        }
+      })
       fetch('/api/admin/cron').then(res => res.json()).then(setCron)
       fetch('/api/csv-watcher-status').then(res => res.json()).then(setWatcher)
       fetch('/api/admin/logs').then(res => res.json()).then(data => setLogs(data.lines || []))
@@ -117,7 +132,7 @@ export default function AdminDashboard() {
     setSaving(true)
     setConfigError(null)
     // E-Mail-Validierung
-    if (config.adminEmail && !/^\S+@\S+\.\S+$/.test(config.adminEmail)) {
+    if (config.adminEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(config.adminEmail)) {
       setConfigError('Bitte eine gültige E-Mail-Adresse eingeben.')
       setSaving(false)
       return
@@ -131,20 +146,69 @@ export default function AdminDashboard() {
       const data = await res.json()
       if (!data.success) {
         setConfigError(data.message || 'Fehler beim Speichern.')
-        toast({ title: 'Fehler', description: data.message || 'Fehler beim Speichern.', variant: 'destructive' })
-      } else {
-        toast({ title: 'Gespeichert', description: 'Konfiguration erfolgreich gespeichert.' })
+        toast({
+          title: 'Fehler beim Speichern',
+          description: data.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Speichern', {
+            body: data.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
       }
     } catch (e: any) {
       setConfigError(e?.message || 'Fehler beim Speichern.')
-      toast({ title: 'Fehler', description: e?.message || 'Fehler beim Speichern.', variant: 'destructive' })
+      toast({
+        title: 'Fehler beim Speichern',
+        description: e?.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
+        variant: 'destructive',
+      })
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('Fehler beim Speichern', {
+          body: e?.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
+          icon: '/alert-icon.png',
+        })
+      }
     } finally {
       setSaving(false)
     }
   }
 
   async function handleBackupDownload() {
-    window.open('/api/admin/backup-db', '_blank')
+    try {
+      const res = await fetch('/api/admin/backup-db')
+      if (!res.ok) {
+        let data = null
+        try { data = await res.json() } catch {}
+        toast({
+          title: 'Fehler beim Backup',
+          description: (data && data.error) || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (data && data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Backup', {
+            body: (data && data.error) || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+        return
+      }
+      window.open('/api/admin/backup-db', '_blank')
+    } catch (e: any) {
+      toast({
+        title: 'Fehler beim Backup',
+        description: e?.message || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+        variant: 'destructive',
+      })
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('Fehler beim Backup', {
+          body: e?.message || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+          icon: '/alert-icon.png',
+        })
+      }
+    }
   }
 
   async function handleRestore(e: React.ChangeEvent<HTMLInputElement>) {
@@ -160,12 +224,38 @@ export default function AdminDashboard() {
   }
 
   async function handleFactoryReset() {
-    if (!window.confirm('Wirklich ALLE Daten (Messwerte, Wetter, CSVs) löschen und System zurücksetzen?')) return
     setResetting(true)
-    const res = await fetch('/api/admin/factory-reset', { method: 'POST' })
-    const data = await res.json()
-    setResetting(false)
-    setRestoreMessage(data.message || 'Zurücksetzen abgeschlossen.')
+    try {
+      const res = await fetch('/api/admin/factory-reset', { method: 'POST' })
+      const data = await res.json()
+      if (!data.success) {
+        toast({
+          title: 'Fehler beim Factory-Reset',
+          description: data.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Factory-Reset', {
+            body: data.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      }
+    } catch (e: any) {
+      toast({
+        title: 'Fehler beim Factory-Reset',
+        description: e?.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+        variant: 'destructive',
+      })
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('Fehler beim Factory-Reset', {
+          body: e?.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+          icon: '/alert-icon.png',
+        })
+      }
+    } finally {
+      setResetting(false)
+    }
   }
 
   async function handleCsvUpload(station: string, file: File) {
@@ -300,21 +390,90 @@ export default function AdminDashboard() {
     }
     setEditSaving(true)
     try {
-      await fetch('/api/admin/correction-edit', {
+      const res = await fetch('/api/admin/correction-edit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: rowToEdit.id, value: editValue, type: correctionType })
       })
+      const data = await res.json()
+      if (!data.success) {
+        setCorrectionError(data.message || 'Fehler beim Speichern')
+        toast({
+          title: 'Fehler beim Speichern',
+          description: data.message || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Speichern', {
+            body: data.message || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      }
       setRowToEdit(null)
       setEditRow(null)
       setEditValue('')
-      toast({ title: 'Gespeichert', description: 'Wert wurde aktualisiert.' })
       fetchCorrectionData()
       fetchCorrectionStats()
     } catch (e: any) {
       setCorrectionError(e?.message || 'Fehler beim Speichern')
+      toast({
+        title: 'Fehler beim Speichern',
+        description: e?.message || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
+        variant: 'destructive',
+      })
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('Fehler beim Speichern', {
+          body: e?.message || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
+          icon: '/alert-icon.png',
+        })
+      }
     } finally {
       setEditSaving(false)
+    }
+  }
+
+  async function handleDeleteCorrection(row: any) {
+    setShowDeleteDialog(false)
+    setCorrectionLoading(true)
+    try {
+      const res = await fetch('/api/admin/correction-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, type: correctionType })
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setCorrectionError(data.message || 'Fehler beim Löschen')
+        toast({
+          title: 'Fehler beim Löschen',
+          description: data.message || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Löschen', {
+            body: data.message || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      }
+      fetchCorrectionData()
+      fetchCorrectionStats()
+    } catch (e: any) {
+      setCorrectionError(e?.message || 'Fehler beim Löschen')
+      toast({
+        title: 'Fehler beim Löschen',
+        description: e?.message || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
+        variant: 'destructive',
+      })
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('Fehler beim Löschen', {
+          body: e?.message || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
+          icon: '/alert-icon.png',
+        })
+      }
+    } finally {
+      setCorrectionLoading(false)
     }
   }
 
@@ -338,6 +497,74 @@ export default function AdminDashboard() {
     })
     setEditTimeSheet(false)
     setTimeout(() => { handleSave(); toast({ title: 'Gespeichert', description: 'Zeitblock erfolgreich geändert.' }) }, 100)
+  }
+
+  async function handleManualCsvImport() {
+    setCsvError(null)
+    setCsvUploading({})
+    try {
+      const res = await fetch('/api/process-csv', { method: 'POST' })
+      const data = await res.json()
+      if (!data.success) {
+        setCsvError(data.error || 'Fehler beim CSV-Import')
+        toast({
+          title: 'Fehler beim CSV-Import',
+          description: data.error || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim CSV-Import', {
+            body: data.error || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      }
+    } catch (e: any) {
+      setCsvError(e?.message || 'Fehler beim CSV-Import')
+      toast({
+        title: 'Fehler beim CSV-Import',
+        description: e?.message || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
+        variant: 'destructive',
+      })
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('Fehler beim CSV-Import', {
+          body: e?.message || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
+          icon: '/alert-icon.png',
+        })
+      }
+    }
+  }
+
+  async function handleRebuildDb() {
+    try {
+      const res = await fetch('/api/admin/rebuild-db', { method: 'POST' })
+      const data = await res.json()
+      if (!data.success) {
+        toast({
+          title: 'Fehler beim Neuaufbau',
+          description: data.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Neuaufbau', {
+            body: data.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      }
+    } catch (e: any) {
+      toast({
+        title: 'Fehler beim Neuaufbau',
+        description: e?.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
+        variant: 'destructive',
+      })
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('Fehler beim Neuaufbau', {
+          body: e?.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
+          icon: '/alert-icon.png',
+        })
+      }
+    }
   }
 
   return (
@@ -550,6 +777,18 @@ export default function AdminDashboard() {
                           <div className="text-sm">Speicher gesamt: <b>{health.diskTotal ? (health.diskTotal/1024/1024/1024).toFixed(2) : '-'} GB</b></div>
                         </CardContent>
                       </Card>
+                      <div>
+                        <label htmlFor="apiCacheDuration" className="block font-medium mb-1">API-Cache-Dauer (Sekunden)</label>
+                        <input
+                          id="apiCacheDuration"
+                          type="number"
+                          min={0}
+                          value={config?.apiCacheDuration ?? 60}
+                          onChange={e => setConfig((prev: any) => ({ ...prev, apiCacheDuration: Number(e.target.value) }))}
+                          className="border rounded px-2 py-1 w-32"
+                        />
+                        <span className="ml-2 text-sm text-gray-500">(0 = kein Caching, Standard: 60)</span>
+                      </div>
                     </>
                   )}
                 </section>
@@ -737,7 +976,7 @@ export default function AdminDashboard() {
                                   ) : (
                                     <>
                                       <Button size="sm" variant="outline" onClick={() => handleEdit(row)}><Pencil className="w-3 h-3" /></Button>
-                                      <Button size="sm" variant="destructive" onClick={() => handleDelete(row)} className="ml-2"><Trash2 className="w-3 h-3" /></Button>
+                                      <Button size="sm" variant="destructive" onClick={() => handleDeleteCorrection(row)} className="ml-2"><Trash2 className="w-3 h-3" /></Button>
                                     </>
                                   )}
                                 </TableCell>

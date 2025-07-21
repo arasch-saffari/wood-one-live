@@ -19,6 +19,6 @@ export async function GET() {
       },
     })
   } catch (e: any) {
-    return new Response('Fehler beim Backup', { status: 500 })
+    return new Response(JSON.stringify({ error: 'Fehler beim Backup', notify: true }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   }
 } 

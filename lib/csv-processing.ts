@@ -36,17 +36,22 @@ export function processCSVFile(station: string, csvPath: string) {
       let rows = parsed.data as Record<string, string>[]
       if (!Array.isArray(rows) || rows.length < 2) return 0
       
-      rows = rows.slice(1) // drop first row
-      
       // Determine the correct column name for noise level based on station
       const noiseColumn = station === "heuballern" ? "LAF" : "LAS"
       
       // Validate and process rows
       const validRows = rows.filter(
-        (row) =>
-          row["Systemzeit "] &&
-          row[noiseColumn] &&
-          !isNaN(Number(row[noiseColumn].replace(",", ".")))
+        (row) => {
+          const sysTime = row["Systemzeit "]?.trim()
+          const lasRaw = row[noiseColumn]
+          if (!sysTime || !lasRaw) return false
+          // Zeitformat-Check (HH:MM)
+          if (!/^\d{2}:\d{2}$/.test(sysTime)) return false
+          // Wertebereich-Check
+          const las = Number(lasRaw.replace(",", "."))
+          if (isNaN(las) || las <= 0 || las >= 150) return false
+          return true
+        }
       )
       
       // Batch-Import: Verarbeite in Blöcken von 500 Zeilen
@@ -79,7 +84,7 @@ export function processCSVFile(station: string, csvPath: string) {
               dateStr = row['Date']
             }
             if (!dateStr) {
-              // Fallback: Änderungsdatum der Datei
+              // Fallback: Änderungsdatum der Datei (siehe technische Dokumentation)
               const mtime = fileStat.mtime
               dateStr = `${mtime.getFullYear()}-${String(mtime.getMonth()+1).padStart(2,'0')}-${String(mtime.getDate()).padStart(2,'0')}`
             }

@@ -44,10 +44,14 @@ export default function DashboardLayout({
   }, [])
 
   // Letzte Aktualisierung: Hole Daten von allen Stationen und berechne das neueste Datum
-  const ortData = useStationData("ort", "24h")
-  const heuballernData = useStationData("heuballern", "24h")
-  const technoData = useStationData("techno", "24h")
-  const bandData = useStationData("band", "24h")
+  const ortDataObj = useStationData("ort", "24h")
+  const heuballernDataObj = useStationData("heuballern", "24h")
+  const technoDataObj = useStationData("techno", "24h")
+  const bandDataObj = useStationData("band", "24h")
+  const ortData = ortDataObj.data ?? []
+  const heuballernData = heuballernDataObj.data ?? []
+  const technoData = technoDataObj.data ?? []
+  const bandData = bandDataObj.data ?? []
   // Alle Zeitpunkte sammeln
   const allTimes = [
     ...ortData.map(d => d.time),

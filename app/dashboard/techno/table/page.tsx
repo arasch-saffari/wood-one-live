@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import React, { useState, useMemo, memo } from "react"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
@@ -23,28 +23,50 @@ function isNightTime(time: string) {
   return h < 6 || h >= 22
 }
 
+const MemoTableRow = memo(function MemoTableRow({ row, warning, alarm }: { row: any, warning: number, alarm: number }) {
+  const las = typeof row.las === 'number' && !isNaN(row.las) ? row.las : 0
+  const status = getStatus(las, warning, alarm)
+  return (
+    <TableRow className={status.label !== "Normal" ? (status.label === "Alarm" ? "bg-red-50 dark:bg-red-900/30" : "bg-yellow-50 dark:bg-yellow-900/30") : ""}>
+      <TableCell>{row.time}</TableCell>
+      <TableCell className="font-semibold">{row.las.toFixed(1)}</TableCell>
+      <TableCell>{row.ws ?? "-"}</TableCell>
+      <TableCell>{row.wd ?? "-"}</TableCell>
+      <TableCell>{row.rh ?? "-"}</TableCell>
+      <TableCell><Badge className={status.color}>{status.label}</Badge></TableCell>
+    </TableRow>
+  )
+})
+
 export default function TechnoTablePage() {
   const [interval, setInterval] = useState<"24h" | "7d">("24h")
   const [showOnlyExceeded, setShowOnlyExceeded] = useState(false)
   const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
 
-  const data = useStationData("techno", interval)
+  // Pagination-API nutzen
+  const { data, totalCount } = useStationData("techno", interval, "15min", page, PAGE_SIZE)
 
+  // Filterung clientseitig nur für Grenzwert-Überschreitungen
   const filtered = useMemo(() => {
-    let d = data
-    if (showOnlyExceeded) {
-      d = d.filter(row => {
-        const night = isNightTime(row.time)
-        const { label } = getStatus(row.las, row.warningThreshold, row.alarmThreshold)
-        return label !== "Normal"
-      })
-    }
-    return d.sort((a, b) => b.time.localeCompare(a.time))
+    if (!showOnlyExceeded) return data
+    return data.filter(row => {
+      const warning = typeof (row as any).warningThreshold === 'number' ? (row as any).warningThreshold : 55
+      const alarm = typeof (row as any).alarmThreshold === 'number' ? (row as any).alarmThreshold : 60
+      const las = typeof row.las === 'number' && !isNaN(row.las) ? row.las : 0
+      const { label } = getStatus(las, warning, alarm)
+      return label !== "Normal"
+    })
   }, [data, showOnlyExceeded])
 
-  const pageCount = Math.ceil(filtered.length / PAGE_SIZE)
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const pageCount = Math.ceil(totalCount / PAGE_SIZE)
   const last = filtered[0]
+
+  const memoRows = useMemo(() => filtered.map((row, i) => {
+    const warning = typeof (row as any).warningThreshold === 'number' ? (row as any).warningThreshold : 55
+    const alarm = typeof (row as any).alarmThreshold === 'number' ? (row as any).alarmThreshold : 60
+    return <MemoTableRow key={i} row={row} warning={warning} alarm={alarm} />
+  }), [filtered])
 
   return (
     <div className="space-y-6">
@@ -95,23 +117,8 @@ export default function TechnoTablePage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paged.map((row, i) => {
-              const warning = typeof (row as any).warningThreshold === 'number' ? (row as any).warningThreshold : 55
-              const alarm = typeof (row as any).alarmThreshold === 'number' ? (row as any).alarmThreshold : 60
-              const las = typeof row.las === 'number' && !isNaN(row.las) ? row.las : 0
-              const status = getStatus(las, warning, alarm)
-              return (
-                <TableRow key={i} className={status.label !== "Normal" ? (status.label === "Alarm" ? "bg-red-50 dark:bg-red-900/30" : "bg-yellow-50 dark:bg-yellow-900/30") : ""}>
-                  <TableCell>{row.time}</TableCell>
-                  <TableCell className="font-semibold">{row.las.toFixed(1)}</TableCell>
-                  <TableCell>{row.ws ?? "-"}</TableCell>
-                  <TableCell>{row.wd ?? "-"}</TableCell>
-                  <TableCell>{row.rh ?? "-"}</TableCell>
-                  <TableCell><Badge className={status.color}>{status.label}</Badge></TableCell>
-                </TableRow>
-              )
-            })}
-            {paged.length === 0 && (
+            {memoRows}
+            {filtered.length === 0 && (
               <TableRow><TableCell colSpan={6} className="text-center text-gray-400">Keine Daten gefunden.</TableCell></TableRow>
             )}
           </TableBody>

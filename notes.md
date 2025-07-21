@@ -82,3 +82,14 @@
 - **Fehlerquellen**: Aliase, React-Import, jsdom, Request-Mocks, matchMedia – alle gelöst
 - **Empfehlung**: Bei neuen Features immer Unit- und UI-Tests ergänzen, API-Fehlerfälle abdecken
 - **CI/CD**: Tests laufen headless und können in Pipelines integriert werden 
+
+## Update Juli 2024: API, Performance, Monitoring
+
+- **API-Response:** `/api/station-data` liefert jetzt immer `{ data, totalCount }`.
+- **Pagination:** Über `page` und `pageSize` können gezielt Seiten abgefragt werden. Tabellen laden nur noch die aktuelle Seite.
+- **Fehlerbenachrichtigung:** Kritische Fehler werden mit `notify: true` im API-Response markiert. Das Frontend zeigt Toast und Push-Notification, keine E-Mail/Slack mehr.
+- **Health-Check & Monitoring:**
+  - Automatischer täglicher Integritäts-Check der Datenbank und Wetterdaten
+  - System-Banner im Admin-UI bei Problemen
+  - Zentrales Logging mit Fehlerklassen
+- **Teststrategie:** API-Tests prüfen jetzt auch Pagination und das neue Response-Format. 

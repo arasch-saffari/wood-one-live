@@ -16,6 +16,7 @@
   "calculationMode": "max",
   "adminEmail": "",
   "weatherApiKey": "",
+  "apiCacheDuration": 60,
   "thresholdsByStationAndTime": {
     "ort": [
       {
