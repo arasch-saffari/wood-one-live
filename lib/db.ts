@@ -1,12 +1,9 @@
-import Database from 'better-sqlite3'
+import db from './database'
 import path from 'path'
 import fs from 'fs'
 import Papa from 'papaparse'
 import { processCSVFile, processAllCSVFiles } from './csv-processing'
 import { addWeatherCron } from './weather'
-
-const dbPath = path.join(process.cwd(), 'data.sqlite')
-export const db = new Database(dbPath)
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file

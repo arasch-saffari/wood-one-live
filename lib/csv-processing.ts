@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import Papa from 'papaparse'
-import { db } from './db'
+import db from './database'
 
 // CSV Processing Functions
 export function processCSVFile(station: string, csvPath: string) {

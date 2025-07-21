@@ -1,7 +1,7 @@
 // This file is for server-side weather fetching only
 // Client-side weather fetching is handled via API endpoints
 
-import { db } from './db'
+import db from './database'
 
 export async function fetchWeather() {
   const maxRetries = 3;
