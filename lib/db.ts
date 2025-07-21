@@ -46,7 +46,7 @@ if (typeof db.pragma === 'function') {
       // Fülle bestehende Einträge mit aktuellem Datum + time
       const now = new Date()
       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
-      db.prepare('UPDATE measurements SET datetime = ? || " " || time WHERE datetime IS NULL').run(today)
+      db.prepare("UPDATE measurements SET datetime = ? || ' ' || time WHERE datetime IS NULL").run(today)
       console.log('✅ Migration: datetime column added and filled')
     }
   } catch (e) {

@@ -40,6 +40,12 @@ export function EnablePwaBanner() {
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
+    // Prüfe, ob Android (und nicht iOS oder Desktop)
+    const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone
+    const alreadyShown = window.localStorage.getItem('pwaBannerShown') === 'true'
+    if (!isAndroid || isStandalone || alreadyShown) return
+
     const handler = (e: any) => {
       e.preventDefault()
       setDeferredPrompt(e)
@@ -48,6 +54,13 @@ export function EnablePwaBanner() {
     window.addEventListener("beforeinstallprompt", handler)
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [])
+
+  // Banner nur einmalig anzeigen
+  useEffect(() => {
+    if (showBanner) {
+      window.localStorage.setItem('pwaBannerShown', 'true')
+    }
+  }, [showBanner])
 
   if (!showBanner) return null
 
