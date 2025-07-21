@@ -58,7 +58,7 @@ export async function addInitialWeather() {
     } catch (e) {
       console.warn('⚠️ Konnte keine Live-Wetterdaten für Initialeintrag abrufen, nutze Dummy-Werte.')
     }
-    db.prepare('INSERT INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+    db.prepare('INSERT OR IGNORE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
       .run('global', time, windSpeed, windDir, relHumidity, temperature)
     console.log('🌦️ Initialer Wetterwert eingetragen:', { time, windSpeed, windDir, relHumidity, temperature })
   }
