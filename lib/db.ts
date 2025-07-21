@@ -280,3 +280,5 @@ export function addDatabaseBackupCron() {
 }
 
 addDatabaseBackupCron() 
+
+export { db } 

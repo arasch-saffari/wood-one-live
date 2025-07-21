@@ -16,11 +16,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { getThresholdsForStationAndTime } from '@/lib/utils'
+import { useEffect } from 'react'
 
 export default function TechnoPage() {
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
   const [granularity, setGranularity] = useState<"1h" | "15min" | "10min" | "5min" | "1min">("15min")
   const data = useStationData("techno", chartInterval, granularity)
+  const [config, setConfig] = useState<any>(null)
+  useEffect(() => {
+    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
+  }, [])
   // Compose KPIs from data (e.g., current, avg24h, max24h, min24h, violations, trend)
   const current = data.length > 0 ? data[data.length - 1].las : 0
   const max24h = data.length > 0 ? Math.max(...data.map(d => d.las)) : 0
@@ -31,10 +37,12 @@ export default function TechnoPage() {
   // const min24h = data.length > 0 ? Math.min(...data.map(d => d.las)) : 0
   const trend = data.length > 1 ? ((data[data.length - 1].las - data[data.length - 2].las) / data[data.length - 2].las * 100).toFixed(1) : 0
 
+  const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
+  const thresholds = config && now ? getThresholdsForStationAndTime(config, 'techno', now) : { warning: 55, alarm: 60, las: 50, laf: 52 }
   // Alert-Status und -Text bestimmen
   let alertStatus: 'normal' | 'warn' | 'alarm' = 'normal'
-  if (current >= 60) alertStatus = 'alarm'
-  else if (current >= 55) alertStatus = 'warn'
+  if (current >= thresholds.alarm) alertStatus = 'alarm'
+  else if (current >= thresholds.warning) alertStatus = 'warn'
   // Alert-Farben und Texte
   const alertConfig = {
     normal: {
@@ -62,15 +70,15 @@ export default function TechnoPage() {
 
   // Bestimmt die Statusfarbe basierend auf dem Lärmpegel
   const getStatusColor = (level: number) => {
-    if (level >= 60) return "text-red-400"
-    if (level >= 55) return "text-yellow-400"
+    if (level >= thresholds.alarm) return "text-red-400"
+    if (level >= thresholds.warning) return "text-yellow-400"
     return "text-pink-400"
   }
 
   // Bestimmt das Status-Badge basierend auf dem Lärmpegel
   const getStatusBadge = (level: number) => {
-    if (level >= 60) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
-    if (level >= 55) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
+    if (level >= thresholds.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
+    if (level >= thresholds.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
     return <Badge className="bg-pink-500/20 text-pink-400 border-pink-500/30">Normal</Badge>
   }
 
@@ -131,7 +139,7 @@ export default function TechnoPage() {
                   <span className="text-xs lg:text-sm text-gray-500">dB</span>
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {current >= 60 ? "Alarm" : current >= 55 ? "Warnung" : "Normal"}
+                  {current >= thresholds.alarm ? "Alarm" : current >= thresholds.warning ? "Warnung" : "Normal"}
                 </div>
               </CardContent>
             </Card>
@@ -329,7 +337,7 @@ export default function TechnoPage() {
                   <Line
                     yAxisId="noise"
                     type="monotone"
-                    dataKey={() => 55}
+                    dataKey={() => thresholds.warning}
                     stroke={CHART_COLORS.warning}
                     strokeWidth={1}
                     strokeDasharray="3 3"
@@ -339,7 +347,7 @@ export default function TechnoPage() {
                   <Line
                     yAxisId="noise"
                     type="monotone"
-                    dataKey={() => 60}
+                    dataKey={() => thresholds.alarm}
                     stroke={CHART_COLORS.alarm}
                     strokeWidth={1}
                     strokeDasharray="3 3"

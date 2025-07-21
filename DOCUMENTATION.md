@@ -572,3 +572,108 @@ grep "ERROR" logs/app.log
 - Die Backups werden als `backup-YYYY-MM-DD_HH-mm.sqlite` abgelegt.
 - Backups können im Admin-Panel heruntergeladen und über die Restore-Funktion wiederhergestellt werden.
 - Restore-Tests sollten regelmäßig durchgeführt werden, um die Integrität der Backups zu gewährleisten. 
+
+# Changelog
+
+## Neueste Änderungen
+
+### Admin-Dashboard (Standalone)
+- Admin-Bereich ist jetzt ein eigenständiges Dashboard, nicht mehr in der Haupt-Sidebar.
+- Modernes UI mit shadcn/ui und App-Theme.
+- Segmentierte Navigation: Systemübersicht, Schwellenwerte, CSV & Import, Backup & Restore, Datenkorrektur.
+
+### CSV & Import
+- CSV-Dateien pro Station einsehbar und uploadbar (Drag&Drop).
+- Watcher-Status, Heartbeat und Import-Status sichtbar.
+- Fehler- und Statusanzeigen für Uploads.
+
+### Datenkorrektur
+- Suche, Filter, Editieren und Löschen von Messwerten und Wetterdaten.
+- Statistiken: Anzahl, letzte Änderung pro Station/Typ.
+- Sofortige Aktualisierung nach Bearbeitung/Löschung.
+
+### Dynamische Schwellenwerte
+- Schwellenwerte (Warnung, Alarm, LAS, LAF) pro Station und Zeitblock konfigurierbar.
+- Anwendung der Schwellenwerte in allen Dashboards, Tabellen, Exporten und Benachrichtigungen.
+
+### Zeit- und Datumsfixes
+- Messwerte enthalten jetzt vollständigen Zeitstempel (`datetime`).
+- "Letzte Aktualisierung" und Chart-Zeiten zeigen korrekte Messzeit (Europe/Berlin).
+- Wetterdaten werden synchron zu Messwerten importiert und angezeigt.
+
+### Robustheit & Performance
+- Automatische tägliche Backups der Datenbank.
+- Fehlerbehandlung und Push-Benachrichtigungen für kritische Fehler.
+- Batch-Import und Transaktionen für große CSV-Dateien.
+- Circular Dependency-Fixes im Backend.
+
+---
+
+Weitere Details und API-/Fehlerdokumentation folgen. 
+
+# API- und Fehlerdokumentation
+
+## Admin-API-Endpunkte
+
+### 1. /api/admin/correction-data
+- **Methode:** GET
+- **Parameter (Query):**
+  - `station` (string, z.B. 'ort')
+  - `type` ('measurement' | 'weather')
+  - `q` (string, optional, Suchbegriff)
+- **Antwort:** Array von Datensätzen `{ id, datetime, value, time }`
+- **Fehler:** 500 bei DB-Fehlern
+
+### 2. /api/admin/correction-edit
+- **Methode:** POST
+- **Body:** JSON `{ id, value, type }`
+- **Antwort:** `{ success: true }` oder `{ success: false, message }`
+- **Fehler:**
+  - Fehlende Parameter: `{ success: false, message }`
+  - DB-Fehler: `{ success: false, message }`
+
+### 3. /api/admin/correction-delete
+- **Methode:** POST
+- **Body:** JSON `{ id, type }`
+- **Antwort:** `{ success: true }` oder `{ success: false, message }`
+- **Fehler:**
+  - Fehlende Parameter: `{ success: false, message }`
+  - DB-Fehler: `{ success: false, message }`
+
+### 4. /api/admin/correction-stats
+- **Methode:** GET
+- **Parameter (Query):**
+  - `station` (string)
+  - `type` ('measurement' | 'weather')
+- **Antwort:** `{ count, lastModified }`
+- **Fehler:** 500 bei DB-Fehlern
+
+### 5. /api/csv-watcher-status
+- **Methode:** GET
+- **Antwort:**
+  - `watcherActive` (bool)
+  - `watcherHeartbeat` (ISO-String)
+  - `watchedDirectories` (Array mit Station, fileCount, files)
+  - `totalFiles` (number)
+- **Fehler:** 500 bei Systemfehlern
+
+### 6. /api/admin/backup-db
+- **Methode:** GET
+- **Antwort:** Download der aktuellen Datenbank (data.sqlite)
+- **Fehler:** 500 bei Dateisystemfehlern
+
+### 7. /api/admin/factory-reset
+- **Methode:** POST
+- **Antwort:** `{ success: true }` oder `{ success: false, message }`
+- **Fehler:**
+  - DB- oder Dateisystemfehler: `{ success: false, message }`
+
+## Fehlerhandling-Konzept
+- Alle API-Routen geben im Fehlerfall ein konsistentes JSON `{ success: false, message }` zurück.
+- Fehler werden im Admin-UI klar angezeigt (rote Meldung).
+- Kritische Fehler (z.B. Watcher-Ausfall, Backup-Fehler) lösen Push-Benachrichtigungen aus.
+- Fehlerdetails werden im System-Log gespeichert und sind im Admin-Dashboard einsehbar.
+
+---
+
+Weitere Endpunkte und Details werden fortlaufend ergänzt. 

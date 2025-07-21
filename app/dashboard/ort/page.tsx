@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin, TrendingUp, Volume2, Clock, BarChart3, Download, Wind, AlertTriangle, Table as TableIcon } from "lucide-react"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart } from "recharts"
 import { useStationData } from "@/hooks/useStationData"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { STATION_COLORS, CHART_COLORS } from "@/lib/colors"
 import {
@@ -17,11 +17,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { getThresholdsForStationAndTime } from '@/lib/utils'
 
 export default function OrtPage() {
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
   const [granularity, setGranularity] = useState<"15min" | "10min" | "5min" | "1min" | "1h">("15min")
   const data = useStationData("ort", chartInterval, granularity)
+  const [config, setConfig] = useState<any>(null)
+  useEffect(() => {
+    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
+  }, [])
   // Compose KPIs from data (e.g., current, avg24h, max24h, min24h, violations, trend)
   const current = data.length > 0 ? data[data.length - 1].las : 0
   const avg24h = data.length > 0 ? (data.reduce((a, b) => a + b.las, 0) / data.length).toFixed(1) : 0
@@ -32,10 +37,13 @@ export default function OrtPage() {
   const currentWind = data.length > 0 ? data[data.length - 1].ws : 0
   const windDirection = data.length > 0 ? data[data.length - 1].wd : "N/A"
 
+  // Aktuelle Zeit und Schwellenwerte bestimmen
+  const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
+  const thresholds = config && now ? getThresholdsForStationAndTime(config, 'ort', now) : { warning: 55, alarm: 60, las: 50, laf: 52 }
   // Alert-Status und -Text bestimmen
   let alertStatus: 'normal' | 'warn' | 'alarm' = 'normal'
-  if (current >= 60) alertStatus = 'alarm'
-  else if (current >= 55) alertStatus = 'warn'
+  if (current >= thresholds.alarm) alertStatus = 'alarm'
+  else if (current >= thresholds.warning) alertStatus = 'warn'
   // Alert-Farben und Texte
   const alertConfig = {
     normal: {
@@ -63,15 +71,15 @@ export default function OrtPage() {
 
   // Bestimmt die Statusfarbe basierend auf dem Lärmpegel
   const getStatusColor = (level: number) => {
-    if (level >= 60) return "text-red-400"
-    if (level >= 55) return "text-yellow-400"
+    if (level >= thresholds.alarm) return "text-red-400"
+    if (level >= thresholds.warning) return "text-yellow-400"
     return "text-emerald-400"
   }
 
   // Bestimmt das Status-Badge basierend auf dem Lärmpegel
   const getStatusBadge = (level: number) => {
-    if (level >= 60) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
-    if (level >= 55) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
+    if (level >= thresholds.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
+    if (level >= thresholds.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
     return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Normal</Badge>
   }
 
@@ -144,7 +152,7 @@ export default function OrtPage() {
                       <span className="text-xs lg:text-sm text-gray-500">dB</span>
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {current >= 60 ? "Alarm" : current >= 55 ? "Warnung" : "Normal"}
+                      {current >= thresholds.alarm ? "Alarm" : current >= thresholds.warning ? "Warnung" : "Normal"}
                     </div>
                   </CardContent>
                 </Card>
@@ -365,7 +373,7 @@ export default function OrtPage() {
                   {/* Grenzwertlinien */}
                   <Line
                     type="monotone"
-                    dataKey={() => 55}
+                    dataKey={() => thresholds.warning}
                     stroke={CHART_COLORS.warning}
                     strokeWidth={1}
                     strokeDasharray="3 3"
@@ -374,7 +382,7 @@ export default function OrtPage() {
                   />
                   <Line
                     type="monotone"
-                    dataKey={() => 60}
+                    dataKey={() => thresholds.alarm}
                     stroke={CHART_COLORS.alarm}
                     strokeWidth={1}
                     strokeDasharray="3 3"

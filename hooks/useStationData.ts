@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { toast } from "@/components/ui/use-toast"
+import { getThresholdsForStationAndTime } from '@/lib/utils'
 
 export interface StationDataPoint {
   time: string // "HH:MM"
@@ -51,6 +52,11 @@ export function useStationData(
   const [data, setData] = useState<StationDataPoint[]>([])
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastAlertRef = useRef<{ level: number; time: number }>({ level: 0, time: 0 })
+  const [config, setConfig] = useState<any>(null)
+
+  useEffect(() => {
+    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
+  }, [])
 
   async function fetchAndProcess() {
     try {
@@ -88,20 +94,22 @@ export function useStationData(
           if (config.enableNotifications === false) enableNotifications = false
         }
       } catch {}
-      if (result.length > 0 && enableNotifications) {
+      if (result.length > 0 && enableNotifications && config) {
         const currentLevel = result[result.length - 1].las
+        const currentTime = result[result.length - 1].datetime?.slice(11,16)
+        const thresholds = getThresholdsForStationAndTime(config, station, currentTime || '00:00')
         const now = Date.now()
         // Check if we should show an alert (avoid spam - only alert once per 5 minutes per threshold)
-        if (currentLevel >= 60 && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
+        if (currentLevel >= thresholds.alarm && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
           const hasPermission = await requestNotificationPermission()
           if (hasPermission) {
-            showNoiseAlert(station, currentLevel, 60)
+            showNoiseAlert(station, currentLevel, thresholds.alarm)
             lastAlertRef.current = { level: currentLevel, time: now }
           }
-        } else if (currentLevel >= 55 && currentLevel < 60 && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
+        } else if (currentLevel >= thresholds.warning && currentLevel < thresholds.alarm && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
           const hasPermission = await requestNotificationPermission()
           if (hasPermission) {
-            showNoiseAlert(station, currentLevel, 55)
+            showNoiseAlert(station, currentLevel, thresholds.warning)
             lastAlertRef.current = { level: currentLevel, time: now }
           }
         }

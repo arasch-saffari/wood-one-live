@@ -24,7 +24,6 @@ const navigation = [
   { name: "Band Bühne", href: "/dashboard/band", icon: Music, color: STATION_COLORS.band.menuColor },
   { name: "Heuballern", href: "/dashboard/heuballern", icon: MapPin, color: STATION_COLORS.heuballern.menuColor },
   { name: "Daten Export", href: "/dashboard/export", icon: Download, color: STATION_COLORS.export.menuColor },
-  { name: 'Admin', href: '/admin', icon: Settings, color: 'text-orange-500' },
 ]
 
 export default function DashboardLayout({

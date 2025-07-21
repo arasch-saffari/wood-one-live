@@ -25,6 +25,12 @@ const dataTypes = [
   { id: "aggregated", name: "Stündliche Aggregate", icon: Database, description: "Min, Max, Durchschnittswerte" },
 ]
 
+async function fetchExportData(station: string, interval: string) {
+  const res = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=15min`)
+  if (!res.ok) return []
+  return await res.json()
+}
+
 export default function ExportPage() {
   const { toast } = useToast()
   const [selectedLocations, setSelectedLocations] = useState<string[]>(["ort"])
@@ -49,58 +55,6 @@ export default function ExportPage() {
     }
   }
 
-  const generateSampleData = (): Record<string, string | number>[] => {
-    const data: Record<string, string | number>[] = []
-    const now = new Date()
-
-    for (let i = 0; i < 96; i++) {
-      const timestamp = new Date(now.getTime() - (95 - i) * 15 * 60 * 1000)
-
-      selectedLocations.forEach((locationId) => {
-        const location = locations.find((l) => l.id === locationId)
-        if (!location) return
-
-        let baseLevel = 40
-        if (locationId === "techno") baseLevel = 65
-        else if (locationId === "band") baseLevel = 50
-        else if (locationId === "heuballern") baseLevel = 35
-
-        const row: Record<string, string | number> = {
-          timestamp: timestamp.toISOString(),
-          location: location.name,
-          date: timestamp.toLocaleDateString("de-DE"),
-          time: timestamp.toLocaleTimeString("de-DE"),
-        }
-
-        if (selectedDataTypes.includes("noise")) {
-          row.noise_level_db = (baseLevel + Math.random() * 10 - 5).toFixed(1)
-        }
-
-        if (selectedDataTypes.includes("wind")) {
-          row.wind_speed_kmh = (8 + Math.random() * 12).toFixed(1)
-          row.wind_direction = Math.floor(Math.random() * 360)
-          row.wind_gust_kmh = (10 + Math.random() * 15).toFixed(1)
-        }
-
-        if (selectedDataTypes.includes("violations")) {
-          const level = Number.parseFloat(row.noise_level_db as string || "40")
-          row.warning_threshold_exceeded = level > 55 ? "true" : "false"
-          row.alarm_threshold_exceeded = level > 60 ? "true" : "false"
-        }
-
-        if (selectedDataTypes.includes("aggregated")) {
-          row.hourly_min = (baseLevel - 5).toFixed(1)
-          row.hourly_max = (baseLevel + 8).toFixed(1)
-          row.hourly_avg = (baseLevel + 2).toFixed(1)
-        }
-
-        data.push(row)
-      })
-    }
-
-    return data
-  }
-
   const handleExport = async () => {
     if (selectedLocations.length === 0) {
       toast({
@@ -122,14 +76,36 @@ export default function ExportPage() {
 
     setIsExporting(true)
 
-    // Simuliert den Exportprozess
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    const data = generateSampleData()
+    // Echte Daten laden
+    let allData: Record<string, any>[] = []
+    for (const locationId of selectedLocations) {
+      const stationData = await fetchExportData(locationId, dateRange)
+      for (const row of stationData) {
+        const exportRow: Record<string, any> = {
+          station: locationId,
+          time: row.time,
+          datetime: row.datetime,
+          las: row.las,
+          ws: row.ws,
+          wd: row.wd,
+          rh: row.rh,
+          temp: row.temp,
+          warningThreshold: row.warningThreshold,
+          alarmThreshold: row.alarmThreshold,
+          lasThreshold: row.lasThreshold,
+          lafThreshold: row.lafThreshold,
+        }
+        if (selectedDataTypes.includes("violations")) {
+          exportRow.warning_threshold_exceeded = row.las >= row.warningThreshold
+          exportRow.alarm_threshold_exceeded = row.las >= row.alarmThreshold
+        }
+        allData.push(exportRow)
+      }
+    }
 
     if (format === "csv") {
-      const headers = Object.keys(data[0])
-      const csvContent = [headers.join(","), ...data.map((row) => headers.map((header) => row[header]).join(","))].join(
+      const headers = Object.keys(allData[0] || {})
+      const csvContent = [headers.join(","), ...allData.map((row) => headers.map((header) => row[header]).join(","))].join(
         "\n",
       )
 
@@ -141,7 +117,7 @@ export default function ExportPage() {
       a.click()
       URL.revokeObjectURL(url)
     } else {
-      const jsonContent = JSON.stringify(data, null, 2)
+      const jsonContent = JSON.stringify(allData, null, 2)
       const blob = new Blob([jsonContent], { type: "application/json" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")

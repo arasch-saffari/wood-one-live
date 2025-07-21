@@ -10,11 +10,11 @@ import { useStationData } from "@/hooks/useStationData"
 
 const PAGE_SIZE = 20
 
-function getStatus(level: number, isNight = false) {
-  const threshold = isNight ? 43 : 55
-  const alarmThreshold = isNight ? 45 : 60
-  if (level >= alarmThreshold) return { label: "Alarm", color: "bg-red-100 text-red-600" }
-  if (level >= threshold) return { label: "Warnung", color: "bg-yellow-100 text-yellow-700" }
+function getStatus(level: number, warning?: number, alarm?: number) {
+  const w = warning ?? 55
+  const a = alarm ?? 60
+  if (level >= a) return { label: "Alarm", color: "bg-red-100 text-red-600" }
+  if (level >= w) return { label: "Warnung", color: "bg-yellow-100 text-yellow-700" }
   return { label: "Normal", color: "bg-emerald-100 text-emerald-700" }
 }
 
@@ -35,7 +35,7 @@ export default function TechnoTablePage() {
     if (showOnlyExceeded) {
       d = d.filter(row => {
         const night = isNightTime(row.time)
-        const { label } = getStatus(row.las, night)
+        const { label } = getStatus(row.las, row.warningThreshold, row.alarmThreshold)
         return label !== "Normal"
       })
     }
@@ -52,7 +52,13 @@ export default function TechnoTablePage() {
         <Card className="sticky top-2 z-10 bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-lg">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base font-semibold">Letzter Wert</CardTitle>
-            <Badge className={getStatus(last.las, isNightTime(last.time)).color}>{getStatus(last.las, isNightTime(last.time)).label}</Badge>
+            {(() => {
+              const warning = typeof (last as any).warningThreshold === 'number' ? (last as any).warningThreshold : 55
+              const alarm = typeof (last as any).alarmThreshold === 'number' ? (last as any).alarmThreshold : 60
+              const las = typeof last.las === 'number' && !isNaN(last.las) ? last.las : 0
+              const status = getStatus(las, warning, alarm)
+              return <Badge className={status.color}>{status.label}</Badge>
+            })()}
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4 text-sm">
             <div><span className="font-medium">Zeit:</span> {last.time}</div>
@@ -90,8 +96,10 @@ export default function TechnoTablePage() {
           </TableHeader>
           <TableBody>
             {paged.map((row, i) => {
-              const night = isNightTime(row.time)
-              const status = getStatus(row.las, night)
+              const warning = typeof (row as any).warningThreshold === 'number' ? (row as any).warningThreshold : 55
+              const alarm = typeof (row as any).alarmThreshold === 'number' ? (row as any).alarmThreshold : 60
+              const las = typeof row.las === 'number' && !isNaN(row.las) ? row.las : 0
+              const status = getStatus(las, warning, alarm)
               return (
                 <TableRow key={i} className={status.label !== "Normal" ? (status.label === "Alarm" ? "bg-red-50 dark:bg-red-900/30" : "bg-yellow-50 dark:bg-yellow-900/30") : ""}>
                   <TableCell>{row.time}</TableCell>

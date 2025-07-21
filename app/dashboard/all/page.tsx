@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { getThresholdsForStationAndTime } from '@/lib/utils'
 
 // Standort-spezifische Farben für konsistente Darstellung
 const locationColors = {
@@ -101,24 +102,30 @@ export default function AllLocationsPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Status-Farbe basierend auf Lärmwert bestimmen
-  const getStatusColor = (level: number, isNight = false) => {
-    const threshold = isNight ? 43 : 55
-    const alarmThreshold = isNight ? 45 : 60
+  const [config, setConfig] = useState<any>(null)
+  useEffect(() => {
+    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
+  }, [])
 
-    if (level >= alarmThreshold) return "text-red-400"
-    if (level >= threshold) return "text-yellow-400"
+  // Für jede Station aktuelle Zeit und Schwellenwerte bestimmen
+  const getThresholds = (station: string, data: any[]) => {
+    const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
+    return config && now ? getThresholdsForStationAndTime(config, station, now) : { warning: 55, alarm: 60, las: 50, laf: 52 }
+  }
+
+  // Status-Farbe basierend auf Lärmwert bestimmen
+  const getStatusColor = (level: number, station: string, data: any[]) => {
+    const thresholds = getThresholds(station, data)
+    if (level >= thresholds.alarm) return "text-red-400"
+    if (level >= thresholds.warning) return "text-yellow-400"
     return "text-emerald-400"
   }
 
   // Status-Badge basierend auf Lärmwert
-  const getStatusBadge = (level: number, isNight = false) => {
-    const threshold = isNight ? 43 : 55
-    const alarmThreshold = isNight ? 45 : 60
-
-    if (level >= alarmThreshold) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
-    if (level >= threshold)
-      return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
+  const getStatusBadge = (level: number, station: string, data: any[]) => {
+    const thresholds = getThresholds(station, data)
+    if (level >= thresholds.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
+    if (level >= thresholds.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
     return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Normal</Badge>
   }
 
@@ -183,13 +190,13 @@ export default function AllLocationsPage() {
                           <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
                             {location}
                           </CardTitle>
-                          {getStatusBadge(level)}
+                          {getStatusBadge(level, location, ortData)}
                         </div>
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-center space-x-2">
                           <Volume2 className="w-4 h-4" style={{ color: locationColors[location as keyof typeof locationColors] }} />
-                          <span className={`text-xl lg:text-2xl font-bold ${getStatusColor(level)}`}>{level.toFixed(1)}</span>
+                          <span className={`text-xl lg:text-2xl font-bold ${getStatusColor(level, location, ortData)}`}>{level.toFixed(1)}</span>
                           <span className="text-xs lg:text-sm text-gray-500">dB</span>
                         </div>
                         {/* Klick-Hinweis */}

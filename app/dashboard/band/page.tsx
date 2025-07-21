@@ -16,6 +16,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { getThresholdsForStationAndTime } from '@/lib/utils'
+import { useEffect } from 'react'
 
 export default function BandPage() {
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
@@ -30,10 +32,16 @@ export default function BandPage() {
   const currentWind = data.length > 0 ? data[data.length - 1].ws : 0
   const windDirection = data.length > 0 ? data[data.length - 1].wd : "N/A"
 
-  // Alert-Status und -Text bestimmen
+  const [config, setConfig] = useState<any>(null)
+  useEffect(() => {
+    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
+  }, [])
+
+  const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
+  const thresholds = config && now ? getThresholdsForStationAndTime(config, 'band', now) : { warning: 55, alarm: 60, las: 50, laf: 52 }
   let alertStatus: 'normal' | 'warn' | 'alarm' = 'normal'
-  if (current >= 60) alertStatus = 'alarm'
-  else if (current >= 55) alertStatus = 'warn'
+  if (current >= thresholds.alarm) alertStatus = 'alarm'
+  else if (current >= thresholds.warning) alertStatus = 'warn'
   const alertConfig = {
     normal: {
       bg: 'from-purple-500/10 to-purple-600/10 border-purple-500/20',
@@ -59,15 +67,15 @@ export default function BandPage() {
   }[alertStatus]
 
   const getStatusColor = (level: number) => {
-    if (level >= 60) return "text-red-400"
-    if (level >= 55) return "text-yellow-400"
+    if (level >= thresholds.alarm) return "text-red-400"
+    if (level >= thresholds.warning) return "text-yellow-400"
     return "text-purple-400"
   }
 
   // Bestimmt das Status-Badge basierend auf dem Lärmpegel
   const getStatusBadge = (level: number) => {
-    if (level >= 60) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
-    if (level >= 55) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
+    if (level >= thresholds.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
+    if (level >= thresholds.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
     return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Normal</Badge>
   }
 
@@ -138,7 +146,7 @@ export default function BandPage() {
                       <span className="text-xs lg:text-sm text-gray-500">dB</span>
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {current >= 60 ? "Alarm" : current >= 55 ? "Warnung" : "Normal"}
+                      {current >= thresholds.alarm ? "Alarm" : current >= thresholds.warning ? "Warnung" : "Normal"}
                     </div>
                   </CardContent>
                 </Card>
@@ -364,7 +372,7 @@ export default function BandPage() {
                   <Line
                     yAxisId="noise"
                     type="monotone"
-                    dataKey={() => 55}
+                    dataKey={() => thresholds.warning}
                     stroke={CHART_COLORS.warning}
                     strokeWidth={1}
                     strokeDasharray="3 3"
@@ -374,7 +382,7 @@ export default function BandPage() {
                   <Line
                     yAxisId="noise"
                     type="monotone"
-                    dataKey={() => 60}
+                    dataKey={() => thresholds.alarm}
                     stroke={CHART_COLORS.alarm}
                     strokeWidth={1}
                     strokeDasharray="3 3"

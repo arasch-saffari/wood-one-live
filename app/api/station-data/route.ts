@@ -5,6 +5,7 @@ import { fetchWeather } from "@/lib/weather";
 import Papa from "papaparse";
 import fs from "fs";
 import path from "path";
+import { getThresholdsForStationAndTime, checkRateLimit } from '@/lib/utils'
 
 const configPath = path.join(process.cwd(), 'config.json')
 function getConfig() {
@@ -142,6 +143,11 @@ async function getWeatherWithCache(station: string, time: string) {
 }
 
 export async function GET(req: Request) {
+  // --- Rate Limiting ---
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || ''
+  if (!checkRateLimit(ip, '/api/station-data', 30, 60_000)) {
+    return NextResponse.json({ error: 'Zu viele Anfragen. Bitte warte einen Moment.' }, { status: 429 })
+  }
   try {
     const { searchParams } = new URL(req.url);
     const station = searchParams.get("station");
@@ -268,6 +274,8 @@ export async function GET(req: Request) {
         const weather = (w && typeof w.windSpeed === 'number' && typeof w.windDir === 'string' && typeof w.relHumidity === 'number')
           ? { windSpeed: w.windSpeed, windDir: w.windDir, relHumidity: w.relHumidity, temperature: (w as any).temperature ?? null }
           : { windSpeed: null, windDir: null, relHumidity: null, temperature: null };
+        // Dynamische Schwellenwerte bestimmen
+        const thresholds = getThresholdsForStationAndTime(config, station, measurement.time)
         return {
           time: measurement.time,
           las: measurement.las,
@@ -276,10 +284,10 @@ export async function GET(req: Request) {
           wd: weather.windDir,
           rh: weather.relHumidity,
           temp: weather.temperature,
-          lasThreshold,
-          lafThreshold,
-          warningThreshold,
-          alarmThreshold,
+          lasThreshold: thresholds.las,
+          lafThreshold: thresholds.laf,
+          warningThreshold: thresholds.warning,
+          alarmThreshold: thresholds.alarm,
         };
       });
     }
