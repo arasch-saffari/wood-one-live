@@ -18,6 +18,7 @@
 12. [Deployment](#12-deployment)
 13. [Troubleshooting](#13-troubleshooting)
 14. [Glossary](#14-glossary)
+15. [Automated Testing & Quality Assurance](#15-automated-testing--quality-assurance)
 
 ---
 
@@ -690,3 +691,39 @@ Weitere Endpunkte und Details werden fortlaufend ergänzt.
 
 ## Changelog
 - [heutiges Datum]: Wetterdaten liefern keine Fallback- oder Defaultwerte mehr. Wenn keine echten Wetterdaten vorliegen, gibt die API null-Werte und ein 'noWeatherData: true'-Flag zurück. Statistiken und Charts zeigen dann 'keine Daten' an. 
+
+## Juni 2024
+- Einführung automatisierter Tests (Vitest, Testing Library)
+- Abdeckung: Unit-Tests für Parsing, Wetter, Schwellenwerte; API-Tests für Fehlerfälle; UI-Tests für Validierung und Interaktion
+- Mocking von Wetter-API und Browser-APIs (matchMedia)
+- Fehlerquellen (Aliase, React, jsdom, Request-Mocks) gelöst
+- Teststrategie und Qualitätskonzept dokumentiert
+
+---
+
+## 15. Automated Testing & Quality Assurance
+
+### Test Strategy
+- **Unit-Tests**: Für alle kritischen Hilfsfunktionen (CSV-Parsing, Wetterdaten, Schwellenwertlogik)
+- **API-Tests**: Für Next.js-API-Handler (z.B. /api/station-data, /api/weather), inkl. Fehlerfälle und Response-Validierung
+- **UI-Tests**: Für zentrale Komponenten (Formulare, Threshold-Tab, Card-Komponenten) mit Testing Library
+- **Mocking**: Externe APIs (z.B. Wetter) und Browser-APIs (z.B. matchMedia) werden für Tests gemockt
+
+### Test Execution
+- **Test-Framework**: [Vitest](https://vitest.dev/) für alle Testarten
+- **Testlauf**:
+  ```bash
+  pnpm test
+  ```
+- **CI/CD**: Tests laufen headless und sind für Continuous Integration vorbereitet
+
+### Coverage & Best Practices
+- **Fehlerfälle**: Alle API- und Parsingfunktionen werden auf Fehler und Grenzfälle getestet
+- **Validierung**: UI-Tests prüfen Validierung und Fehlermeldungen (z.B. E-Mail-Validierung im Admin)
+- **Regression**: Tests sichern gegen versehentliche Änderungen an Kernlogik ab
+
+### Beispiel-Testfälle
+- CSV-Parsing: Leere, fehlerhafte und korrekte CSVs
+- Wetterdaten: Erfolgreiche und fehlerhafte API-Responses, Fallback-Logik
+- API: Fehlende Parameter, Rate-Limiting, korrekte Datenstruktur
+- UI: Threshold-Tab, Formularvalidierung, Fehleranzeigen 

@@ -73,3 +73,12 @@
 - Wetterdaten liefern keine Fallback- oder Defaultwerte mehr.
 - Wenn keine echten Wetterdaten vorliegen, gibt die API für alle Felder null und ein 'noWeatherData: true'-Flag zurück.
 - Das Frontend zeigt dann 'keine Wetterdaten verfügbar' an und verwendet keine Platzhalterwerte mehr in Statistiken oder Charts. 
+
+## Teststrategie & Lessons Learned
+
+- **Automatisierte Tests**: Unit-Tests für Parsing, Wetter, Schwellenwerte; API-Tests für Fehlerfälle; UI-Tests für Validierung und Interaktion
+- **Test-Framework**: Vitest + Testing Library
+- **Mocking**: Wetter-API, Browser-APIs (matchMedia) werden gemockt
+- **Fehlerquellen**: Aliase, React-Import, jsdom, Request-Mocks, matchMedia – alle gelöst
+- **Empfehlung**: Bei neuen Features immer Unit- und UI-Tests ergänzen, API-Fehlerfälle abdecken
+- **CI/CD**: Tests laufen headless und können in Pipelines integriert werden 

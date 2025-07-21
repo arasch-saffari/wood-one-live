@@ -157,6 +157,27 @@ export function processCSVFile(station: string, csvPath: string) {
   return 0
 }
 
+export function parseCSVData(csvContent: string, station: string) {
+  const parsed = Papa.parse(csvContent, {
+    header: true,
+    delimiter: ";",
+    skipEmptyLines: true,
+  })
+  let rows = parsed.data as Record<string, string>[]
+  if (!Array.isArray(rows) || rows.length < 1) return []
+  const noiseColumn = station === "heuballern" ? "LAF" : "LAS"
+  const validRows = rows.filter(
+    (row) =>
+      row["Systemzeit "] &&
+      row[noiseColumn] &&
+      !isNaN(Number(row[noiseColumn].replace(",", ".")))
+  )
+  return validRows.map(row => ({
+    time: row["Systemzeit "]?.trim(),
+    las: Number(row[noiseColumn].replace(",", ".")),
+  }))
+}
+
 export function processAllCSVFiles() {
   console.log('🔄 Processing all CSV files...')
   

@@ -129,3 +129,18 @@ MIT License - siehe LICENSE-Datei für Details.
 ---
 
 **Entwickelt mit ❤️ für die Lärmüberwachung**
+
+## 🧪 Tests & Qualitätssicherung
+
+- **Automatisierte Tests**: Das Projekt enthält Unit-Tests, API-Tests und UI-Komponententests (Vitest, Testing Library).
+- **Testabdeckung**: Kritische Logik (CSV-Parsing, Wetterdaten, Schwellenwerte), API-Fehlerfälle und zentrale UI-Komponenten werden getestet.
+- **Testausführung**:
+  ```bash
+  pnpm test
+  ```
+- **Teststrategie**:
+  - Unit-Tests für Hilfsfunktionen und Parsing
+  - API-Tests für Next.js-Handler (z.B. /api/station-data)
+  - UI-Tests für Formulare, Validierung und Interaktion (Testing Library)
+- **Mocking**: Externe APIs und Browser-APIs (z.B. matchMedia) werden für Tests gemockt.
+- **CI-ready**: Tests laufen headless und können in CI/CD integriert werden.
