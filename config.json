@@ -1,0 +1,18 @@
+{
+  "warningThreshold": 55,
+  "alarmThreshold": 60,
+  "lasThreshold": 50,
+  "lafThreshold": 52,
+  "stations": [
+    "ort",
+    "techno",
+    "heuballern",
+    "band"
+  ],
+  "enableNotifications": false,
+  "csvAutoProcess": true,
+  "backupRetentionDays": 14,
+  "uiTheme": "system",
+  "calculationMode": "max",
+  "weatherApiKey": ""
+}

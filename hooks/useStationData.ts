@@ -78,7 +78,16 @@ export function useStationData(
           variant: "destructive"
         })
       }
-      if (result.length > 0) {
+      // enableNotifications aus Config prüfen
+      let enableNotifications = true
+      try {
+        const configRes = await fetch('/api/admin/config')
+        if (configRes.ok) {
+          const config = await configRes.json()
+          if (config.enableNotifications === false) enableNotifications = false
+        }
+      } catch {}
+      if (result.length > 0 && enableNotifications) {
         const currentLevel = result[result.length - 1].las
         const now = Date.now()
         // Check if we should show an alert (avoid spam - only alert once per 5 minutes per threshold)

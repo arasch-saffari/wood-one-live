@@ -2,6 +2,12 @@ import fs from 'fs'
 import path from 'path'
 import { processCSVFile } from './csv-processing'
 
+function getConfig() {
+  const configPath = path.join(process.cwd(), 'config.json')
+  if (!fs.existsSync(configPath)) return {};
+  return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+}
+
 interface WatchedDirectory {
   path: string
   station: string
@@ -31,7 +37,13 @@ class CSVWatcher {
 
   constructor() {
     ensureCsvDirectories() // Ordner beim Start sicherstellen
-    this.initializeWatchedDirectories()
+    // Starte nur, wenn csvAutoProcess true ist
+    const config = getConfig()
+    if (config.csvAutoProcess !== false) {
+      this.start()
+    } else {
+      console.log('⏸️  Automatische CSV-Verarbeitung ist deaktiviert (csvAutoProcess=false)')
+    }
   }
 
   private initializeWatchedDirectories() {
@@ -51,11 +63,17 @@ class CSVWatcher {
   }
 
   public start() {
+    // Prüfe erneut die Config
+    const config = getConfig()
+    if (config.csvAutoProcess === false) {
+      console.log('⏸️  Automatische CSV-Verarbeitung ist deaktiviert (csvAutoProcess=false)')
+      return
+    }
     if (this.isRunning) return
     
     console.log('🚀 Starting CSV file watcher...')
     this.isRunning = true
-    this.checkForNewFiles()
+    this.initializeWatchedDirectories()
     
     // Set up periodic checking
     setInterval(() => {

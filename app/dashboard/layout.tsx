@@ -26,6 +26,15 @@ const navigation = [
   { name: "Daten Export", href: "/dashboard/export", icon: Download, color: STATION_COLORS.export.menuColor },
 ]
 
+// DEV: Admin-Link für Entwicklungszeit
+const isDev = typeof process !== 'undefined' && process.env.NODE_ENV === 'development'
+const devNavigation = isDev
+  ? [
+      { name: 'Admin', href: '/admin', icon: Settings, color: 'text-orange-500' },
+    ]
+  : []
+const fullNavigation = [...navigation, ...devNavigation]
+
 export default function DashboardLayout({
   children,
 }: {
@@ -207,7 +216,7 @@ export default function DashboardLayout({
 
               {/* Mobile Navigation Menu */}
               <nav className="flex-1 px-8 py-10 space-y-4">
-                {navigation.map((item) => {
+                {fullNavigation.map((item) => {
                   const isActive = pathname === item.href
                   return (
                     <Link key={item.name} href={item.href} onClick={() => setMobileMenuOpen(false)}>
@@ -281,7 +290,7 @@ export default function DashboardLayout({
 
           {/* Desktop Navigation */}
           <nav className="flex-1 px-6 py-10 space-y-4">
-            {navigation.map((item) => {
+            {fullNavigation.map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link key={item.name} href={item.href}>

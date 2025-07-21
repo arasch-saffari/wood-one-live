@@ -5,6 +5,12 @@ import Papa from "papaparse";
 import fs from "fs";
 import path from "path";
 
+const configPath = path.join(process.cwd(), 'config.json')
+function getConfig() {
+  if (!fs.existsSync(configPath)) return {};
+  return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+}
+
 // Weather cache for performance
 const weatherCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -145,6 +151,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing station parameter" }, { status: 400 });
     }
     
+    // Konfiguration laden
+    const config = getConfig();
+    const calculationMode = config.calculationMode || 'average';
+    const lasThreshold = config.lasThreshold ?? 50;
+    const lafThreshold = config.lafThreshold ?? 52;
+    const warningThreshold = config.warningThreshold ?? 55;
+    const alarmThreshold = config.alarmThreshold ?? 60;
+
     // Dynamische Chart-Limits je nach Zeitraum und Granularität
     // Ziel: Übersichtlichkeit + ausreichend Detailtiefe
     let chartLimit = 50; // Fallback
@@ -215,10 +229,22 @@ export async function GET(req: Request) {
       }
       const result = Object.entries(blocks)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([time, lasArr]) => ({
-          time,
-          las: Number((lasArr.reduce((a, b) => a + b, 0) / lasArr.length).toFixed(2)),
-        }));
+        .map(([time, lasArr]) => {
+          let las = 0;
+          if (calculationMode === 'max') {
+            las = Math.max(...lasArr);
+          } else if (calculationMode === 'median') {
+            const sorted = [...lasArr].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            las = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+          } else {
+            las = lasArr.reduce((a, b) => a + b, 0) / lasArr.length;
+          }
+          return {
+            time,
+            las: Number(las.toFixed(2)),
+          };
+        });
       return result;
     }
     
@@ -237,9 +263,21 @@ export async function GET(req: Request) {
       ws: number;
       wd: string;
       rh: number;
+      lasThreshold: number;
+      lafThreshold: number;
+      warningThreshold: number;
+      alarmThreshold: number;
     }> = [];
     if (limitedAggregated.length === 0) {
-      result = parseCSVFallback(station, interval);
+      // parseCSVFallback liefert nur time, las, ws, wd, rh
+      const fallback = parseCSVFallback(station, interval);
+      result = fallback.map(row => ({
+        ...row,
+        lasThreshold,
+        lafThreshold,
+        warningThreshold,
+        alarmThreshold,
+      }));
     } else {
       const weatherBlocks = limitedAggregated.map(m => roundTo5MinBlock(m.time));
       const uniqueWeatherBlocks = Array.from(new Set(weatherBlocks));
@@ -262,7 +300,10 @@ export async function GET(req: Request) {
           ws: weather.windSpeed,
           wd: weather.windDir,
           rh: weather.relHumidity,
-          temp: weather.temperature,
+          lasThreshold,
+          lafThreshold,
+          warningThreshold,
+          alarmThreshold,
         };
       });
     }
