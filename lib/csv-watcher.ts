@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { processCSVFile } from './db'
+import { processCSVFile } from './csv-processing'
 
 interface WatchedDirectory {
   path: string
