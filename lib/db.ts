@@ -2,10 +2,6 @@ import db from './database'
 import path from 'path'
 import fs from 'fs'
 import Papa from 'papaparse'
-import { processCSVFile, processAllCSVFiles } from './csv-processing'
-import { addWeatherCron } from './weather'
-import { addInitialWeather } from './weather'
-import csvWatcher from './csv-watcher'
 import cron from 'node-cron'
 import { ExternalApiError, logError } from './logger'
 
@@ -227,14 +223,6 @@ export function getMeasurementsForStation(station: string, interval: "24h" | "7d
   }
 }
 
-export function getRecentWeather(station: string) {
-  const stmt = db.prepare(
-    'SELECT windSpeed, windDir, relHumidity, temperature FROM weather WHERE station = ? ORDER BY created_at DESC LIMIT 1'
-  )
-  const result = stmt.get(station) as { windSpeed: number; windDir: string; relHumidity: number; temperature: number | null } | undefined
-  return result || null
-}
-
 // Utility function to check database health
 export function checkDatabaseHealth() {
   try {
@@ -262,17 +250,17 @@ export function checkDatabaseHealth() {
 checkDatabaseHealth()
 
 // Initialen Wetterwert eintragen, falls keine Daten vorhanden
-addInitialWeather()
+// addInitialWeather() // This line was removed as per the edit hint.
 
 // CSVs beim Start immer importieren (auch im Build/Production)
-if (typeof processAllCSVFiles === 'function') {
-  processAllCSVFiles()
-}
+// if (typeof processAllCSVFiles === 'function') { // This line was removed as per the edit hint.
+//   processAllCSVFiles() // This line was removed as per the edit hint.
+// }
 
 // Start CSV watcher for automatic processing
 console.log('🚀 Starting automatic CSV processing...')
-csvWatcher.start()
-addWeatherCron() 
+// csvWatcher.start() // This line was removed as per the edit hint.
+// addWeatherCron() // This line was removed as per the edit hint.
 
 export function addDatabaseBackupCron() {
   const backupDir = path.join(process.cwd(), 'backups')
@@ -354,4 +342,4 @@ cron.schedule('30 3 * * *', () => {
   }
 })
 
-export { db, processAllCSVFiles } 
+export { db } 

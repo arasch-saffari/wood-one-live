@@ -1,26 +1,16 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Speaker, Home, BarChart3, MapPin, Users, Settings, X, Menu, Sun, Moon, Plus, Wifi, WifiOff, Download, Volume2, Music } from 'lucide-react'
 import { useTheme } from "next-themes"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { STATION_COLORS } from "@/lib/colors"
+import { useStationData } from "@/hooks/useStationData"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useStationData } from "@/hooks/useStationData"
-import { STATION_COLORS } from "@/lib/colors"
-import { getRecentWeather } from "@/lib/db"
-// import { NotificationPermission } from "@/components/notification-permission"
-// import { EnableSoundBanner } from "@/components/enable-sound-banner"
-import {
-  TooltipProvider,
-  Tooltip as UITooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip"
 
 // Navigation Menü Konfiguration
 const navigation = [
@@ -417,46 +407,46 @@ export default function DashboardLayout({
           {/* Header Aktionen */}
           <div className="flex items-center space-x-3">
             {/* Dark/Light Mode Toggle */}
-            <UITooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="p-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200"
-                >
-                  {mounted && theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Ansicht wechseln: Hell/Dunkel</p>
-              </TooltipContent>
-            </UITooltip>
+            {/* <UITooltip> */}
+            {/*   <TooltipTrigger asChild> */}
+            {/*     <Button */}
+            {/*       variant="ghost" */}
+            {/*       size="sm" */}
+            {/*       onClick={() => setTheme(theme === "dark" ? "light" : "dark")} */}
+            {/*       className="p-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200" */}
+            {/*     > */}
+            {/*       {mounted && theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />} */}
+            {/*     </Button> */}
+            {/*   </TooltipTrigger> */}
+            {/*   <TooltipContent> */}
+            {/*     <p>Ansicht wechseln: Hell/Dunkel</p> */}
+            {/*   </TooltipContent> */}
+            {/* </UITooltip> */}
             {/* Add to Home Screen - Mobile Only */}
-            <UITooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if ('serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window) {
-                      // Trigger the install prompt
-                      const event = new Event('beforeinstallprompt')
-                      window.dispatchEvent(event)
-                    } else {
-                      // Fallback: Show instructions
-                      alert('Um diese App zum Startbildschirm hinzuzufügen:\n\n1. Tippen Sie auf das Teilen-Symbol\n2. Wählen Sie "Zum Startbildschirm hinzufügen"\n3. Bestätigen Sie die Installation')
-                    }
-                  }}
-                  className="p-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/50 rounded-xl lg:hidden transition-all duration-200"
-                >
-                  <Download className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>App zum Startbildschirm hinzufügen</p>
-              </TooltipContent>
-            </UITooltip>
+            {/* <UITooltip> */}
+            {/*   <TooltipTrigger asChild> */}
+            {/*     <Button */}
+            {/*       variant="ghost" */}
+            {/*       size="sm" */}
+            {/*       onClick={() => { */}
+            {/*         if ('serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window) { */}
+            {/*           // Trigger the install prompt */}
+            {/*           const event = new Event('beforeinstallprompt') */}
+            {/*           window.dispatchEvent(event) */}
+            {/*         } else { */}
+            {/*           // Fallback: Show instructions */}
+            {/*           alert('Um diese App zum Startbildschirm hinzuzufügen:\n\n1. Tippen Sie auf das Teilen-Symbol\n2. Wählen Sie "Zum Startbildschirm hinzufügen"\n3. Bestätigen Sie die Installation') */}
+            {/*         } */}
+            {/*       }} */}
+            {/*       className="p-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/50 rounded-xl lg:hidden transition-all duration-200" */}
+            {/*     > */}
+            {/*       <Download className="w-5 h-5" /> */}
+            {/*     </Button> */}
+            {/*   </TooltipTrigger> */}
+            {/*   <TooltipContent> */}
+            {/*     <p>App zum Startbildschirm hinzufügen</p> */}
+            {/*   </TooltipContent> */}
+            {/* </UITooltip> */}
           </div>
         </header>
         {/* Seiteninhalt */}
