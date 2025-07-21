@@ -36,14 +36,13 @@ export function processCSVFile(station: string, csvPath: string) {
       let rows = parsed.data as Record<string, string>[]
       if (!Array.isArray(rows) || rows.length < 2) return 0
       
-      // Determine the correct column name for noise level based on station
-      const noiseColumn = station === "heuballern" ? "LAF" : "LAS"
-      
-      // Validate and process rows
+      // Flexible: Akzeptiere sowohl LAS als auch LAF für alle Stationen
+      // Bestimme die Lärmspalte pro Zeile
       const validRows = rows.filter(
         (row) => {
           let sysTime = row["Systemzeit "]?.trim()
-          const lasRaw = row[noiseColumn]
+          // Flexible Spaltenwahl: LAF bevorzugt, sonst LAS
+          const lasRaw = row["LAF"] ?? row["LAS"]
           if (!sysTime || !lasRaw) return false
           // Zeitformat-Check: Akzeptiere auch HH:MM:SS:MS und extrahiere HH:MM:SS
           const timeParts = sysTime.split(":")
@@ -54,6 +53,8 @@ export function processCSVFile(station: string, csvPath: string) {
           if (isNaN(las) || las <= 0 || las >= 150) return false
           // Speichere das extrahierte HH:MM:SS zurück
           row["Systemzeit "] = sysTime
+          // Speichere die verwendete Lärmspalte für später
+          row["_usedNoiseCol"] = row["LAF"] !== undefined ? "LAF" : "LAS"
           return true
         }
       )
@@ -66,7 +67,8 @@ export function processCSVFile(station: string, csvPath: string) {
         )
         for (const row of validRows) {
           const sysTime = row["Systemzeit "]
-          const las = Number(row[noiseColumn].replace(",", "."))
+          // Nutze die tatsächlich verwendete Spalte
+          const las = Number(row[row["_usedNoiseCol"]].replace(",", "."))
           // Datum bestimmen
           let dateStr = null
           if (row['Datum']) {
