@@ -115,7 +115,7 @@ export default function TriplePage() {
             <BarChart3 className="w-4 lg:w-5 h-4 lg:h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-white dark:text-white text-gray-900">Dreifachansicht</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Dreifachansicht</h1>
             <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
               Ort, Techno Floor & Bandbühne Vergleich
             </p>

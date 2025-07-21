@@ -160,7 +160,7 @@ export default function AdminPage() {
       // Optional: Seite neu laden
       window.location.reload()
     } catch (e) {
-      alert('Fehler beim Zurücksetzen: ' + (e?.message || e))
+      alert('Fehler beim Zurücksetzen: ' + ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))))
     } finally {
       setResetting(false)
     }
@@ -183,7 +183,7 @@ export default function AdminPage() {
     } catch (e) {
       toast({
         title: 'Fehler beim Neuaufbau',
-        description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string,
+        description: ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string),
         variant: 'destructive',
       })
     } finally {
@@ -220,10 +220,10 @@ export default function AdminPage() {
     } catch (e: any) {
       toast({
         title: 'Fehler beim Upload',
-        description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string,
+        description: ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string),
         variant: 'destructive',
       })
-      showErrorNotification('Fehler beim Upload', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
+      showErrorNotification('Fehler beim Upload', ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))))
     } finally {
       setUploading((prev) => ({ ...prev, [station]: false }))
     }
@@ -267,8 +267,8 @@ export default function AdminPage() {
         toast({ title: 'Fehler beim Restore', description: data.message, variant: 'destructive' })
       }
     } catch (e: any) {
-      toast({ title: 'Fehler beim Restore', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
-      showErrorNotification('Fehler beim Restore', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
+      toast({ title: 'Fehler beim Restore', description: ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string), variant: 'destructive' })
+      showErrorNotification('Fehler beim Restore', ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))))
     } finally {
       setDbUploading(false)
     }
@@ -348,8 +348,8 @@ export default function AdminPage() {
         toast({ title: 'Fehler beim Speichern', description: data.message, variant: 'destructive' })
       }
     } catch (e: any) {
-      toast({ title: 'Fehler beim Speichern', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
-      showErrorNotification('Fehler beim Speichern', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
+      toast({ title: 'Fehler beim Speichern', description: ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string), variant: 'destructive' })
+      showErrorNotification('Fehler beim Speichern', ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))))
     }
     setConfigSaving(false)
   }
@@ -421,8 +421,8 @@ export default function AdminPage() {
         toast({ title: 'Fehler beim Speichern', description: data.message, variant: 'destructive' })
       }
     } catch (e: any) {
-      toast({ title: 'Fehler beim Speichern', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
-      showErrorNotification('Fehler beim Speichern', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
+      toast({ title: 'Fehler beim Speichern', description: ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string), variant: 'destructive' })
+      showErrorNotification('Fehler beim Speichern', ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))))
     }
     setEditSaving(false)
   }
@@ -439,8 +439,8 @@ export default function AdminPage() {
         toast({ title: 'Fehler beim Löschen', description: data.message, variant: 'destructive' })
       }
     } catch (e: any) {
-      toast({ title: 'Fehler beim Löschen', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
-      showErrorNotification('Fehler beim Löschen', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
+      toast({ title: 'Fehler beim Löschen', description: ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string), variant: 'destructive' })
+      showErrorNotification('Fehler beim Löschen', ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))))
     }
   }
 
@@ -458,8 +458,8 @@ export default function AdminPage() {
       try { json = JSON.parse(text) } catch {}
       setApiResult({ status: res.status, statusText: res.statusText, headers: Object.fromEntries(res.headers.entries()), body: json || text })
     } catch (e: any) {
-      toast({ title: 'API-Fehler', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
-      showErrorNotification('API-Fehler', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
+      toast({ title: 'API-Fehler', description: ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string), variant: 'destructive' })
+      showErrorNotification('API-Fehler', ((typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))))
     }
     setApiLoading(false)
   }
