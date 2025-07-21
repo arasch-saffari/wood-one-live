@@ -185,7 +185,7 @@ export default function AllLocationsPage() {
         {/* Standort-Übersicht Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {Object.entries(currentLevels).map(([location, level]) => (
-            <motion.div
+            <motion.div key={location}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}

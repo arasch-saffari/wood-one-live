@@ -1,3 +1,6 @@
+import fs from 'fs'
+import path from 'path'
+
 export class ValidationError extends Error {
   constructor(message: string, public context?: any) {
     super(message)
@@ -24,12 +27,11 @@ export class ExternalApiError extends Error {
 }
 
 export function logError(error: Error) {
-  const fs = require('fs')
-  const path = require('path')
-  const logPath = path.join(process.cwd(), 'logs', 'system.log')
-  // Type Guard für context
-  const hasContext = (err: any): err is { context: any } => 'context' in err && err.context !== undefined
-  const entry = `[${new Date().toISOString()}] [${error.name}] ${error.message}${hasContext(error) ? ' | ' + JSON.stringify(error.context) : ''}\n`
-  fs.appendFileSync(logPath, entry)
-  console.error(entry)
+  const logFilePath = path.join(process.cwd(), 'logs', 'system.log')
+  const logDir = path.dirname(logFilePath)
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true })
+  }
+  const logEntry = `[${new Date().toISOString()}] ${error.name}: ${error.message}\n${error.stack || ''}\n\n`
+  fs.appendFileSync(logFilePath, logEntry)
 } 

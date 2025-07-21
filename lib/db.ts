@@ -4,6 +4,7 @@ import fs from 'fs'
 import Papa from 'papaparse'
 import cron from 'node-cron'
 import { ExternalApiError, logError } from './logger'
+import csvWatcher from './csv-watcher'
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file
@@ -30,6 +31,8 @@ db.exec(`
     UNIQUE(station, time)
   );
 `)
+
+db.pragma('journal_mode = WAL')
 
 // Robust migration system
 function runMigrations() {
@@ -162,18 +165,7 @@ function runMigrations() {
   }
 }
 
-// Run migrations on startup
-runMigrations()
-
-// Integritäts-Check nach Migrationen
-try {
-  const nulls = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get() as { count: number }
-  if (nulls.count > 0) {
-    logError(new Error(`Integritätsproblem: ${nulls.count} Messungen mit NULL in NOT NULL-Spalten gefunden!`))
-  }
-} catch (e) {
-  logError(e instanceof Error ? e : new Error(String(e)))
-}
+// Migrationen und Integritäts-Checks bitte nur noch manuell oder in einem separaten Setup-Skript ausführen!
 
 // Create indexes for better performance
 db.exec(`
@@ -257,9 +249,13 @@ checkDatabaseHealth()
 //   processAllCSVFiles() // This line was removed as per the edit hint.
 // }
 
+// Starte den CSV-Watcher für automatischen Import
+csvWatcher.start()
+// Initial-Import aller vorhandenen CSV-Dateien
+csvWatcher.processAllFiles()
+
 // Start CSV watcher for automatic processing
 console.log('🚀 Starting automatic CSV processing...')
-// csvWatcher.start() // This line was removed as per the edit hint.
 // addWeatherCron() // This line was removed as per the edit hint.
 
 export function addDatabaseBackupCron() {
