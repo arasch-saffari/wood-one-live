@@ -8,6 +8,7 @@ export interface StationDataPoint {
   wd?: string  // wind direction
   rh?: number  // relative humidity
   temp?: number // temperature
+  datetime?: string // vollständiger Zeitstempel
 }
 
 // Notification functions

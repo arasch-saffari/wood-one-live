@@ -133,6 +133,33 @@ function runMigrations() {
     console.error('❌ Migration check failed:', e)
     // Don't throw - allow app to continue with existing schema
   }
+
+  // Migration 4: Add datetime column to measurements table (robust, ohne NOT NULL)
+  try {
+    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+    const hasDatetime = columns.some(col => col.name === 'datetime')
+    if (!hasDatetime) {
+      console.log('🔄 Running migration: Adding datetime column to measurements table...')
+      db.exec('BEGIN TRANSACTION')
+      try {
+        db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME') // ohne NOT NULL
+        // Fülle bestehende Einträge mit aktuellem Datum + time
+        const now = new Date()
+        const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+        db.prepare('UPDATE measurements SET datetime = ? || \' \' || time WHERE datetime IS NULL').run(today)
+        console.log('✅ datetime column added and filled')
+        db.exec('COMMIT')
+      } catch (migrationError) {
+        console.error('❌ Migration failed:', migrationError)
+        db.exec('ROLLBACK')
+        throw migrationError
+      }
+    } else {
+      console.log('✅ datetime column already exists, skipping migration')
+    }
+  } catch (e) {
+    console.error('❌ Migration check failed:', e)
+  }
 }
 
 // Run migrations on startup
@@ -162,24 +189,24 @@ export function getMeasurementsForStation(station: string, interval: "24h" | "7d
     // Try to get measurements from as many different hours as possible
     // First, get a larger sample to increase chances of hour diversity
     const stmt = db.prepare(`
-      SELECT time, las 
+      SELECT time, las, datetime
       FROM measurements 
       WHERE station = ? 
       ORDER BY rowid DESC 
       LIMIT ?
     `)
-    const results = stmt.all(station, Math.min(limit * 2, 2000)) as Array<{ time: string; las: number }>;
+    const results = stmt.all(station, Math.min(limit * 2, 2000)) as Array<{ time: string; las: number; datetime: string }>;
     return results.reverse(); // Return in chronological order
   } else {
     // For 7d interval, also use rowid DESC for better coverage
     const stmt = db.prepare(`
-      SELECT time, las 
+      SELECT time, las, datetime
       FROM measurements 
       WHERE station = ? 
       ORDER BY rowid DESC 
       LIMIT ?
     `)
-    const results = stmt.all(station, limit) as Array<{ time: string; las: number }>;
+    const results = stmt.all(station, limit) as Array<{ time: string; las: number; datetime: string }>;
     return results.reverse(); // Return in chronological order
   }
 }

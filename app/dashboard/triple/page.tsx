@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Music, Volume2, BarChart3, TrendingUp, AlertTriangle } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
+import { useStationData } from '@/hooks/useStationData'
 
 // Generiert Mock-Daten für die Dreifachansicht
 const generateTripleData = () => {
@@ -40,19 +41,46 @@ const getCurrentStats = () => ({
   Bandbuehne: { level: 55.8, status: "warning", trend: 0.8 },
 })
 
+// Hilfsfunktionen für Status und Trend aus echten Daten
+function getStatus(level: number): 'alarm' | 'warning' | 'normal' {
+  if (level >= 60) return 'alarm'
+  if (level >= 55) return 'warning'
+  return 'normal'
+}
+function getTrend(data: { las: number }[]): number {
+  if (data.length < 2) return 0
+  const last = data[data.length - 1]?.las ?? 0
+  const prev = data[data.length - 2]?.las ?? 0
+  if (prev === 0) return 0
+  return ((last - prev) / prev) * 100
+}
+
 export default function TriplePage() {
-  const [data, setData] = useState(generateTripleData())
-  const [stats, setStats] = useState(getCurrentStats())
+  // Echte Messdaten für die drei Standorte laden
+  const ortData = useStationData('ort', '24h', '15min')
+  const technoData = useStationData('techno', '24h', '15min')
+  const bandData = useStationData('band', '24h', '15min')
 
-  // Aktualisiert Daten und Statistiken in Intervallen
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setData(generateTripleData())
-      setStats(getCurrentStats())
-    }, 8000)
+  // Gemeinsame Zeitachsenpunkte bestimmen (datetime)
+  const allDatetimes = Array.from(new Set([
+    ...ortData.map(d => d.datetime),
+    ...technoData.map(d => d.datetime),
+    ...bandData.map(d => d.datetime),
+  ].filter(Boolean) as string[])).sort()
 
-    return () => clearInterval(interval)
-  }, [])
+  // Chartdaten zusammenbauen: für jeden Zeitpunkt die Werte der drei Standorte
+  const chartData = allDatetimes.map(datetime => {
+    const ort = ortData.find(d => d.datetime === datetime)
+    const techno = technoData.find(d => d.datetime === datetime)
+    const band = bandData.find(d => d.datetime === datetime)
+    return {
+      datetime,
+      time: datetime ? new Date(datetime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }) : '',
+      Ort: ort?.las ?? null,
+      TechnoFloor: techno?.las ?? null,
+      Bandbuehne: band?.las ?? null,
+    }
+  })
 
   // Bestimmt das Status-Badge basierend auf dem Status
   const getStatusBadge = (status: string) => {
@@ -125,53 +153,51 @@ export default function TriplePage() {
 
       {/* Standortkarten */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
-        {locations.map((location, index) => (
-          <motion.div
-            key={location.key}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`w-6 lg:w-8 h-6 lg:h-8 bg-gradient-to-br ${location.color} rounded-lg flex items-center justify-center`}
-                    >
-                      <location.icon className="w-3 lg:w-4 h-3 lg:h-4 text-white" />
+        {locations.map((location, index) => {
+          const series =
+            location.key === 'Ort' ? ortData :
+            location.key === 'TechnoFloor' ? technoData :
+            bandData
+          const last = series[series.length - 1]?.las ?? 0
+          const trend = getTrend(series)
+          const status = getStatus(last)
+          return (
+            <motion.div
+              key={location.key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`w-6 lg:w-8 h-6 lg:h-8 bg-gradient-to-br ${location.color} rounded-lg flex items-center justify-center`}
+                      >
+                        <location.icon className="w-3 lg:w-4 h-3 lg:h-4 text-white" />
+                      </div>
+                      <CardTitle className="text-sm lg:text-lg text-gray-900 dark:text-white">{location.name}</CardTitle>
                     </div>
-                    <CardTitle className="text-sm lg:text-lg text-gray-900 dark:text-white">{location.name}</CardTitle>
+                    {getStatusBadge(status)}
                   </div>
-                  {getStatusBadge(stats[location.key as keyof typeof stats].status)}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`text-2xl lg:text-3xl font-bold ${getStatusColor(stats[location.key as keyof typeof stats].status)}`}
-                    >
-                      {stats[location.key as keyof typeof stats].level.toFixed(1)}
-                    </span>
-                    <span className="text-xs lg:text-sm text-gray-500">dB</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-2xl lg:text-3xl font-bold ${getStatusColor(status)}`}>{last.toFixed(1)}</span>
+                      <span className="text-xs lg:text-sm text-gray-500">dB</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <TrendingUp className={`w-3 h-3 ${trend > 0 ? 'text-red-400' : 'text-emerald-400'}`} />
+                      <span className={`text-xs ${trend > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{trend > 0 ? '+' : ''}{trend.toFixed(1)}% vs vor 1 Block</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <TrendingUp
-                      className={`w-3 h-3 ${stats[location.key as keyof typeof stats].trend > 0 ? "text-red-400" : "text-emerald-400"}`}
-                    />
-                    <span
-                      className={`text-xs ${stats[location.key as keyof typeof stats].trend > 0 ? "text-red-400" : "text-emerald-400"}`}
-                    >
-                      {stats[location.key as keyof typeof stats].trend > 0 ? "+" : ""}
-                      {stats[location.key as keyof typeof stats].trend.toFixed(1)}% vs vor 1h
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )
+        })}
       </div>
 
       {/* Vergleichsdiagramm */}
@@ -189,30 +215,32 @@ export default function TriplePage() {
           <CardContent>
             <div className="h-64 lg:h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data}>
+                <LineChart data={chartData}>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="hsl(var(--border))" // Dynamische Farbe
+                    stroke="hsl(var(--border))"
                   />
                   <XAxis
-                    dataKey="time"
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
+                    dataKey="datetime"
+                    tickFormatter={dt => new Date(dt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis
                     domain={[30, 80]}
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <Tooltip
+                    labelFormatter={dt => new Date(dt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))", // Dynamische Farbe
-                      border: "1px solid hsl(var(--border))", // Dynamische Farbe
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
                       borderRadius: "12px",
                       boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
-                      color: "hsl(var(--card-foreground))", // Dynamische Farbe
+                      color: "hsl(var(--card-foreground))",
                     }}
                   />
                   <Legend />
@@ -225,6 +253,7 @@ export default function TriplePage() {
                       strokeWidth={3}
                       dot={false}
                       activeDot={{ r: 5, strokeWidth: 2, fill: location.chartColor }}
+                      connectNulls
                     />
                   ))}
                   {/* Grenzwertlinien */}

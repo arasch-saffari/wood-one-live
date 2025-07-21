@@ -58,20 +58,19 @@ export default function DashboardLayout({
   ].filter(Boolean)
   // Neueste Zeit finden (Format: 'HH:MM' oder 'YYYY-MM-DD HH:MM:SS')
   const latestTime = allTimes.sort().reverse()[0]
+  // Sammle alle datetime-Werte
+  const allDatetimes = [
+    ...ortData.map(d => d.datetime),
+    ...heuballernData.map(d => d.datetime),
+    ...technoData.map(d => d.datetime),
+    ...bandData.map(d => d.datetime),
+  ].filter(Boolean) as string[]
+  // Neueste datetime finden
+  const latestDatetime = allDatetimes.sort().reverse()[0]
   // Hilfsfunktion: Zeitdifferenz in Minuten berechnen
   function getRelativeTime(latest: string | undefined) {
     if (!latest) return "-"
-    // Versuche, ein Date-Objekt zu bauen
-    let date
-    if (latest.length > 5) {
-      // Format: 'YYYY-MM-DD HH:MM:SS'
-      date = new Date(latest.replace(" ", "T"))
-    } else {
-      // Format: 'HH:MM'
-      const now = new Date()
-      const [h, m] = latest.split(":").map(Number)
-      date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m)
-    }
+    const date = new Date(latest)
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
     const diffMin = Math.floor(diffMs / 60000)
@@ -82,11 +81,8 @@ export default function DashboardLayout({
   // Hilfsfunktion: Uhrzeit formatieren
   function formatTime(latest: string | undefined) {
     if (!latest) return "-"
-    if (latest.length > 5) {
-      // Format: 'YYYY-MM-DD HH:MM:SS'
-      return latest.split(" ")[1] + " Uhr"
-    }
-    return latest + ":00 Uhr"
+    const date = new Date(latest)
+    return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " Uhr"
   }
 
   // Wetter-Status: Letztes Wetter-Update
@@ -346,7 +342,7 @@ export default function DashboardLayout({
                 </Badge>
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Letzte Aktualisierung: {formatTime(latestTime)} ({getRelativeTime(latestTime)})
+                Letzte Aktualisierung: {formatTime(latestDatetime)} ({getRelativeTime(latestDatetime)})
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
                 Letztes Wetter-Update: {lastWeatherIsoUtc

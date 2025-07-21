@@ -179,71 +179,41 @@ export async function GET(req: Request) {
     const measurements = getMeasurementsForStation(station, interval);
     console.log(`[${station}] Retrieved ${measurements.length} measurements for ${interval} interval with ${granularity} granularity`);
     
-    function aggregateByBlock(measurements: { time: string; las: number }[], blockMinutes: number) {
+    // In aggregateByBlock: Sammle zu jedem Block auch das zugehörige späteste datetime
+    function aggregateByBlock(measurements: { time: string; las: number; datetime?: string }[], blockMinutes: number) {
       if (measurements.length === 0) {
         return [];
       }
-      
-      // For 1-hour granularity, we need to ensure we get proper 24-hour coverage
-      if (blockMinutes === 60) {
-        // Group by hour only, taking the most recent measurements for each hour
-        const hourlyBlocks: Record<string, number[]> = {};
-        
-        // Process measurements in reverse order (most recent first) to ensure we get latest data per hour
-        for (let i = measurements.length - 1; i >= 0; i--) {
-          const m = measurements[i];
-          const [h, mStr] = m.time.split(":");
-          if (!h || !mStr) continue;
-          
-          const hourKey = h.padStart(2, "0");
-          if (!hourlyBlocks[hourKey]) hourlyBlocks[hourKey] = [];
-          hourlyBlocks[hourKey].push(m.las);
-        }
-        
-        // Generate 24-hour sequence to ensure we have all hours represented
-        const result = [];
-        for (let hour = 0; hour < 24; hour++) {
-          const hourKey = hour.toString().padStart(2, "0");
-          const blockTime = `${hourKey}:00`;
-          
-          if (hourlyBlocks[hourKey] && hourlyBlocks[hourKey].length > 0) {
-            const lasArr = hourlyBlocks[hourKey];
-            result.push({
-              time: blockTime,
-              las: Number((lasArr.reduce((a, b) => a + b, 0) / lasArr.length).toFixed(2)),
-            });
-          }
-        }
-        return result;
-      }
-      
-      // Original logic for other granularities
-      const blocks: Record<string, number[]> = {};
+      const blocks: Record<string, { las: number[]; datetimes: string[] }> = {};
       for (const m of measurements) {
         const [h, mStr] = m.time.split(":");
         if (!h || !mStr) continue;
         const min = parseInt(mStr, 10);
         const blockMin = Math.floor(min / blockMinutes) * blockMinutes;
         const blockTime = `${h.padStart(2, "0")}:${blockMin.toString().padStart(2, "0")}`;
-        if (!blocks[blockTime]) blocks[blockTime] = [];
-        blocks[blockTime].push(m.las);
+        if (!blocks[blockTime]) blocks[blockTime] = { las: [], datetimes: [] };
+        blocks[blockTime].las.push(m.las);
+        if (m.datetime) blocks[blockTime].datetimes.push(m.datetime);
       }
       const result = Object.entries(blocks)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([time, lasArr]) => {
-          let las = 0;
+        .map(([time, { las, datetimes }]) => {
+          let lasValue = 0;
           if (calculationMode === 'max') {
-            las = Math.max(...lasArr);
+            lasValue = Math.max(...las);
           } else if (calculationMode === 'median') {
-            const sorted = [...lasArr].sort((a, b) => a - b);
+            const sorted = [...las].sort((a, b) => a - b);
             const mid = Math.floor(sorted.length / 2);
-            las = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+            lasValue = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
           } else {
-            las = lasArr.reduce((a, b) => a + b, 0) / lasArr.length;
+            lasValue = las.reduce((a, b) => a + b, 0) / las.length;
           }
+          // Wähle das späteste datetime für diesen Block
+          const datetime = datetimes.length > 0 ? datetimes.sort().reverse()[0] : undefined;
           return {
             time,
-            las: Number(las.toFixed(2)),
+            las: Number(lasValue.toFixed(2)),
+            datetime,
           };
         });
       return result;
@@ -269,6 +239,7 @@ export async function GET(req: Request) {
       lafThreshold: number;
       warningThreshold: number;
       alarmThreshold: number;
+      datetime?: string | undefined;
     }> = [];
     if (limitedAggregated.length === 0) {
       // parseCSVFallback liefert nur time, las, ws, wd, rh
@@ -300,6 +271,7 @@ export async function GET(req: Request) {
         return {
           time: measurement.time,
           las: measurement.las,
+          datetime: measurement.datetime,
           ws: weather.windSpeed,
           wd: weather.windDir,
           rh: weather.relHumidity,

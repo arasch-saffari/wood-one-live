@@ -55,6 +55,7 @@ export function processCSVFile(station: string, csvPath: string) {
       for (let batchStart = 0; batchStart < validRows.length; batchStart += BATCH_SIZE) {
         const batch = validRows.slice(batchStart, batchStart + BATCH_SIZE)
         const blocks: { [block: string]: number[] } = {}
+        const blockDatetimes: { [block: string]: string[] } = {}
         batch.forEach((row, idx) => {
           try {
             const sysTime = row["Systemzeit "]?.trim()
@@ -65,6 +66,26 @@ export function processCSVFile(station: string, csvPath: string) {
             const blockTime = `${h.padStart(2, "0")}:${m.padStart(2, "0")}`
             if (!blocks[blockTime]) blocks[blockTime] = []
             blocks[blockTime].push(las)
+            // Datum bestimmen
+            let dateStr = null
+            if (row['Datum']) {
+              // Versuche deutsches Datumsformat (z.B. 01.07.2024)
+              const parts = row['Datum'].split('.')
+              if (parts.length === 3) {
+                dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`
+              }
+            } else if (row['Date']) {
+              // ISO oder anderes Format
+              dateStr = row['Date']
+            }
+            if (!dateStr) {
+              // Fallback: Änderungsdatum der Datei
+              const mtime = fileStat.mtime
+              dateStr = `${mtime.getFullYear()}-${String(mtime.getMonth()+1).padStart(2,'0')}-${String(mtime.getDate()).padStart(2,'0')}`
+            }
+            const datetime = `${dateStr} ${blockTime}:00`
+            if (!blockDatetimes[blockTime]) blockDatetimes[blockTime] = []
+            blockDatetimes[blockTime].push(datetime)
           } catch (err) {
             console.warn(`[Batch-Import] Fehlerhafte Zeile (Batch ${batchStart}, Index ${idx}):`, err)
           }
@@ -73,11 +94,14 @@ export function processCSVFile(station: string, csvPath: string) {
         db.exec('BEGIN TRANSACTION')
         try {
           const insertStmt = db.prepare(
-            'INSERT OR IGNORE INTO measurements (station, time, las, source_file) VALUES (?, ?, ?, ?)'
+            'INSERT OR IGNORE INTO measurements (station, time, las, source_file, datetime) VALUES (?, ?, ?, ?, ?)'
           )
           for (const [time, lasArr] of Object.entries(blocks)) {
             const las = Number((lasArr.reduce((a, b) => a + b, 0) / lasArr.length).toFixed(2))
-            const result = insertStmt.run(station, time, las, path.basename(csvPath))
+            // Wähle das späteste datetime für diesen Block
+            const datetimes = blockDatetimes[time] || []
+            const datetime = datetimes.length > 0 ? datetimes.sort().reverse()[0] : null
+            const result = insertStmt.run(station, time, las, path.basename(csvPath), datetime)
             if (result.changes > 0) insertedCount++
             // Wetterdaten synchronisieren (nur für neue Einträge und aktuelle Zeitblöcke)
             try {
