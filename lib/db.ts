@@ -34,6 +34,28 @@ db.exec(`
 
 db.pragma('journal_mode = WAL')
 
+// Migration: Add datetime column to measurements table if missing
+(function runDatetimeMigration() {
+  try {
+    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+    const hasDatetime = columns.some(col => col.name === 'datetime')
+    if (!hasDatetime) {
+      db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME')
+      // Fülle bestehende Einträge mit aktuellem Datum + time
+      const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+      db.prepare('UPDATE measurements SET datetime = ? || " " || time WHERE datetime IS NULL').run(today)
+      console.log('✅ Migration: datetime column added and filled')
+    }
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error('❌ Migration for datetime column failed:', e.message)
+    } else {
+      console.error('❌ Migration for datetime column failed:', e)
+    }
+  }
+})();
+
 // Robust migration system
 function runMigrations() {
   // Migration 1: Add created_at column to weather table
