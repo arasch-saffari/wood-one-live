@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Database, FileText, Activity, Eye, Upload, Download, UploadCloud, AlertTriangle, HardDrive, Cloud, Database as DbIcon, Pencil, Trash2, Terminal, BarChart3, Clock, Settings } from "lucide-react"
 import { motion } from "framer-motion"
-import { runTerminalCommand } from '@/lib/utils' // Hilfsfunktion für serverseitige Shell-Kommandos (ggf. anlegen)
 import { Badge } from "@/components/ui/badge"
 import { useToast } from '@/components/ui/use-toast'
 
@@ -68,6 +67,8 @@ export default function AdminPage() {
   const [config, setConfig] = useState<any>(null)
   const [configLoading, setConfigLoading] = useState(false)
   const [configSaving, setConfigSaving] = useState(false)
+  const [watcherHeartbeat, setWatcherHeartbeat] = useState<string | null>(null)
+  const [watcherHeartbeatAgo, setWatcherHeartbeatAgo] = useState<string | null>(null)
 
   useEffect(() => {
     setRecentActions([
@@ -109,6 +110,19 @@ export default function AdminPage() {
       const response = await fetch('/api/csv-watcher-status')
       const status = await response.json()
       setWatcherStatus(status)
+      if (status.watcherHeartbeat) {
+        setWatcherHeartbeat(status.watcherHeartbeat)
+        // Zeitdifferenz berechnen
+        const last = new Date(status.watcherHeartbeat)
+        const now = new Date()
+        const diffMin = Math.floor((now.getTime() - last.getTime()) / 60000)
+        if (diffMin < 1) setWatcherHeartbeatAgo('gerade eben')
+        else if (diffMin === 1) setWatcherHeartbeatAgo('vor 1 Min')
+        else setWatcherHeartbeatAgo(`vor ${diffMin} Min`)
+      } else {
+        setWatcherHeartbeat(null)
+        setWatcherHeartbeatAgo(null)
+      }
     } catch (error) {
       console.error('❌ Error fetching watcher status:', error)
     } finally {
@@ -169,7 +183,7 @@ export default function AdminPage() {
     } catch (e) {
       toast({
         title: 'Fehler beim Neuaufbau',
-        description: (e?.message || e) as string,
+        description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string,
         variant: 'destructive',
       })
     } finally {
@@ -206,9 +220,10 @@ export default function AdminPage() {
     } catch (e: any) {
       toast({
         title: 'Fehler beim Upload',
-        description: e?.message || 'Unbekannter Fehler',
+        description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string,
         variant: 'destructive',
       })
+      showErrorNotification('Fehler beim Upload', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
     } finally {
       setUploading((prev) => ({ ...prev, [station]: false }))
     }
@@ -252,7 +267,8 @@ export default function AdminPage() {
         toast({ title: 'Fehler beim Restore', description: data.message, variant: 'destructive' })
       }
     } catch (e: any) {
-      toast({ title: 'Fehler beim Restore', description: e?.message || 'Unbekannter Fehler', variant: 'destructive' })
+      toast({ title: 'Fehler beim Restore', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
+      showErrorNotification('Fehler beim Restore', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
     } finally {
       setDbUploading(false)
     }
@@ -332,7 +348,8 @@ export default function AdminPage() {
         toast({ title: 'Fehler beim Speichern', description: data.message, variant: 'destructive' })
       }
     } catch (e: any) {
-      toast({ title: 'Fehler beim Speichern', description: e?.message || 'Unbekannter Fehler', variant: 'destructive' })
+      toast({ title: 'Fehler beim Speichern', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
+      showErrorNotification('Fehler beim Speichern', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
     }
     setConfigSaving(false)
   }
@@ -404,7 +421,8 @@ export default function AdminPage() {
         toast({ title: 'Fehler beim Speichern', description: data.message, variant: 'destructive' })
       }
     } catch (e: any) {
-      toast({ title: 'Fehler beim Speichern', description: e?.message || 'Unbekannter Fehler', variant: 'destructive' })
+      toast({ title: 'Fehler beim Speichern', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
+      showErrorNotification('Fehler beim Speichern', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
     }
     setEditSaving(false)
   }
@@ -421,7 +439,8 @@ export default function AdminPage() {
         toast({ title: 'Fehler beim Löschen', description: data.message, variant: 'destructive' })
       }
     } catch (e: any) {
-      toast({ title: 'Fehler beim Löschen', description: e?.message || 'Unbekannter Fehler', variant: 'destructive' })
+      toast({ title: 'Fehler beim Löschen', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
+      showErrorNotification('Fehler beim Löschen', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
     }
   }
 
@@ -439,9 +458,24 @@ export default function AdminPage() {
       try { json = JSON.parse(text) } catch {}
       setApiResult({ status: res.status, statusText: res.statusText, headers: Object.fromEntries(res.headers.entries()), body: json || text })
     } catch (e: any) {
-      toast({ title: 'API-Fehler', description: e?.message || 'Unbekannter Fehler', variant: 'destructive' })
+      toast({ title: 'API-Fehler', description: (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)) as string, variant: 'destructive' })
+      showErrorNotification('API-Fehler', (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e)))
     }
     setApiLoading(false)
+  }
+
+  function showErrorNotification(title: string, message?: string) {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body: message, icon: '/alert-icon.png' })
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification(title, { body: message, icon: '/alert-icon.png' })
+          }
+        })
+      }
+    }
   }
 
   return (
@@ -704,6 +738,7 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2"><Cloud className="w-4 h-4" /> Wetter-API: <span className="font-mono">{health.lastWeather || '-'}</span></div>
                 <div className="flex items-center gap-2"><Activity className="w-4 h-4" /> Watcher: <span className={health.watcherActive ? 'text-green-600' : 'text-red-600'}>{health.watcherActive ? 'Aktiv' : 'Inaktiv'}</span></div>
                 <div className="flex items-center gap-2"><span className="font-mono">{health.time}</span></div>
+                {watcherHeartbeat && <div className="flex items-center gap-2"><Activity className="w-4 h-4 text-blue-500" /> Watcher Heartbeat: <span className="font-mono">{new Date(watcherHeartbeat).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Berlin' })}</span> <span className="text-xs text-gray-500">({watcherHeartbeatAgo})</span></div>}
                 {health.error && <div className="text-red-600">Fehler: {health.error}</div>}
               </>
             )}
@@ -792,13 +827,13 @@ export default function AdminPage() {
                     <td className="px-2 py-1 flex gap-1">
                       {editRow?.id === row.id ? (
                         <>
-                          <Button size="xs" variant="outline" onClick={handleEditSave} disabled={editSaving}>Speichern</Button>
-                          <Button size="xs" variant="ghost" onClick={() => setEditRow(null)}>Abbrechen</Button>
+                          <Button size="sm" variant="outline" onClick={handleEditSave} disabled={editSaving}>Speichern</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditRow(null)}>Abbrechen</Button>
                         </>
                       ) : (
                         <>
-                          <Button size="xs" variant="outline" onClick={() => setEditRow(row)}><Pencil className="w-3 h-3" /></Button>
-                          <Button size="xs" variant="destructive" onClick={() => handleDelete(row.id)}><Trash2 className="w-3 h-3" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditRow(row)}><Pencil className="w-3 h-3" /></Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleDelete(row.id)}><Trash2 className="w-3 h-3" /></Button>
                         </>
                       )}
                     </td>

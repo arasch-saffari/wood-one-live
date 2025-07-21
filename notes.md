@@ -17,7 +17,7 @@
 
 - **CSV-Datenfluss:**
   1. CSV-Dateien werden in `public/csv/[station]/` abgelegt
-  2. CSV-Watcher erkennt neue Dateien (lib/csv-watcher.ts)
+  2. CSV-Watcher erkennt neue Dateien (lib/csv-watcher.ts)pn
   3. Daten werden in SQLite-DB importiert (lib/db.ts)
   4. API-Endpunkte liefern Daten an das Frontend (app/api/)
   5. Frontend (app/dashboard/) visualisiert Daten in Charts (Recharts)
@@ -60,3 +60,11 @@
 - [ ] Wetter: Open-Meteo API, PHP entfernen
 - [ ] Push-Notifications Desktop/Mobile, Toast
 - [ ] PWA: Add-to-Home-Screen 
+
+# Update Juni 2024
+
+- Wetterdaten werden im Frontend immer in Europe/Berlin angezeigt (korrekte Zeitzone, kein UTC-Fehler mehr).
+- Für Zeitpunkte ohne Wetterdaten (z.B. alte CSVs) werden alle Wetterwerte als null geliefert (kein 0 oder Platzhalter mehr).
+- CSV-Watcher läuft jetzt auch im Build/Production-Modus und verarbeitet neue CSV-Dateien automatisch.
+- Wetterdaten werden beim CSV-Import nur für aktuelle Zeitblöcke synchronisiert (keine aktuellen Wetterdaten für alte Messwerte).
+- Konfigurationsoptionen csvAutoProcess und enableNotifications wirken systemweit. 

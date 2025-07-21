@@ -6,6 +6,7 @@ import { processCSVFile, processAllCSVFiles } from './csv-processing'
 import { addWeatherCron } from './weather'
 import { addInitialWeather } from './weather'
 import csvWatcher from './csv-watcher'
+import cron from 'node-cron'
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file
@@ -151,20 +152,6 @@ export function insertMeasurement(station: string, time: string, las: number) {
   return stmt.run(station, time, las)
 }
 
-export function insertWeather(
-  station: string,
-  time: string,
-  windSpeed: number,
-  windDir: string,
-  relHumidity: number,
-  temperature?: number
-) {
-  const stmt = db.prepare(
-    'INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
-  )
-  stmt.run(station, time, windSpeed, windDir, relHumidity, temperature ?? null)
-}
-
 // Fast database queries with optimized indexing
 export function getMeasurementsForStation(station: string, interval: "24h" | "7d" = "24h") {
   const limit = interval === "7d" ? 5000 : 1000;
@@ -195,28 +182,6 @@ export function getMeasurementsForStation(station: string, interval: "24h" | "7d
     const results = stmt.all(station, limit) as Array<{ time: string; las: number }>;
     return results.reverse(); // Return in chronological order
   }
-}
-
-export function getWeatherForBlock(station: string, time: string) {
-  const stmt = db.prepare(
-    'SELECT * FROM weather WHERE station = ? AND time = ? LIMIT 1'
-  )
-  return stmt.get(station, time) || null
-}
-
-export function isWeatherDataOld(station: string, time: string, maxAgeMinutes: number = 10): boolean {
-  const stmt = db.prepare(
-    'SELECT created_at FROM weather WHERE station = ? AND time = ? LIMIT 1'
-  )
-  const result = stmt.get(station, time) as { created_at: string } | undefined
-  
-  if (!result) return true // No data exists, so it's "old"
-  
-  const createdAt = new Date(result.created_at)
-  const now = new Date()
-  const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60)
-  
-  return diffMinutes > maxAgeMinutes
 }
 
 export function getRecentWeather(station: string) {
@@ -256,7 +221,35 @@ checkDatabaseHealth()
 // Initialen Wetterwert eintragen, falls keine Daten vorhanden
 addInitialWeather()
 
+// CSVs beim Start immer importieren (auch im Build/Production)
+if (typeof processAllCSVFiles === 'function') {
+  processAllCSVFiles()
+}
+
 // Start CSV watcher for automatic processing
 console.log('🚀 Starting automatic CSV processing...')
 csvWatcher.start()
 addWeatherCron() 
+
+export function addDatabaseBackupCron() {
+  const backupDir = path.join(process.cwd(), 'backups')
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true })
+  }
+  // Täglich um 3 Uhr morgens
+  cron.schedule('0 3 * * *', () => {
+    try {
+      const dbPath = path.join(process.cwd(), 'data.sqlite')
+      if (!fs.existsSync(dbPath)) return
+      const now = new Date()
+      const name = `backup-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}.sqlite`
+      const backupPath = path.join(backupDir, name)
+      fs.copyFileSync(dbPath, backupPath)
+      console.log(`[Backup] Datenbank-Backup erstellt: ${backupPath}`)
+    } catch (e) {
+      console.error('[Backup] Fehler beim Erstellen des Backups:', e)
+    }
+  })
+}
+
+addDatabaseBackupCron() 

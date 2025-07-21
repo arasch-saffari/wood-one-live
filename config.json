@@ -9,7 +9,7 @@
     "heuballern",
     "band"
   ],
-  "enableNotifications": false,
+  "enableNotifications": true,
   "csvAutoProcess": true,
   "backupRetentionDays": 14,
   "uiTheme": "system",

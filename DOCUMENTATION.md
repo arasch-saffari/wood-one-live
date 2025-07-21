@@ -531,3 +531,44 @@ grep "ERROR" logs/app.log
 **Documentation Version**: 2.0
 **Last Updated**: December 224  
 **Maintained By**: Development Team 
+
+# Änderungen ab Juni 2024
+
+- Wetterdaten werden im Frontend immer in Europe/Berlin angezeigt (Zeitzonen-Korrektur per UTC-ISO-String).
+- API-Response: Wetterwerte (ws, wd, rh, temp) sind null, wenn keine Daten für den Messzeitpunkt vorliegen (keine Defaultwerte mehr).
+- CSV-Import synchronisiert Wetterdaten nur für aktuelle Zeitblöcke (max. 10 Minuten in der Vergangenheit, 5 Minuten in der Zukunft). Für alte CSVs werden keine aktuellen Wetterdaten gespeichert.
+- Im Build/Production-Modus läuft der CSV-Watcher dauerhaft und verarbeitet neue/aktualisierte CSV-Dateien automatisch.
+- Die Konfiguration csvAutoProcess steuert, ob der CSV-Watcher aktiv ist.
+- Die Konfiguration enableNotifications steuert, ob Benachrichtigungen im Frontend angezeigt werden. 
+
+# Berechnungsgrundlage & Schwellenwerte
+
+## 1-Minuten-Ansicht (granularity = "1min")
+- Jeder Messwert aus der Datenbank/CSV entspricht genau einem Zeitblock (1 Minute).
+- Der dB-Wert pro Block ist der Einzelwert aus der Messung.
+- Der eingestellte `calculationMode` (max, average, median) ist für 1min-Blöcke ohne Auswirkung, da es nur einen Wert gibt.
+
+## Schwellenwerte
+- Die Schwellenwerte für Warnung und Alarm werden aus der aktuellen Konfiguration (`/api/admin/config`) übernommen:
+  - `warningThreshold` (z.B. 55 dB)
+  - `alarmThreshold` (z.B. 60 dB)
+- Optional: Weitere Schwellenwerte wie `lasThreshold`, `lafThreshold` können für spezielle Auswertungen genutzt werden.
+
+## Statusanzeige (Frontend)
+- Die Statusanzeige (Normal, Warnung, Alarm) erfolgt durch Vergleich des aktuellen Werts mit den Schwellenwerten:
+  - **Warnung:** Wert ≥ `warningThreshold`
+  - **Alarm:** Wert ≥ `alarmThreshold`
+  - **Normal:** Wert < `warningThreshold`
+- Die Schwellenwerte werden im Chart als Referenzlinien angezeigt.
+
+## Zusammenfassung
+- Die Berechnungsgrundlage für die 1-Minuten-Ansicht ist immer der Einzelwert.
+- Die Schwellenwerte sind vollständig konfigurierbar und werden systemweit angewendet.
+- Die Logik ist zentral dokumentiert und kann jederzeit angepasst werden. 
+
+# Automatische Backups
+
+- Die Anwendung erstellt täglich um 3 Uhr morgens automatisch ein Backup der Datenbank (`data.sqlite`) im Verzeichnis `backups/`.
+- Die Backups werden als `backup-YYYY-MM-DD_HH-mm.sqlite` abgelegt.
+- Backups können im Admin-Panel heruntergeladen und über die Restore-Funktion wiederhergestellt werden.
+- Restore-Tests sollten regelmäßig durchgeführt werden, um die Integrität der Backups zu gewährleisten. 

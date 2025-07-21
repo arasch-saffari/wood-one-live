@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { fetchWeather } from "@/lib/weather"
-import { getWeatherForBlock, insertWeather, isWeatherDataOld } from "@/lib/db"
+import { getWeatherForBlock, insertWeather, isWeatherDataOld } from "@/lib/db-helpers"
 import { roundTo5MinBlock } from "@/lib/utils"
 import db from '@/lib/database'
 

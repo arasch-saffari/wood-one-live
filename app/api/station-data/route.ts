@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getMeasurementsForStation, getWeatherForBlock, insertWeather, isWeatherDataOld, getRecentWeather } from "@/lib/db";
+import { getMeasurementsForStation, getRecentWeather } from "@/lib/db";
+import { getWeatherForBlock, insertWeather, isWeatherDataOld } from "@/lib/db-helpers";
 import { fetchWeather } from "@/lib/weather";
 import Papa from "papaparse";
 import fs from "fs";
@@ -260,9 +261,10 @@ export async function GET(req: Request) {
     let result: Array<{
       time: string;
       las: number;
-      ws: number;
-      wd: string;
-      rh: number;
+      ws: number | null;
+      wd: string | null;
+      rh: number | null;
+      temp: number | null;
       lasThreshold: number;
       lafThreshold: number;
       warningThreshold: number;
@@ -273,6 +275,7 @@ export async function GET(req: Request) {
       const fallback = parseCSVFallback(station, interval);
       result = fallback.map(row => ({
         ...row,
+        temp: null,
         lasThreshold,
         lafThreshold,
         warningThreshold,
@@ -292,14 +295,15 @@ export async function GET(req: Request) {
       result = limitedAggregated.map(measurement => {
         const w = weatherMap[roundTo5MinBlock(measurement.time)];
         const weather = (w && typeof w.windSpeed === 'number' && typeof w.windDir === 'string' && typeof w.relHumidity === 'number')
-          ? { windSpeed: w.windSpeed, windDir: w.windDir, relHumidity: w.relHumidity, temperature: (w as any).temperature ?? 15 }
-          : { windSpeed: 0, windDir: "N/A", relHumidity: 0, temperature: 15 };
+          ? { windSpeed: w.windSpeed, windDir: w.windDir, relHumidity: w.relHumidity, temperature: (w as any).temperature ?? null }
+          : { windSpeed: null, windDir: null, relHumidity: null, temperature: null };
         return {
           time: measurement.time,
           las: measurement.las,
           ws: weather.windSpeed,
           wd: weather.windDir,
           rh: weather.relHumidity,
+          temp: weather.temperature,
           lasThreshold,
           lafThreshold,
           warningThreshold,

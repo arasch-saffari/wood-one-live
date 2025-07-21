@@ -19,8 +19,16 @@ export async function GET() {
         fileCount: number;
       }>,
       totalFiles: 0,
-      lastCheck: new Date().toISOString()
+      lastCheck: new Date().toISOString(),
+      watcherHeartbeat: null as string | null,
     }
+    // Heartbeat lesen
+    try {
+      const heartbeatPath = path.join(process.cwd(), 'backups', 'watcher-heartbeat.txt')
+      if (fs.existsSync(heartbeatPath)) {
+        status.watcherHeartbeat = fs.readFileSync(heartbeatPath, 'utf-8')
+      }
+    } catch {}
     
     for (const station of stations) {
       const csvDir = path.join(process.cwd(), "public", "csv", station)

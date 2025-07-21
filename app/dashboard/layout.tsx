@@ -100,7 +100,7 @@ export default function DashboardLayout({
   // Wetter-Status: Letztes Wetter-Update
   const [lastWeatherUpdate, setLastWeatherUpdate] = useState<string | null>(null)
   const [lastWeatherAgo, setLastWeatherAgo] = useState<string | null>(null)
-  const [lastWeatherIso, setLastWeatherIso] = useState<string | null>(null)
+  const [lastWeatherIsoUtc, setLastWeatherIsoUtc] = useState<string | null>(null)
   useEffect(() => {
     async function fetchLastWeather() {
       try {
@@ -109,7 +109,7 @@ export default function DashboardLayout({
           const data = await res.json()
           setLastWeatherUpdate(data.time)
           setLastWeatherAgo(data.ago)
-          setLastWeatherIso(data.iso)
+          setLastWeatherIsoUtc(data.isoUtc)
         }
       } catch {}
     }
@@ -357,8 +357,8 @@ export default function DashboardLayout({
                 Letzte Aktualisierung: {formatTime(latestTime)} ({getRelativeTime(latestTime)})
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                Letztes Wetter-Update: {lastWeatherIso
-                  ? `${new Date(lastWeatherIso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })} (${lastWeatherAgo})`
+                Letztes Wetter-Update: {lastWeatherIsoUtc
+                  ? `${new Date(lastWeatherIsoUtc).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })} (${lastWeatherAgo})`
                   : '-'}
               </div>
             </motion.div>
