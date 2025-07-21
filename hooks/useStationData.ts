@@ -56,12 +56,28 @@ export function useStationData(
       // Fetch data from API instead of direct database access
       const response = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=${granularity}`)
       if (!response.ok) {
-        console.error('Failed to fetch station data')
+        if (response.status === 404) {
+          toast({
+            title: `Keine CSV-Daten für ${station}`,
+            description: `Für die Station '${station}' wurden keine CSV-Dateien gefunden. Bitte lade eine CSV-Datei hoch.`,
+            variant: "destructive"
+          })
+        } else {
+          console.error('Failed to fetch station data')
+        }
+        setData([])
         return
       }
       const result: StationDataPoint[] = await response.json()
       setData(result)
       // Check for noise alerts
+      if (result.length === 0) {
+        toast({
+          title: `Keine CSV-Daten für ${station}`,
+          description: `Für die Station '${station}' wurden keine CSV-Daten gefunden. Bitte lade eine CSV-Datei hoch.`,
+          variant: "destructive"
+        })
+      }
       if (result.length > 0) {
         const currentLevel = result[result.length - 1].las
         const now = Date.now()

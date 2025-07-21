@@ -8,12 +8,29 @@ interface WatchedDirectory {
   lastCheck: number
 }
 
+// Hilfsfunktion: Erstelle alle CSV-Ordner, falls sie fehlen
+function ensureCsvDirectories() {
+  const stations = ['ort', 'techno', 'heuballern', 'band']
+  const baseDir = path.join(process.cwd(), 'public', 'csv')
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true })
+  }
+  for (const station of stations) {
+    const dir = path.join(baseDir, station)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+      console.log(`📁 CSV-Ordner automatisch angelegt: ${dir}`)
+    }
+  }
+}
+
 class CSVWatcher {
   private watchedDirs: WatchedDirectory[] = []
   private isRunning = false
   private checkInterval = 10000 // Check every 10 seconds
 
   constructor() {
+    ensureCsvDirectories() // Ordner beim Start sicherstellen
     this.initializeWatchedDirectories()
   }
 

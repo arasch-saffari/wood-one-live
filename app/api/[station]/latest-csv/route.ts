@@ -9,6 +9,11 @@ export async function GET(req: Request, context: { params: Promise<{ station: st
   let latestFile = null
   let latestMtime = 0
 
+  // NEU: Existenzprüfung für das Verzeichnis
+  if (!fs.existsSync(csvDir)) {
+    return NextResponse.json({ error: `CSV-Ordner für Station '${station}' nicht vorhanden.` }, { status: 404 })
+  }
+
   try {
     const files = fs.readdirSync(csvDir)
     for (const file of files) {
