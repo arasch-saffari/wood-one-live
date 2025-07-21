@@ -468,7 +468,7 @@ export default function TechnoPage() {
                     stroke="hsl(var(--border))" // Dynamische Farbe
                   />
                   <XAxis
-                    dataKey="time"
+                    dataKey={d => d.time.slice(0,5)}
                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}

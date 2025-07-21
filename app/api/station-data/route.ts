@@ -208,8 +208,10 @@ export async function GET(req: Request) {
       }
       const blocks: Record<string, { las: number[]; datetimes: string[] }> = {};
       for (const m of measurements) {
-        const [h, mStr] = m.time.split(":");
-        if (!h || !mStr) continue;
+        const timeParts = m.time.split(":");
+        if (timeParts.length < 2) continue;
+        const h = timeParts[0];
+        const mStr = timeParts[1];
         const min = parseInt(mStr, 10);
         const blockMin = Math.floor(min / blockMinutes) * blockMinutes;
         const blockTime = `${h.padStart(2, "0")}:${blockMin.toString().padStart(2, "0")}`;
