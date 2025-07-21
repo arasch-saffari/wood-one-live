@@ -68,36 +68,57 @@ export function useStationData(
         url += `&page=${page}&pageSize=${pageSize}`
       }
       const response = await fetch(url)
+      let result: any = null
+      try {
+        result = await response.json()
+      } catch (e) {
+        result = null
+      }
       if (!response.ok) {
-        if (response.status === 404) {
-          toast({
-            title: `Keine CSV-Daten für ${station}`,
-            description: `Für die Station '${station}' wurden keine CSV-Dateien gefunden. Bitte lade eine CSV-Datei hoch.`,
-            variant: "destructive"
-          })
-        } else {
-          console.error('Failed to fetch station data')
-        }
+        const errorMsg = result && result.error ? result.error : 'Fehler beim Laden der Stationsdaten.'
+        toast({
+          title: `Fehler für ${station}`,
+          description: errorMsg,
+          variant: "destructive"
+        })
         setData([])
         setTotalCount(0)
         return
       }
-      const result = await response.json()
       if (result && Array.isArray(result.data)) {
         setData(result.data)
         setTotalCount(result.totalCount || result.data.length)
+        if (result.data.length === 0) {
+          toast({
+            title: `Keine CSV-Daten für ${station}`,
+            description: `Für die Station '${station}' wurden keine CSV-Daten gefunden. Bitte lade eine CSV-Datei hoch.`,
+            variant: "destructive"
+          })
+        }
       } else if (Array.isArray(result)) {
         setData(result)
         setTotalCount(result.length)
+        if (result.length === 0) {
+          toast({
+            title: `Keine CSV-Daten für ${station}`,
+            description: `Für die Station '${station}' wurden keine CSV-Daten gefunden. Bitte lade eine CSV-Datei hoch.`,
+            variant: "destructive"
+          })
+        }
+      } else if (result && result.error) {
+        toast({
+          title: `Fehler für ${station}`,
+          description: result.error,
+          variant: "destructive"
+        })
+        setData([])
+        setTotalCount(0)
       } else {
         setData([])
         setTotalCount(0)
-      }
-      // Check for noise alerts
-      if (result.length === 0) {
         toast({
-          title: `Keine CSV-Daten für ${station}`,
-          description: `Für die Station '${station}' wurden keine CSV-Daten gefunden. Bitte lade eine CSV-Datei hoch.`,
+          title: `Unbekannter Fehler für ${station}`,
+          description: `Die Daten konnten nicht geladen werden.`,
           variant: "destructive"
         })
       }
@@ -110,9 +131,9 @@ export function useStationData(
           if (config.enableNotifications === false) enableNotifications = false
         }
       } catch {}
-      if (result.length > 0 && enableNotifications && config) {
-        const currentLevel = result[result.length - 1].las
-        const currentTime = result[result.length - 1].datetime?.slice(11,16)
+      if (result && result.data && result.data.length > 0 && enableNotifications && config) {
+        const currentLevel = result.data[result.data.length - 1].las
+        const currentTime = result.data[result.data.length - 1].datetime?.slice(11,16)
         const thresholds = getThresholdsForStationAndTime(config, station, currentTime || '00:00')
         const now = Date.now()
         // Check if we should show an alert (avoid spam - only alert once per 5 minutes per threshold)
@@ -131,6 +152,13 @@ export function useStationData(
         }
       }
     } catch (e) {
+      toast({
+        title: `Fehler für ${station}`,
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive"
+      })
+      setData([])
+      setTotalCount(0)
       console.error('Error fetching station data:', e)
     }
   }

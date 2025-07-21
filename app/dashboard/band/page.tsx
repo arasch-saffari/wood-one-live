@@ -35,6 +35,7 @@ interface Config {
 }
 
 export default function BandPage() {
+  console.log('[Band] Komponente wird gerendert');
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
   const [granularity, setGranularity] = useState<"1h" | "15min" | "10min" | "5min" | "1min">("15min")
   const [maxPoints, setMaxPoints] = useState<number>(200)
@@ -115,6 +116,7 @@ export default function BandPage() {
   const chartRef = useRef<any>(null)
 
   const visibleData = zoomRange ? filteredData.slice(zoomRange.start, zoomRange.end) : filteredData
+  console.log('[Band] visibleData.length:', visibleData.length, 'Beispiel:', visibleData[0]);
   const canZoomIn = visibleData.length > 10
   const canZoomOut = !!zoomRange
   const handleZoomIn = () => {
@@ -470,7 +472,7 @@ export default function BandPage() {
                     stroke="hsl(var(--border))"
                   />
                   <XAxis
-                    dataKey={d => d.time.slice(0,5)}
+                    dataKey="time"
                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}
