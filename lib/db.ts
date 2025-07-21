@@ -338,4 +338,4 @@ cron.schedule('30 3 * * *', () => {
   }
 })
 
-export { db } 
+export default db 

@@ -448,7 +448,7 @@ export default function HeuballernPage() {
                     stroke="hsl(var(--border))"
                   />
                   <XAxis
-                    dataKey="time"
+                    dataKey={d => d.time.slice(0,5)}
                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={{ stroke: "hsl(var(--border))" }}
