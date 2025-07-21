@@ -1,6 +1,6 @@
 {
-  "name": "Noise Monitoring Dashboard",
-  "short_name": "Noise Monitor",
+  "name": "wood-one.live",
+  "short_name": "wood-one.live",
   "description": "Echtzeit Lärmüberwachung für Festivals und Veranstaltungen",
   "start_url": "/dashboard",
   "display": "standalone",
