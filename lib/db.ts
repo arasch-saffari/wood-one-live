@@ -5,6 +5,7 @@ import Papa from 'papaparse'
 import { processCSVFile, processAllCSVFiles } from './csv-processing'
 import { addWeatherCron } from './weather'
 import { addInitialWeather } from './weather'
+import csvWatcher from './csv-watcher'
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file
@@ -257,5 +258,5 @@ addInitialWeather()
 
 // Start CSV watcher for automatic processing
 console.log('🚀 Starting automatic CSV processing...')
-// csvWatcher.start() // This line is removed as per the edit hint.
+csvWatcher.start()
 addWeatherCron() 

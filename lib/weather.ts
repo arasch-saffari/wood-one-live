@@ -44,6 +44,7 @@ export async function addInitialWeather() {
     // Füge einen initialen Wetterwert für jetzt ein
     const now = new Date()
     const time = now.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM
+    const createdAt = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0')
     let windSpeed = 10
     let windDir = 180
     let relHumidity = 50
@@ -58,9 +59,9 @@ export async function addInitialWeather() {
     } catch (e) {
       console.warn('⚠️ Konnte keine Live-Wetterdaten für Initialeintrag abrufen, nutze Dummy-Werte.')
     }
-    db.prepare('INSERT OR IGNORE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
-      .run('global', time, windSpeed, windDir, relHumidity, temperature)
-    console.log('🌦️ Initialer Wetterwert eingetragen:', { time, windSpeed, windDir, relHumidity, temperature })
+    db.prepare('INSERT OR IGNORE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run('global', time, windSpeed, windDir, relHumidity, temperature, createdAt)
+    console.log('🌦️ Initialer Wetterwert eingetragen:', { time, windSpeed, windDir, relHumidity, temperature, createdAt })
   }
 }
 
