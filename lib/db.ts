@@ -32,7 +32,9 @@ db.exec(`
   );
 `)
 
-db.pragma('journal_mode = WAL')
+if (typeof db.pragma === 'function') {
+  db.pragma('journal_mode = WAL')
+}
 
 // Migration: Add datetime column to measurements table if missing
 (function runDatetimeMigration() {
