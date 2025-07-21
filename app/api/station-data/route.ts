@@ -47,8 +47,7 @@ function parseCSVFallback(station: string, interval: "24h" | "7d" = "24h") {
       skipEmptyLines: true,
     });
     let rows = parsed.data as Record<string, string>[];
-    if (!Array.isArray(rows) || rows.length < 2) return [];
-    rows = rows.slice(1); // drop first row
+    if (!Array.isArray(rows) || rows.length < 1) return [];
     const noiseColumn = station === "heuballern" ? "LAF" : "LAS";
     const validRows = rows.filter(
       (row) =>

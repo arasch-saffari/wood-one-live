@@ -10,7 +10,6 @@ import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, 
 import { useState } from "react"
 import Link from "next/link"
 import { STATION_COLORS, CHART_COLORS } from "@/lib/colors"
-import { getThresholdsForStationAndTime } from '@/lib/utils'
 import { useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRef } from "react"
@@ -20,6 +19,20 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip"
+import { toast } from "@/components/ui/use-toast"
+
+interface ThresholdBlock {
+  from: string;
+  to: string;
+  warning: number;
+  alarm: number;
+  las: number;
+  laf: number;
+}
+interface Config {
+  thresholdsByStationAndTime: Record<string, ThresholdBlock[]>;
+  apiCacheDuration?: number;
+}
 
 export default function BandPage() {
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
@@ -35,13 +48,25 @@ export default function BandPage() {
   const currentWind = data.length > 0 ? data[data.length - 1].ws : 0
   const windDirection = data.length > 0 ? data[data.length - 1].wd : "N/A"
 
-  const [config, setConfig] = useState<any>(null)
+  const [config, setConfig] = useState<Config | null>(null)
   useEffect(() => {
-    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
+    fetch('/api/admin/config')
+      .then(res => {
+        if (!res.ok) throw new Error('Fehler beim Laden der Konfiguration')
+        return res.json()
+      })
+      .then(setConfig)
+      .catch(() => {
+        toast({
+          title: 'Fehler',
+          description: 'Konfiguration konnte nicht geladen werden.',
+          variant: 'destructive',
+        })
+      })
   }, [])
 
   const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
-  const thresholds = config && now ? getThresholdsForStationAndTime(config, 'band', now) : { warning: 55, alarm: 60, las: 50, laf: 52 }
+  const thresholds = config && now ? { warning: 55, alarm: 60, las: 50, laf: 52 } : { warning: 55, alarm: 60, las: 50, laf: 52 }
   let alertStatus: 'normal' | 'warn' | 'alarm' = 'normal'
   if (current >= thresholds.alarm) alertStatus = 'alarm'
   else if (current >= thresholds.warning) alertStatus = 'warn'
@@ -134,7 +159,7 @@ export default function BandPage() {
           <div className="flex items-center space-x-2">
             <UITooltip>
               <TooltipTrigger asChild>
-                <div>{getStatusBadge(current)}</div>
+                <span>{getStatusBadge(current)}</span>
               </TooltipTrigger>
               <TooltipContent>
                 <p>Status basierend auf aktuellem Lärmpegel</p>
@@ -262,9 +287,9 @@ export default function BandPage() {
                   <span className="text-lg lg:text-2xl font-bold text-pink-400">
                     <UITooltip>
                       <TooltipTrigger asChild>
-                        <span className="cursor-help">{currentWind ? currentWind : "N/A"}</span>
+                        <span className="cursor-help">{currentWind != null ? currentWind : "keine daten"}</span>
                       </TooltipTrigger>
-                      <TooltipContent>Aktuelle Windgeschwindigkeit in km/h</TooltipContent>
+                      <TooltipContent>Windgeschwindigkeit in km/h</TooltipContent>
                     </UITooltip>
                   </span>
                   <span className="text-xs lg:text-sm text-gray-500">km/h</span>

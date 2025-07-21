@@ -7,6 +7,7 @@ import { addWeatherCron } from './weather'
 import { addInitialWeather } from './weather'
 import csvWatcher from './csv-watcher'
 import cron from 'node-cron'
+import { ExternalApiError, logError } from './logger'
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file
@@ -63,6 +64,7 @@ function runMigrations() {
       } catch (migrationError) {
         console.error('❌ Migration failed:', migrationError)
         db.exec('ROLLBACK')
+        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
     } else {
@@ -93,6 +95,7 @@ function runMigrations() {
       } catch (migrationError) {
         console.error('❌ Migration failed:', migrationError)
         db.exec('ROLLBACK')
+        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
     } else {
@@ -124,6 +127,7 @@ function runMigrations() {
       } catch (migrationError) {
         console.error('❌ Migration failed:', migrationError)
         db.exec('ROLLBACK')
+        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
     } else {
@@ -147,11 +151,11 @@ function runMigrations() {
         const now = new Date()
         const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
         db.prepare('UPDATE measurements SET datetime = ? || \' \' || time WHERE datetime IS NULL').run(today)
-        console.log('✅ datetime column added and filled')
-        db.exec('COMMIT')
+        // log success, kein Fehler
       } catch (migrationError) {
         console.error('❌ Migration failed:', migrationError)
         db.exec('ROLLBACK')
+        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
     } else {
@@ -169,10 +173,10 @@ runMigrations()
 try {
   const nulls = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get() as { count: number }
   if (nulls.count > 0) {
-    console.warn(`⚠️  Integritätsproblem: ${nulls.count} Messungen mit NULL in NOT NULL-Spalten gefunden!`)
+    logError(new Error(`Integritätsproblem: ${nulls.count} Messungen mit NULL in NOT NULL-Spalten gefunden!`))
   }
 } catch (e) {
-  console.error('❌ Integritäts-Check nach Migrationen fehlgeschlagen:', e)
+  logError(e instanceof Error ? e : new Error(String(e)))
 }
 
 // Create indexes for better performance
