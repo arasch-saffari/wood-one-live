@@ -1,0 +1,26 @@
+[2025-07-21T23:33:21.827Z] SqliteError: duplicate column name: datetime
+SqliteError: duplicate column name: datetime
+    at Database.exec (/Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/better-sqlite3@12.2.0/node_modules/better-sqlite3/lib/methods/wrappers.js:9:14)
+    at runMigrations (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:10:10)
+    at db (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:43:1)
+    at Object.<anonymous> (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:45:63)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Object.transformer (/opt/homebrew/lib/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at cjsLoader (node:internal/modules/esm/translators:298:15)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+
+[2025-07-21T23:33:21.832Z] SqliteError: duplicate column name: datetime
+SqliteError: duplicate column name: datetime
+    at Database.exec (/Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/better-sqlite3@12.2.0/node_modules/better-sqlite3/lib/methods/wrappers.js:9:14)
+    at runMigrations (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:10:10)
+    at db (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:43:1)
+    at Object.<anonymous> (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:45:63)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Object.transformer (/opt/homebrew/lib/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at cjsLoader (node:internal/modules/esm/translators:298:15)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+
