@@ -37,6 +37,33 @@ export async function fetchWeather() {
   throw new Error('Unexpected end of function');
 }
 
+export async function addInitialWeather() {
+  // Prüfe, ob Wetterdaten vorhanden sind
+  const row = db.prepare('SELECT COUNT(*) as count FROM weather').get() as { count: number }
+  if (row.count === 0) {
+    // Füge einen initialen Wetterwert für jetzt ein
+    const now = new Date()
+    const time = now.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM
+    let windSpeed = 10
+    let windDir = 180
+    let relHumidity = 50
+    let temperature = 20
+    try {
+      const live = await fetchWeather()
+      if (typeof live.windSpeed === 'number') windSpeed = live.windSpeed
+      if (typeof live.windDir === 'string') windDir = parseFloat(live.windDir)
+      else if (typeof live.windDir === 'number') windDir = live.windDir
+      if (typeof live.relHumidity === 'number') relHumidity = live.relHumidity
+      if (typeof live.temperature === 'number') temperature = live.temperature
+    } catch (e) {
+      console.warn('⚠️ Konnte keine Live-Wetterdaten für Initialeintrag abrufen, nutze Dummy-Werte.')
+    }
+    db.prepare('INSERT INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+      .run('global', time, windSpeed, windDir, relHumidity, temperature)
+    console.log('🌦️ Initialer Wetterwert eingetragen:', { time, windSpeed, windDir, relHumidity, temperature })
+  }
+}
+
 // Wetterdaten alle 10 Minuten automatisch abrufen und speichern (nur im Server-Umfeld)
 export function addWeatherCron() {
   if (typeof process === 'undefined' || process.env.NODE_ENV === 'test') return

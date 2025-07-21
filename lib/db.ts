@@ -4,6 +4,7 @@ import fs from 'fs'
 import Papa from 'papaparse'
 import { processCSVFile, processAllCSVFiles } from './csv-processing'
 import { addWeatherCron } from './weather'
+import { addInitialWeather } from './weather'
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file
@@ -250,6 +251,9 @@ export function checkDatabaseHealth() {
 
 // Run health check on startup
 checkDatabaseHealth()
+
+// Initialen Wetterwert eintragen, falls keine Daten vorhanden
+addInitialWeather()
 
 // Start CSV watcher for automatic processing
 console.log('🚀 Starting automatic CSV processing...')

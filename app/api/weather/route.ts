@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { fetchWeather } from "@/lib/weather"
 import { getWeatherForBlock, insertWeather, isWeatherDataOld } from "@/lib/db"
 import { roundTo5MinBlock } from "@/lib/utils"
+import db from '@/lib/database'
 
 // Hilfsfunktion für Einzel- oder Batchabfrage
 interface WeatherDB {
@@ -24,7 +25,7 @@ export async function getOrFetchWeather(station: string, time: string) {
         live.windSpeed ?? 0,
         live.windDir ?? "N/A",
         live.relHumidity ?? 0,
-        live.temperature ?? null
+        typeof live.temperature === 'number' ? live.temperature : undefined
       )
       weather = getWeatherForBlock(station, blockTime) as WeatherDB | null
     } catch (e) {
@@ -70,9 +71,8 @@ export async function GET(req: Request) {
   if (pathname.endsWith('/last-update')) {
     // Spezialroute für letztes Wetter-Update
     try {
-      const db = require('@/lib/db')
-      const stmt = db.default.prepare('SELECT created_at FROM weather ORDER BY created_at DESC LIMIT 1')
-      const row = stmt.get()
+      const stmt = db.prepare('SELECT created_at FROM weather ORDER BY created_at DESC LIMIT 1')
+      const row = stmt.get() as { created_at?: string } | undefined
       console.log('[API/weather/last-update] DB row:', row)
       if (!row || !row.created_at) {
         console.log('[API/weather/last-update] No valid row found')
@@ -98,11 +98,10 @@ export async function GET(req: Request) {
     if (!time) {
       return NextResponse.json({ error: "Missing time parameter" }, { status: 400 })
     }
-    let weather
+    let weather: any
     if (time === 'now') {
       // Gib den letzten Wetterwert zurück
-      const { db } = require('@/lib/db')
-      const row = db.prepare('SELECT * FROM weather WHERE station = ? ORDER BY created_at DESC LIMIT 1').get(station)
+      const row = db.prepare('SELECT * FROM weather WHERE station = ? ORDER BY created_at DESC LIMIT 1').get(station) as any
       weather = row || null
     } else {
       weather = await getOrFetchWeather(station, time)

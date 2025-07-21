@@ -348,7 +348,9 @@ export default function DashboardLayout({
                 Letzte Aktualisierung: {formatTime(latestTime)} ({getRelativeTime(latestTime)})
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                Letztes Wetter-Update: {lastWeatherIso && parseBerlinTime(lastWeatherIso) ? `${parseBerlinTime(lastWeatherIso)!.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })} (${lastWeatherAgo})` : '-'}
+                Letztes Wetter-Update: {lastWeatherIso
+                  ? `${new Date(lastWeatherIso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })} (${lastWeatherAgo})`
+                  : '-'}
               </div>
             </motion.div>
           )}

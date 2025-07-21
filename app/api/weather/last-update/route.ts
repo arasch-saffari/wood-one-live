@@ -3,21 +3,20 @@ import db from '@/lib/database'
 
 export async function GET() {
   try {
-    // Hole das aktuellste time aus allen Wetterdaten
-    const stmt = db.prepare('SELECT time, created_at FROM weather ORDER BY created_at DESC LIMIT 1')
+    // Hole das aktuellste created_at aus allen Wetterdaten
+    const stmt = db.prepare('SELECT created_at FROM weather ORDER BY created_at DESC LIMIT 1')
     const row: any = stmt.get()
-    if (!row || !row.time) {
+    if (!row || !row.created_at) {
       return NextResponse.json({ time: null, ago: null, iso: null })
     }
-    // Zeit als Europe/Berlin interpretieren
+    // created_at als Zeitstempel verwenden
+    const createdAt = new Date(row.created_at)
     const now = new Date()
-    const [h, m] = row.time.split(':').map(Number)
-    const berlin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m)
-    const diffMin = Math.floor((now.getTime() - berlin.getTime()) / 60000)
+    const diffMin = Math.floor((now.getTime() - createdAt.getTime()) / 60000)
     let ago = 'gerade eben'
     if (diffMin === 1) ago = 'vor 1 Min'
     else if (diffMin > 1) ago = `vor ${diffMin} Min`
-    return NextResponse.json({ time: row.time, ago, iso: row.time })
+    return NextResponse.json({ time: createdAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }), ago, iso: row.created_at })
   } catch (e) {
     return NextResponse.json({ time: null, ago: null, iso: null })
   }
