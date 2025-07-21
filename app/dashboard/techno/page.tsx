@@ -82,6 +82,10 @@ export default function TechnoPage() {
     return <Badge className="bg-pink-500/20 text-pink-400 border-pink-500/30">Normal</Badge>
   }
 
+  // Vor dem Chart-Rendering:
+  const warningLine = data.map(() => thresholds.warning)
+  const alarmLine = data.map(() => thresholds.alarm)
+
   return (
     <TooltipProvider>
       <div className="space-y-4 lg:space-y-6">
@@ -334,26 +338,8 @@ export default function TechnoPage() {
                     name="Luftfeuchtigkeit"
                   />
                   {/* Grenzwertlinien */}
-                  <Line
-                    yAxisId="noise"
-                    type="monotone"
-                    dataKey={() => thresholds.warning}
-                    stroke={CHART_COLORS.warning}
-                    strokeWidth={1}
-                    strokeDasharray="3 3"
-                    dot={false}
-                    name="Warnung"
-                  />
-                  <Line
-                    yAxisId="noise"
-                    type="monotone"
-                    dataKey={() => thresholds.alarm}
-                    stroke={CHART_COLORS.alarm}
-                    strokeWidth={1}
-                    strokeDasharray="3 3"
-                    dot={false}
-                    name="Alarm"
-                  />
+                  <Line yAxisId="noise" type="monotone" dataKey="warningLine" data={warningLine} stroke={CHART_COLORS.warning} strokeWidth={1} strokeDasharray="3 3" dot={false} name="Warnung" />
+                  <Line yAxisId="noise" type="monotone" dataKey="alarmLine" data={alarmLine} stroke={CHART_COLORS.alarm} strokeWidth={1} strokeDasharray="3 3" dot={false} name="Alarm" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

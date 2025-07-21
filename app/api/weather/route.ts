@@ -32,23 +32,13 @@ export async function getOrFetchWeather(station: string, time: string) {
       console.error('Failed to fetch weather:', e)
       // If fetch fails, return existing data if available
       if (!weather) {
-        return {
-          windSpeed: 0,
-          windDir: "N/A",
-          relHumidity: 0,
-          temperature: null
-        }
+        return { windSpeed: null, windDir: null, relHumidity: null, temperature: null, noWeatherData: true };
       }
     }
   }
   // Rückgabeobjekt immer mit allen Feldern, mit Type Guard
   if (!weather || typeof weather !== 'object') {
-    return {
-      windSpeed: 0,
-      windDir: null,
-      relHumidity: 0,
-      temperature: null
-    }
+    return { windSpeed: null, windDir: null, relHumidity: null, temperature: null, noWeatherData: true };
   }
   let windDirValue = null;
   if (typeof weather.windDir === 'string' && weather.windDir.endsWith('°')) {

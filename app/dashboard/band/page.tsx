@@ -79,6 +79,9 @@ export default function BandPage() {
     return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Normal</Badge>
   }
 
+  const warningLine = data.map(() => thresholds.warning)
+  const alarmLine = data.map(() => thresholds.alarm)
+
   return (
     <TooltipProvider>
       <div className="space-y-4 lg:space-y-6">
@@ -369,26 +372,8 @@ export default function BandPage() {
                     dot={false}
                     name="Luftfeuchtigkeit"
                   />
-                  <Line
-                    yAxisId="noise"
-                    type="monotone"
-                    dataKey={() => thresholds.warning}
-                    stroke={CHART_COLORS.warning}
-                    strokeWidth={1}
-                    strokeDasharray="3 3"
-                    dot={false}
-                    name="Warnung"
-                  />
-                  <Line
-                    yAxisId="noise"
-                    type="monotone"
-                    dataKey={() => thresholds.alarm}
-                    stroke={CHART_COLORS.alarm}
-                    strokeWidth={1}
-                    strokeDasharray="3 3"
-                    dot={false}
-                    name="Alarm"
-                  />
+                  <Line yAxisId="noise" type="monotone" dataKey="warningLine" data={warningLine} stroke={CHART_COLORS.warning} strokeWidth={1} strokeDasharray="3 3" dot={false} name="Warnung" />
+                  <Line yAxisId="noise" type="monotone" dataKey="alarmLine" data={alarmLine} stroke={CHART_COLORS.alarm} strokeWidth={1} strokeDasharray="3 3" dot={false} name="Alarm" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

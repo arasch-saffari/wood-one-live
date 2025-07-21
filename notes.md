@@ -68,3 +68,8 @@
 - CSV-Watcher läuft jetzt auch im Build/Production-Modus und verarbeitet neue CSV-Dateien automatisch.
 - Wetterdaten werden beim CSV-Import nur für aktuelle Zeitblöcke synchronisiert (keine aktuellen Wetterdaten für alte Messwerte).
 - Konfigurationsoptionen csvAutoProcess und enableNotifications wirken systemweit. 
+
+## Änderung: Wetterdaten ohne Fallbacks
+- Wetterdaten liefern keine Fallback- oder Defaultwerte mehr.
+- Wenn keine echten Wetterdaten vorliegen, gibt die API für alle Felder null und ein 'noWeatherData: true'-Flag zurück.
+- Das Frontend zeigt dann 'keine Wetterdaten verfügbar' an und verwendet keine Platzhalterwerte mehr in Statistiken oder Charts. 

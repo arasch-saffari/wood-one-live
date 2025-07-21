@@ -24,7 +24,7 @@ Ein modernes, responsives Dashboard für die Überwachung von Lärmpegeln und We
 
 ## 🛠️ Installation
 
-```bash
+git cogit ```bash
 # Dependencies installieren
 pnpm install
 
@@ -116,6 +116,11 @@ pnpm build
 # Starten
 pnpm start
 ```
+
+## Hinweis zu Wetterdaten (ab [heutiges Datum])
+- Es werden keine Fallback- oder Defaultwerte für Wetterdaten mehr verwendet.
+- Wenn keine echten Wetterdaten vorliegen, gibt die API für alle Felder null und ein 'noWeatherData: true'-Flag zurück.
+- Das Frontend zeigt dann 'keine Wetterdaten verfügbar' an und verwendet keine Platzhalterwerte mehr in Statistiken oder Charts.
 
 ## 📝 Lizenz
 

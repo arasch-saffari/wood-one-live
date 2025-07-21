@@ -158,6 +158,14 @@ export default function DashboardLayout({
     return berlin;
   }
 
+  // Nach dem Laden der Daten für alle Stationen:
+  const stationTimes = [
+    { name: 'Ort', color: STATION_COLORS.ort.menuColor, datetime: ortData.length > 0 ? ortData[ortData.length - 1].datetime : undefined },
+    { name: 'Techno Floor', color: STATION_COLORS.techno.menuColor, datetime: technoData.length > 0 ? technoData[technoData.length - 1].datetime : undefined },
+    { name: 'Band Bühne', color: STATION_COLORS.band.menuColor, datetime: bandData.length > 0 ? bandData[bandData.length - 1].datetime : undefined },
+    { name: 'Heuballern', color: STATION_COLORS.heuballern.menuColor, datetime: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].datetime : undefined },
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Mobile Menu Overlay - Nur auf kleinen Bildschirmen sichtbar */}
@@ -341,7 +349,16 @@ export default function DashboardLayout({
                 </Badge>
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Letzte Aktualisierung: {formatTime(latestDatetime)} ({getRelativeTime(latestDatetime)})
+                <div className="mb-1 font-semibold">Letzte Aktualisierung je Station:</div>
+                <ul className="space-y-1">
+                  {stationTimes.map(st => (
+                    <li key={st.name} className="flex items-center gap-2">
+                      <span className={cn('w-2 h-2 rounded-full', st.color)} />
+                      <span className="w-28 inline-block font-medium">{st.name}:</span>
+                      <span>{formatTime(st.datetime)} ({getRelativeTime(st.datetime)})</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
                 Letztes Wetter-Update: {lastWeatherIsoUtc

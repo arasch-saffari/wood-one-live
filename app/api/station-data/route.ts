@@ -131,14 +131,7 @@ async function getWeatherWithCache(station: string, time: string) {
 
     // Ultimate fallback to reasonable defaults
     console.log(`Using default fallback weather data for ${station}`);
-    const fallbackData = {
-      windSpeed: 0,
-      windDir: 'N',
-      relHumidity: 50, // More realistic default
-      temperature: 15
-    };
-    weatherCache.set(cacheKey, { data: fallbackData, timestamp: Date.now() });
-    return fallbackData;
+    return { windSpeed: null, windDir: null, relHumidity: null, temperature: null, noWeatherData: true };
   }
 }
 

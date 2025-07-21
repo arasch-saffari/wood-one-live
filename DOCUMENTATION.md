@@ -677,3 +677,16 @@ Weitere Details und API-/Fehlerdokumentation folgen.
 ---
 
 Weitere Endpunkte und Details werden fortlaufend ergänzt. 
+
+## Wetterdaten-Handling (ab Version [heutiges Datum])
+- Es gibt keine Fallback- oder Defaultwerte mehr für Wetterdaten.
+- Wenn keine echten Wetterdaten (weder live noch aus der DB) vorliegen, liefert die API für Wetterdaten:
+  - windSpeed: null
+  - windDir: null
+  - relHumidity: null
+  - temperature: null
+  - noWeatherData: true
+- Das Frontend zeigt dann 'keine Wetterdaten verfügbar' an und verwendet keine Platzhalterwerte mehr in Statistiken oder Charts. 
+
+## Changelog
+- [heutiges Datum]: Wetterdaten liefern keine Fallback- oder Defaultwerte mehr. Wenn keine echten Wetterdaten vorliegen, gibt die API null-Werte und ein 'noWeatherData: true'-Flag zurück. Statistiken und Charts zeigen dann 'keine Daten' an. 
