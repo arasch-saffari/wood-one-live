@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMeasurementsForStation, getRecentWeather } from "@/lib/db";
+import { getMeasurementsForStation } from "@/lib/db";
 import { getWeatherForBlock, insertWeather, isWeatherDataOld } from "@/lib/db-helpers";
 import { fetchWeather } from "@/lib/weather";
 import Papa from "papaparse";
@@ -129,12 +129,12 @@ async function getWeatherWithCache(station: string, time: string) {
     
     // Try to get the most recent weather data from database
     try {
-      const recentWeather = await getRecentWeather(station);
-      if (recentWeather) {
-        console.log(`Using recent weather data from database for ${station}`);
-        weatherCache.set(cacheKey, { data: recentWeather, timestamp: Date.now() });
-        return recentWeather;
-      }
+      // const recentWeather = await getRecentWeather(station); // This line is removed
+      // if (recentWeather) { // This line is removed
+      //   console.log(`Using recent weather data from database for ${station}`); // This line is removed
+      //   weatherCache.set(cacheKey, { data: recentWeather, timestamp: Date.now() }); // This line is removed
+      //   return recentWeather; // This line is removed
+      // } // This line is removed
     } catch (dbError) {
       console.warn(`Failed to fetch recent weather from database for ${station}:`, dbError);
     }
