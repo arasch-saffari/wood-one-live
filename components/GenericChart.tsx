@@ -128,24 +128,10 @@ export function GenericChart({
   const [zoomRange, setZoomRange] = useState<{ start: number; end: number } | null>(null)
   const [hoveredLineKey, setHoveredLineKey] = useState<string | null>(null)
   const chartRef = useRef<any>(null)
-  // Debug: Logge die Daten-Prop direkt am Anfang
-  console.log('GenericChart data prop:', data);
   const filteredChartData = useMemo(() => {
-    console.log('GenericChart filteredChartData input:', data);
     return maxPoints > 0 && data.length > maxPoints ? data.slice(-maxPoints) : data
   }, [data, maxPoints])
   const visibleData = useMemo(() => zoomRange ? filteredChartData.slice(zoomRange.start, zoomRange.end) : filteredChartData, [filteredChartData, zoomRange])
-
-  // Debug: Logge die Daten und Linien, die an das Chart übergeben werden
-  if (Array.isArray(data)) {
-    const debugValues = data.map(d => ({ las: d.las, rh: d.rh, ws: d.ws, temp: d.temp }));
-    console.log('GenericChart Werte:', debugValues);
-    console.log('GenericChart lines:', lines);
-    if (Array.isArray(data)) {
-      const debugLas = data.map(d => d.las)
-      console.log('GenericChart alle las-Werte:', debugLas)
-    }
-  }
 
   // Sichtbarkeit der Linien
   // Nur dB-Linien togglbar, Wind immer sichtbar

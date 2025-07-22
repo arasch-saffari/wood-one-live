@@ -113,13 +113,6 @@ export function ChartPlayground({
     onMaxPointsChange?.(num);
   };
 
-  // Debug: Log alle Werte für las, ws, rh, temp
-  if (Array.isArray(data)) {
-    const debugValues = data.map(d => ({ las: d.las, ws: d.ws, rh: d.rh, temp: d.temp }));
-    console.log('ChartPlayground Werte:', debugValues);
-  }
-
-  console.log('ChartPlayground data', data)
   return (
     <Card className="mb-6 rounded-lg shadow-sm border border-card bg-card text-card-foreground">
       <CardContent className="flex flex-col gap-4">

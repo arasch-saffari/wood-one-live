@@ -51,7 +51,6 @@ export function useStationData(
   page?: number,
   pageSize?: number
 ) {
-  console.log('useStationData HOOK called')
   const [data, setData] = useState<StationDataPoint[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
   const [loading, setLoading] = useState(false)
@@ -61,7 +60,6 @@ export function useStationData(
   const [config, setConfig] = useState<any>(null)
 
   useEffect(() => {
-    console.log('useStationData useEffect running (should be client)')
     // Datenfetch nur im Client
     async function fetchAndSetData() {
       setLoading(true)
@@ -72,25 +70,19 @@ export function useStationData(
       if (page) url += `&page=${page}`
       if (pageSize) url += `&pageSize=${pageSize}`
       try {
-        console.log('useStationData fetch URL:', url)
         const response = await fetch(url)
-        console.log('useStationData after fetch, response.ok:', response.ok)
         if (!response.ok) {
-          console.error('useStationData fetch failed:', response.status, response.statusText)
           setError(`Fehler: ${response.status}`)
           setLoading(false)
           return
         }
         let result = await response.json()
-        console.log('useStationData raw result:', result)
         if (result && Array.isArray(result.data)) {
           setData(result.data)
           setTotalCount(result.totalCount || result.data.length)
-          console.log('useStationData setData (result.data):', result.data)
         } else if (Array.isArray(result)) {
           setData(result)
           setTotalCount(result.length)
-          console.log('useStationData setData (result):', result)
         } else {
           setData([])
           setTotalCount(0)
@@ -99,7 +91,6 @@ export function useStationData(
         setError(e instanceof Error ? e.message : String(e))
         setData([])
         setTotalCount(0)
-        console.error('useStationData fetch error:', e)
       } finally {
         setLoading(false)
       }

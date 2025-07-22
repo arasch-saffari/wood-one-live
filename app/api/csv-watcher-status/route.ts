@@ -61,7 +61,6 @@ export async function GET() {
     
     return NextResponse.json(status)
   } catch (e) {
-    console.error('❌ Error getting CSV watcher status:', e)
     return NextResponse.json({ 
       success: false, 
       error: (e as Error).message 

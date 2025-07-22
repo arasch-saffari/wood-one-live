@@ -8,7 +8,6 @@ describe('Admin Panel API', () => {
     const res = await fetch(`${BASE_URL}/api/admin/factory-reset`, { method: 'POST' })
     const contentType = res.headers.get('content-type')
     const text = await res.text()
-    console.log('Factory Reset Response:', contentType, text)
     expect(res.status).toBe(200)
     if (contentType && contentType.includes('application/json')) {
       const data = JSON.parse(text)

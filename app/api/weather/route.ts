@@ -29,7 +29,6 @@ export async function getOrFetchWeather(station: string, time: string) {
       )
       weather = getWeatherForBlock(station, blockTime) as WeatherDB | null
     } catch (e) {
-      console.error('Failed to fetch weather:', e)
       // If fetch fails, return existing data if available
       if (!weather) {
         return { windSpeed: null, windDir: null, relHumidity: null, temperature: null, noWeatherData: true };
@@ -63,9 +62,7 @@ export async function GET(req: Request) {
     try {
       const stmt = db.prepare('SELECT created_at FROM weather ORDER BY created_at DESC LIMIT 1')
       const row = stmt.get() as { created_at?: string } | undefined
-      console.log('[API/weather/last-update] DB row:', row)
       if (!row || !row.created_at) {
-        console.log('[API/weather/last-update] No valid row found')
         return NextResponse.json({ time: null, ago: null, iso: null })
       }
       const createdAt = new Date(row.created_at)
@@ -74,10 +71,8 @@ export async function GET(req: Request) {
       let ago = 'gerade eben'
       if (diffMin === 1) ago = 'vor 1 Min'
       else if (diffMin > 1) ago = `vor ${diffMin} Min`
-      console.log('[API/weather/last-update] Returning:', { time: createdAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }), ago, iso: row.created_at })
       return NextResponse.json({ time: createdAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }), ago, iso: row.created_at })
     } catch (e) {
-      console.log('[API/weather/last-update] Error:', e)
       return NextResponse.json({ time: null, ago: null, iso: null })
     }
   }

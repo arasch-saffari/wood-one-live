@@ -47,7 +47,6 @@ if (typeof db.pragma === 'function') {
       const now = new Date()
       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
       db.prepare("UPDATE measurements SET datetime = ? || ' ' || time WHERE datetime IS NULL").run(today)
-      console.log('✅ Migration: datetime column added and filled')
     }
   } catch (e) {
     if (e instanceof Error) {
@@ -58,138 +57,92 @@ if (typeof db.pragma === 'function') {
   }
 })();
 
-// Robust migration system
-function runMigrations() {
+// Entferne automatische Migrationen und Initialisierungen aus dem Importfluss
+// Exportiere stattdessen Setup-Funktionen
+
+export function runMigrations() {
   // Migration 1: Add created_at column to weather table
   try {
-    // Check if created_at column exists
-    const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string; type: string; notnull: number; dflt_value: string | null; pk: number }>
+    const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
     const hasCreatedAt = columns.some(col => col.name === 'created_at')
-    
     if (!hasCreatedAt) {
-      console.log('🔄 Running migration: Adding created_at column to weather table...')
-      
-      // Start transaction for safe migration
       db.exec('BEGIN TRANSACTION')
-      
       try {
-        // Add the new column
         db.exec('ALTER TABLE weather ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP')
-        
-        // Update existing records with current timestamp
-        const updateCount = db.prepare(
-          'UPDATE weather SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL'
-        ).run()
-        
-        console.log(`✅ Migration completed: ${updateCount.changes} existing records updated`)
+        db.prepare('UPDATE weather SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL').run()
         db.exec('COMMIT')
-        
       } catch (migrationError) {
-        console.error('❌ Migration failed:', migrationError)
         db.exec('ROLLBACK')
         logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
-    } else {
-      console.log('✅ created_at column already exists, skipping migration')
     }
   } catch (e) {
+    // Nur loggen, nicht crashen
     console.error('❌ Migration check failed:', e)
-    // Don't throw - allow app to continue with existing schema
   }
-  
   // Migration 2: Add source_file column to measurements table
   try {
-    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string; type: string; notnull: number; dflt_value: string | null; pk: number }>
+    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
     const hasSourceFile = columns.some(col => col.name === 'source_file')
-    
     if (!hasSourceFile) {
-      console.log('🔄 Running migration: Adding source_file column to measurements table...')
-      
-      // Start transaction for safe migration
       db.exec('BEGIN TRANSACTION')
-      
       try {
-        // Add the new column
         db.exec('ALTER TABLE measurements ADD COLUMN source_file TEXT')
-        console.log('✅ source_file column added successfully')
         db.exec('COMMIT')
-        
       } catch (migrationError) {
-        console.error('❌ Migration failed:', migrationError)
         db.exec('ROLLBACK')
         logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
-    } else {
-      console.log('✅ source_file column already exists, skipping migration')
     }
   } catch (e) {
     console.error('❌ Migration check failed:', e)
-    // Don't throw - allow app to continue with existing schema
   }
-  
   // Migration 3: Add temperature column to weather table
   try {
-    const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string; type: string; notnull: number; dflt_value: string | null; pk: number }>
+    const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
     const hasTemperature = columns.some(col => col.name === 'temperature')
-    
     if (!hasTemperature) {
-      console.log('🔄 Running migration: Adding temperature column to weather table...')
-      
-      // Start transaction for safe migration
       db.exec('BEGIN TRANSACTION')
-      
       try {
-        // Add the new column
         db.exec('ALTER TABLE weather ADD COLUMN temperature REAL')
-        
-        console.log('✅ Migration completed: temperature column added to weather table')
         db.exec('COMMIT')
-        
       } catch (migrationError) {
-        console.error('❌ Migration failed:', migrationError)
         db.exec('ROLLBACK')
         logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
-    } else {
-      console.log('✅ temperature column already exists, skipping migration')
     }
   } catch (e) {
     console.error('❌ Migration check failed:', e)
-    // Don't throw - allow app to continue with existing schema
   }
-
-  // Migration 4: Add datetime column to measurements table (robust, ohne NOT NULL)
+  // Migration 4: Add datetime column to measurements table
   try {
     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
     const hasDatetime = columns.some(col => col.name === 'datetime')
     if (!hasDatetime) {
-      console.log('🔄 Running migration: Adding datetime column to measurements table...')
       db.exec('BEGIN TRANSACTION')
       try {
-        db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME') // ohne NOT NULL
-        // Fülle bestehende Einträge mit aktuellem Datum + time
+        db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME')
         const now = new Date()
         const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
-        db.prepare('UPDATE measurements SET datetime = ? || \' \' || time WHERE datetime IS NULL').run(today)
-        // log success, kein Fehler
+        db.prepare('UPDATE measurements SET datetime = ? || \" \" || time WHERE datetime IS NULL').run(today)
+        db.exec('COMMIT')
       } catch (migrationError) {
-        console.error('❌ Migration failed:', migrationError)
         db.exec('ROLLBACK')
         logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
-    } else {
-      console.log('✅ datetime column already exists, skipping migration')
     }
   } catch (e) {
     console.error('❌ Migration check failed:', e)
   }
 }
 
-// Migrationen und Integritäts-Checks bitte nur noch manuell oder in einem separaten Setup-Skript ausführen!
+export function startCsvWatcher() {
+  csvWatcher.start()
+}
 
 // Create indexes for better performance
 db.exec(`
@@ -245,14 +198,10 @@ export function checkDatabaseHealth() {
     const weatherCount = db.prepare('SELECT COUNT(*) as count FROM weather').get() as { count: number }
     const measurementsCount = db.prepare('SELECT COUNT(*) as count FROM measurements').get() as { count: number }
     
-    console.log(`📊 Database health check:`)
-    console.log(`   Weather records: ${weatherCount.count}`)
-    console.log(`   Measurement records: ${measurementsCount.count}`)
-    
     // Check for records with missing created_at (should be 0 after migration)
     const missingCreatedAt = db.prepare('SELECT COUNT(*) as count FROM weather WHERE created_at IS NULL').get() as { count: number }
     if (missingCreatedAt.count > 0) {
-      console.warn(`⚠️  Found ${missingCreatedAt.count} weather records without created_at timestamp`)
+      // console.warn(`⚠️  Found ${missingCreatedAt.count} weather records without created_at timestamp`)
     }
     
     return true
@@ -274,12 +223,11 @@ checkDatabaseHealth()
 // }
 
 // Starte den CSV-Watcher für automatischen Import
-csvWatcher.start()
+// csvWatcher.start() // This line was removed as per the edit hint.
 // Initial-Import aller vorhandenen CSV-Dateien
-csvWatcher.processAllFiles()
+// csvWatcher.processAllFiles() // This line was removed as per the edit hint.
 
 // Start CSV watcher for automatic processing
-console.log('🚀 Starting automatic CSV processing...')
 // addWeatherCron() // This line was removed as per the edit hint.
 
 export function addDatabaseBackupCron() {
@@ -296,7 +244,6 @@ export function addDatabaseBackupCron() {
       const name = `backup-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}.sqlite`
       const backupPath = path.join(backupDir, name)
       fs.copyFileSync(dbPath, backupPath)
-      console.log(`[Backup] Datenbank-Backup erstellt: ${backupPath}`)
     } catch (e) {
       console.error('[Backup] Fehler beim Erstellen des Backups:', e)
     }
@@ -323,7 +270,6 @@ cron.schedule('0 3 * * *', () => {
     if (health.notify) {
       const file = path.join(process.cwd(), 'backups', 'last-health-problem.json')
       fs.writeFileSync(file, JSON.stringify(health, null, 2))
-      console.warn('[HealthCheck] Integritätsproblem erkannt und notify-Flag gesetzt:', health)
     }
   } catch (e) {
     console.error('[HealthCheck] Fehler beim automatischen Health-Check:', e)
@@ -351,7 +297,6 @@ cron.schedule('30 3 * * *', () => {
         message: `Monitoring: ${importErrors} ImportError, ${dbErrors} DatabaseError, ${integrityProblems} Integritätsprobleme in den letzten 24h.`
       }
       fs.writeFileSync(file, JSON.stringify(health, null, 2))
-      console.warn('[Monitoring] Wiederkehrende Fehler erkannt und notify-Flag gesetzt:', health)
     }
   } catch (e) {
     console.error('[Monitoring] Fehler bei der Fehleranalyse:', e)

@@ -22,7 +22,6 @@ export function processCSVFile(station: string, csvPath: string) {
       ).get(station, fileName) as { count: number }
       
       if (processedCheck.count > 0) {
-        console.log(`  ⏭️  ${fileName}: Already processed, skipping`)
         return 0
       }
       
@@ -90,18 +89,13 @@ export function processCSVFile(station: string, csvPath: string) {
         db.exec('COMMIT')
       } catch (batchErr) {
         db.exec('ROLLBACK')
-        console.error(`[Import] Fehler beim Einfügen der Zeilen:`, batchErr)
       }
       return insertedCount
     } catch (e) {
       if (attempts < MAX_ATTEMPTS) {
-        console.warn(`[Batch-Import] Fehler beim Import von ${csvPath}, Versuch ${attempts}:`, e)
-        // Kurze Pause vor Retry
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200)
         continue
       } else {
         const msg = e instanceof Error ? e.message : String(e)
-        console.error(`[Batch-Import] Fehler beim Import von ${csvPath} nach ${MAX_ATTEMPTS} Versuchen:`, msg)
         return 0
       }
     }
@@ -131,8 +125,6 @@ export function parseCSVData(csvContent: string, station: string) {
 }
 
 export function processAllCSVFiles() {
-  console.log('🔄 Processing all CSV files...')
-  
   const stations = ['ort', 'techno', 'heuballern', 'band']
   let totalInserted = 0
   
@@ -141,7 +133,6 @@ export function processAllCSVFiles() {
     
     try {
       if (!fs.existsSync(csvDir)) {
-        console.log(`⚠️  CSV directory not found for ${station}`)
         continue
       }
       const csvFiles = fs.readdirSync(csvDir).filter(file => file.endsWith('.csv'))
@@ -152,8 +143,6 @@ export function processAllCSVFiles() {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
-      console.error(`[processAllCSVFiles] Fehler beim Verarbeiten von ${station}:`, msg)
     }
   }
-  console.log(`✅ Total inserted: ${totalInserted}`)
 }
