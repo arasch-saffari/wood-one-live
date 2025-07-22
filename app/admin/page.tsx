@@ -17,6 +17,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet'
 import { Sidebar, SidebarMenu, SidebarMenuButton, SidebarProvider } from '@/components/ui/sidebar'
 import Link from "next/link"
+import { SettingsForm, SettingsField } from "@/components/SettingsForm"
+import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
+import { useHealth } from "@/hooks/useHealth"
+import { useCron } from "@/hooks/useCron"
+import { useLogs } from "@/hooks/useLogs"
+import { ErrorMessage } from "@/components/ErrorMessage"
+import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
+import { borderRadius, colors } from '@/lib/theme'
 
 interface CSVFile {
   name: string
@@ -45,14 +55,14 @@ export default function AdminDashboard() {
   const [config, setConfig] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [health, setHealth] = useState<any>(null)
-  const [cron, setCron] = useState<any>(null)
-  const [watcher, setWatcher] = useState<any>(null)
-  const [logs, setLogs] = useState<string[]>([])
+  const { health, loading: healthLoading, error: healthError } = useHealth()
+  const { cron, loading: cronLoading, error: cronError } = useCron()
+  const { logs, loading: logsLoading, error: logsError } = useLogs()
+  const { watcherStatus: watcher, loading: watcherLoading, error: watcherError } = useCsvWatcherStatus()
+  const { watcherStatus: csvStatus, loading: csvStatusLoading, error: csvStatusError } = useCsvWatcherStatus()
   const [backupUploading, setBackupUploading] = useState(false)
   const [restoreMessage, setRestoreMessage] = useState<string|null>(null)
   const [resetting, setResetting] = useState(false)
-  const [csvStatus, setCsvStatus] = useState<any>(null)
   const [csvUploading, setCsvUploading] = useState<{[station: string]: boolean}>({})
   const [csvError, setCsvError] = useState<string|null>(null)
   const [correctionQuery, setCorrectionQuery] = useState('')
@@ -88,34 +98,25 @@ export default function AdminDashboard() {
       })
     }
     if (segment === 'overview' || segment === 'system') {
-      fetch('/api/admin/health').then(res => res.json()).then(data => {
-        setHealth(data)
-        if (data.notify || data.integrityProblem) {
-          toast({
-            title: 'Integritätsproblem',
-            description: `Es wurden ${data.integrityCount || 'einige'} fehlerhafte Messungen (NULL in NOT NULL-Spalten) gefunden! Bitte prüfe die Datenbank.`,
-            variant: 'destructive',
+      if (health && (health.notify || health.integrityProblem)) {
+        toast({
+          title: 'Integritätsproblem',
+          description: `Es wurden ${health.integrityCount || 'einige'} fehlerhafte Messungen (NULL in NOT NULL-Spalten) gefunden! Bitte prüfe die Datenbank.`,
+          variant: 'destructive',
+        })
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Integritätsproblem', {
+            body: `Es wurden ${health.integrityCount || 'einige'} fehlerhafte Messungen gefunden!`,
+            icon: '/alert-icon.png',
           })
-          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification('Integritätsproblem', {
-              body: `Es wurden ${data.integrityCount || 'einige'} fehlerhafte Messungen gefunden!`,
-              icon: '/alert-icon.png',
-            })
-          }
         }
-      })
-      fetch('/api/admin/cron').then(res => res.json()).then(setCron)
-      fetch('/api/csv-watcher-status').then(res => res.json()).then(setWatcher)
-      fetch('/api/admin/logs').then(res => res.json()).then(data => setLogs(data.lines || []))
-    }
-    if (segment === 'csv') {
-      fetch('/api/csv-watcher-status').then(res => res.json()).then(setCsvStatus)
+      }
     }
     if (segment === 'correction') {
       fetchCorrectionStats()
       fetchCorrectionData()
     }
-  }, [segment])
+  }, [segment, health])
 
   function handleThresholdChange(station: string, idx: number, key: string, value: number | string) {
     setConfig((prev: any) => {
@@ -275,7 +276,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/upload-csv', { method: 'POST', body: formData })
       const data = await res.json()
       if (!res.ok || !data.success) setCsvError(data.message || 'Fehler beim Upload')
-      fetch('/api/csv-watcher-status').then(res => res.json()).then(setCsvStatus)
+      // csvStatus will auto-refresh via hook polling
     } catch (e: any) {
       setCsvError(e?.message || 'Fehler beim Upload')
     } finally {
@@ -629,36 +630,42 @@ export default function AdminDashboard() {
           {/* Main Content mit Margin */}
           <div className="lg:ml-[280px]">
             {/* Kein Header mehr über dem Content */}
-            <main className="flex-1 p-6 md:p-10 w-full max-w-7xl mx-auto min-h-screen">
+            <main className="flex-1 p-6 md:p-10 w-full min-h-screen">
               {segment === 'overview' && (
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">Admin Übersicht</h1>
-                  <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                    <Card className="max-w-2xl w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                      <CardHeader><CardTitle>Datenbank</CardTitle></CardHeader>
-                      <CardContent>
-                        <div className="text-sm">Größe: <b>{health?.dbSize ? (health.dbSize/1024/1024).toFixed(2) : '-'} MB</b></div>
-                        <div className="text-sm">Letztes Backup: <b>-</b></div>
-                      </CardContent>
-                    </Card>
-                    <Card className="max-w-2xl w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                      <CardHeader><CardTitle>CSV-Watcher</CardTitle></CardHeader>
-                      <CardContent>
-                        <div className="text-sm">Status: <Badge className={watcher?.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{watcher?.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
-                        <div className="text-sm">Letzter Heartbeat: <b>{watcher?.watcherHeartbeat ? new Date(watcher.watcherHeartbeat).toLocaleString() : '-'}</b></div>
-                        <div className="text-sm">CSV-Dateien: <b>{watcher?.totalFiles ?? '-'}</b></div>
-                      </CardContent>
-                    </Card>
-                    <Card className="max-w-2xl w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                      <CardHeader><CardTitle>System</CardTitle></CardHeader>
-                      <CardContent>
-                        <div className="text-sm">Zeit: <b>{health?.time ? new Date(health.time).toLocaleString() : '-'}</b></div>
-                        <div className="text-sm">Speicher frei: <b>{health?.diskFree ? (health.diskFree/1024/1024/1024).toFixed(2) : '-'} GB</b></div>
-                        <div className="text-sm">Speicher gesamt: <b>{health?.diskTotal ? (health?.diskTotal/1024/1024/1024).toFixed(2) : '-'} GB</b></div>
-                      </CardContent>
-                    </Card>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    {healthLoading && <LoadingSpinner text="Systemdaten werden geladen..." />}
+                    {healthError && <ErrorMessage message={healthError} />}
+                    {health && !healthLoading && !healthError && (
+                      <>
+                        <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                          <CardHeader><CardTitle>Datenbank</CardTitle></CardHeader>
+                          <CardContent>
+                            <div className="text-sm">Größe: <b>{health.dbSize ? (health.dbSize/1024/1024).toFixed(2) : '-'} MB</b></div>
+                            <div className="text-sm">Letztes Backup: <b>{health.lastBackup ? new Date(health.lastBackup).toLocaleString() : '-'}</b></div>
+                          </CardContent>
+                        </Card>
+                        <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                          <CardHeader><CardTitle>CSV-Watcher</CardTitle></CardHeader>
+                          <CardContent>
+                            <div className="text-sm">Status: <Badge className={health.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{health.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
+                            <div className="text-sm">Letzter Heartbeat: <b>{health.watcherHeartbeat ? new Date(health.watcherHeartbeat).toLocaleString() : '-'}</b></div>
+                            <div className="text-sm">CSV-Dateien: <b>{health.totalFiles ?? '-'}</b></div>
+                          </CardContent>
+                        </Card>
+                        <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                          <CardHeader><CardTitle>System</CardTitle></CardHeader>
+                          <CardContent>
+                            <div className="text-sm">Zeit: <b>{health.time ? new Date(health.time).toLocaleString() : '-'}</b></div>
+                            <div className="text-sm">Speicher frei: <b>{health.diskFree ? (health.diskFree/1024/1024/1024).toFixed(2) : '-'} GB</b></div>
+                            <div className="text-sm">Speicher gesamt: <b>{health.diskTotal ? (health.diskTotal/1024/1024/1024).toFixed(2) : '-'} GB</b></div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    )}
                   </div>
-                  <Card className="max-w-6xl mx-auto w-full mb-8 p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full mb-8 p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Geplante Aufgaben (Cron)</CardTitle></CardHeader>
                     <CardContent>
                       <Table>
@@ -666,6 +673,8 @@ export default function AdminDashboard() {
                           <TableRow><TableHead>Aufgabe</TableHead><TableHead>Intervall</TableHead><TableHead>Letzter Lauf</TableHead><TableHead>Status</TableHead></TableRow>
                         </TableHeader>
                         <TableBody>
+                          {cronLoading && <LoadingSpinner text="Cron-Aufgaben werden geladen..." />}
+                          {cronError && <ErrorMessage message={cronError} />}
                           {cron?.crons?.map((c: any, i: number) => (
                             <TableRow key={i}>
                               <TableCell>{c.name}</TableCell>
@@ -682,77 +691,133 @@ export default function AdminDashboard() {
                     <CardHeader><CardTitle>Letzte System-Logs</CardTitle></CardHeader>
                     <CardContent>
                       <div className="max-h-64 overflow-y-auto font-mono text-xs bg-gray-50 dark:bg-gray-900/40 rounded p-2 border border-gray-200 dark:border-gray-700">
-                        {logs.length === 0 ? <div className="text-gray-400">Keine Logs gefunden.</div> : logs.map((line, i) => <div key={i}>{line}</div>)}
+                        {logsLoading && <LoadingSpinner text="Logs werden geladen..." />}
+                        {logsError && <ErrorMessage message={logsError} />}
+                        {logs.length === 0 && !logsLoading && !logsError ? <div className="text-gray-400">Keine Logs gefunden.</div> : logs.map((line, i) => <div key={i}>{line}</div>)}
                       </div>
                     </CardContent>
                   </Card>
                 </section>
               )}
-              {segment === 'thresholds' && (
-                <section className="space-y-8">
-                  <h1 className="text-2xl font-bold mb-6">Schwellenwerte</h1>
-                  {config && config.thresholdsByStationAndTime && (
-                    <div className="flex flex-col gap-8">
-                      {Object.entries(config.thresholdsByStationAndTime).map(([station, blocks]) => (
-                        <Card key={station} className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                          <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                            <div className="flex items-center gap-3">
-                              {station === 'ort' && <MapPin className="w-7 h-7 text-emerald-500" />}
-                              {station === 'techno' && <Settings2 className="w-7 h-7 text-fuchsia-500" />}
-                              {station === 'heuballern' && <Sun className="w-7 h-7 text-blue-500" />}
-                              {station === 'band' && <DatabaseZap className="w-7 h-7 text-orange-500" />}
-                              <CardTitle className="capitalize text-2xl tracking-tight text-card-foreground">{station}</CardTitle>
+              {segment === 'thresholds' && config && config.thresholdsByStationAndTime && (
+                <section className="space-y-12">
+                  <h1 className="text-3xl font-extrabold tracking-tight mb-8 flex items-center gap-4 sticky top-0 z-10 bg-gradient-to-b from-white/80 to-transparent dark:from-gray-900/80 dark:to-transparent backdrop-blur-xl py-4 px-2 rounded-2xl shadow-lg">
+                    <Settings2 className="w-8 h-8 text-violet-500" />
+                    Schwellenwerte
+                    <span className="text-base font-normal text-gray-400 ml-4">Grenzwerte & Zeitblöcke pro Station</span>
+                  </h1>
+                  {Object.entries(config.thresholdsByStationAndTime).map(([station, blocks], stationIdx) => (
+                    <div key={station} className="space-y-8">
+                      <h2 className={cn("flex items-center gap-3 text-2xl font-bold mb-6", stationIdx > 0 ? "mt-32" : "mt-12")}>
+                        {station === 'ort' && <MapPin className="w-7 h-7 text-emerald-400" />}
+                        {station === 'techno' && <Settings2 className="w-7 h-7 text-fuchsia-400" />}
+                        {station === 'heuballern' && <Sun className="w-7 h-7 text-cyan-400" />}
+                        {station === 'band' && <DatabaseZap className="w-7 h-7 text-orange-400" />}
+                        <span className="capitalize">{station}</span>
+                      </h2>
+                      <div className="flex flex-col gap-8">
+                        {(blocks as any[]).map((block, idx) => {
+                          const isDay = block.from < block.to
+                          return (
+                            <div
+                              key={idx}
+                              className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl flex flex-col gap-6"
+                              aria-label={`Zeitblock ${block.from} - ${block.to} (${isDay ? 'Tag' : 'Nacht'})`}
+                            >
+                              <h3 className="flex items-center gap-3 text-xl font-semibold mb-2">
+                                {isDay ? <Sun className="w-6 h-6 text-yellow-400" /> : <Moon className="w-6 h-6 text-blue-400" />}
+                                Zeitblock: {block.from} - {block.to}
+                                <span className={cn("ml-2 px-3 py-1 rounded-full text-xs font-bold", isDay ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700")}>{isDay ? 'Tag' : 'Nacht'}</span>
+                              </h3>
+                              <form
+                                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                                onSubmit={e => { e.preventDefault(); handleSave(); }}
+                                aria-label={`Schwellenwerte für ${block.from} - ${block.to}`}
+                              >
+                                <label className="flex flex-col gap-1">
+                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-yellow-500" /> Warnung</span>
+                                  <input
+                                    type="number"
+                                    className="input input-lg focus:ring-2 focus:ring-yellow-400 rounded-lg border border-yellow-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                    value={block.warning}
+                                    onChange={e => handleThresholdChange(station, idx, 'warning', Number(e.target.value))}
+                                    min={0}
+                                    aria-label="Warnung dB"
+                                  />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-500" /> Alarm</span>
+                                  <input
+                                    type="number"
+                                    className="input input-lg focus:ring-2 focus:ring-red-400 rounded-lg border border-red-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                    value={block.alarm}
+                                    onChange={e => handleThresholdChange(station, idx, 'alarm', Number(e.target.value))}
+                                    min={0}
+                                    aria-label="Alarm dB"
+                                  />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">LAS</span>
+                                  <input
+                                    type="number"
+                                    className="input input-lg focus:ring-2 focus:ring-emerald-400 rounded-lg border border-emerald-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                    value={block.las}
+                                    onChange={e => handleThresholdChange(station, idx, 'las', Number(e.target.value))}
+                                    min={0}
+                                    aria-label="LAS dB"
+                                  />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">LAF</span>
+                                  <input
+                                    type="number"
+                                    className="input input-lg focus:ring-2 focus:ring-cyan-400 rounded-lg border border-cyan-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                    value={block.laf}
+                                    onChange={e => handleThresholdChange(station, idx, 'laf', Number(e.target.value))}
+                                    min={0}
+                                    aria-label="LAF dB"
+                                  />
+                                </label>
+                                <div className="flex gap-4 col-span-1 md:col-span-2">
+                                  <label className="flex flex-col gap-1 flex-1">
+                                    <span className="font-medium text-gray-700 dark:text-gray-200">Von</span>
+                                    <input
+                                      type="text"
+                                      className="input input-lg focus:ring-2 focus:ring-violet-400 rounded-lg border border-violet-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                      value={block.from}
+                                      onChange={e => handleThresholdChange(station, idx, 'from', e.target.value)}
+                                      placeholder="HH:MM"
+                                      aria-label="Von Uhrzeit"
+                                    />
+                                  </label>
+                                  <label className="flex flex-col gap-1 flex-1">
+                                    <span className="font-medium text-gray-700 dark:text-gray-200">Bis</span>
+                                    <input
+                                      type="text"
+                                      className="input input-lg focus:ring-2 focus:ring-violet-400 rounded-lg border border-violet-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                      value={block.to}
+                                      onChange={e => handleThresholdChange(station, idx, 'to', e.target.value)}
+                                      placeholder="HH:MM"
+                                      aria-label="Bis Uhrzeit"
+                                    />
+                                  </label>
+                                </div>
+                                <Button
+                                  type="submit"
+                                  className="mt-8 w-full py-3 text-lg font-bold rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg hover:scale-[1.02] transition-all"
+                                  disabled={saving}
+                                  aria-label="Schwellenwerte speichern"
+                                >
+                                  {saving ? 'Speichern...' : 'Speichern'}
+                                </Button>
+                                {configError && <div className="text-red-500 font-semibold text-sm mt-2">{configError}</div>}
+                              </form>
                             </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex flex-col gap-8">
-                              {(blocks as any[]).map((block, idx) => {
-                                const isDay = block.from < block.to
-                                return (
-                                  <div key={idx} className="flex flex-col gap-4 p-6 rounded-xl border border-border bg-muted/60 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      {isDay ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-blue-400" />}
-                                      <span className="font-semibold text-base text-card-foreground">{block.from} - {block.to}</span>
-                                      <span className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${isDay ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>{isDay ? 'Tag' : 'Nacht'}</span>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                      <div className="flex flex-col gap-1">
-                                        <Label className="text-xs">Warnung</Label>
-                                        <Input type="number" value={block.warning} onChange={e => handleThresholdChange(station, idx, 'warning', Number(e.target.value))} className="focus:ring-2 focus:ring-primary border-border" />
-                                      </div>
-                                      <div className="flex flex-col gap-1">
-                                        <Label className="text-xs">Alarm</Label>
-                                        <Input type="number" value={block.alarm} onChange={e => handleThresholdChange(station, idx, 'alarm', Number(e.target.value))} className="focus:ring-2 focus:ring-primary border-border" />
-                                      </div>
-                                      <div className="flex flex-col gap-1">
-                                        <Label className="text-xs">LAS</Label>
-                                        <Input type="number" value={block.las} onChange={e => handleThresholdChange(station, idx, 'las', Number(e.target.value))} className="focus:ring-2 focus:ring-primary border-border" />
-                                      </div>
-                                      <div className="flex flex-col gap-1">
-                                        <Label className="text-xs">LAF</Label>
-                                        <Input type="number" value={block.laf} onChange={e => handleThresholdChange(station, idx, 'laf', Number(e.target.value))} className="focus:ring-2 focus:ring-primary border-border" />
-                                      </div>
-                                      <div className="flex flex-col gap-1">
-                                        <Label className="text-xs">Von</Label>
-                                        <Input type="time" value={block.from} onChange={e => handleThresholdChange(station, idx, 'from', e.target.value)} className="focus:ring-2 focus:ring-primary border-border" />
-                                      </div>
-                                      <div className="flex flex-col gap-1">
-                                        <Label className="text-xs">Bis</Label>
-                                        <Input type="time" value={block.to} onChange={e => handleThresholdChange(station, idx, 'to', e.target.value)} className="focus:ring-2 focus:ring-primary border-border" />
-                                      </div>
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </CardContent>
-                          <CardFooter className="pt-6 flex justify-end">
-                            <Button className="px-6 py-2 text-base font-semibold shadow" onClick={handleSave} disabled={saving}>{saving ? 'Speichern...' : 'Speichern'}</Button>
-                          </CardFooter>
-                        </Card>
-                      ))}
+                          )
+                        })}
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </section>
               )}
               {segment === 'system' && (
@@ -762,21 +827,21 @@ export default function AdminDashboard() {
                   {health?.error && <div className="text-sm text-red-500">{health.error}</div>}
                   {health && !health.error && (
                     <>
-                      <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                         <CardHeader><CardTitle>Datenbank</CardTitle></CardHeader>
                         <CardContent>
                           <div className="text-sm">Größe: <b>{health.dbSize ? (health.dbSize/1024/1024).toFixed(2) : '-'} MB</b></div>
                           <div className="text-sm">Letztes Backup: <b>{health.lastBackup ? new Date(health.lastBackup).toLocaleString() : '-'}</b></div>
                         </CardContent>
                       </Card>
-                      <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                         <CardHeader><CardTitle>CSV-Watcher</CardTitle></CardHeader>
                         <CardContent>
                           <div className="text-sm">Status: <Badge className={health.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{health.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
                           <div className="text-sm">Letzter Heartbeat: <b>{health.watcherHeartbeat ? new Date(health.watcherHeartbeat).toLocaleString() : '-'}</b></div>
                         </CardContent>
                       </Card>
-                      <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                         <CardHeader><CardTitle>System</CardTitle></CardHeader>
                         <CardContent>
                           <div className="text-sm">Zeit: <b>{health.time ? new Date(health.time).toLocaleString() : '-'}</b></div>
@@ -784,18 +849,28 @@ export default function AdminDashboard() {
                           <div className="text-sm">Speicher gesamt: <b>{health.diskTotal ? (health.diskTotal/1024/1024/1024).toFixed(2) : '-'} GB</b></div>
                         </CardContent>
                       </Card>
-                      <div>
-                        <label htmlFor="apiCacheDuration" className="block font-medium mb-1">API-Cache-Dauer (Sekunden)</label>
-                        <input
-                          id="apiCacheDuration"
-                          type="number"
-                          min={0}
-                          value={config?.apiCacheDuration ?? 60}
-                          onChange={e => setConfig((prev: any) => ({ ...prev, apiCacheDuration: Number(e.target.value) }))}
-                          className="border rounded px-2 py-1 w-32"
-                        />
-                        <span className="ml-2 text-sm text-gray-500">(0 = kein Caching, Standard: 60)</span>
-                      </div>
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                        <CardHeader><CardTitle>API-Cache-Dauer</CardTitle></CardHeader>
+                        <CardContent>
+                          <SettingsForm
+                            fields={[{
+                              name: "apiCacheDuration",
+                              label: "API-Cache-Dauer (Sekunden)",
+                              type: "number",
+                              value: config?.apiCacheDuration ?? 60,
+                              onChange: v => setConfig((prev: any) => ({ ...prev, apiCacheDuration: v })),
+                              min: 0,
+                              max: 3600,
+                              step: 1,
+                            }]}
+                            onSubmit={e => { e.preventDefault(); handleSave(); }}
+                            submitLabel="Speichern"
+                            loading={saving}
+                            error={configError}
+                          />
+                          <span className="ml-2 text-sm text-gray-500">(0 = kein Caching, Standard: 60)</span>
+                        </CardContent>
+                      </Card>
                     </>
                   )}
                 </section>
@@ -803,7 +878,7 @@ export default function AdminDashboard() {
               {segment === 'csv' && (
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">CSV & Import</h1>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>CSV-Dateien & Upload</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
                       {csvError && <div className="text-xs text-red-500">{csvError}</div>}
@@ -837,7 +912,7 @@ export default function AdminDashboard() {
                       </div>
                     </CardContent>
                   </Card>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Watcher-Status</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-sm">Status: <Badge className={csvStatus?.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{csvStatus?.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
@@ -845,7 +920,7 @@ export default function AdminDashboard() {
                       <div className="text-sm">CSV-Dateien: <b>{csvStatus?.totalFiles ?? '-'}</b></div>
                     </CardContent>
                   </Card>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Factory Reset</CardTitle></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       <Button onClick={handleFactoryReset} className="w-48 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold" size="lg" disabled={resetting}>
@@ -854,7 +929,7 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Löscht alle Messwerte, Wetterdaten und CSV-Dateien unwiderruflich.</div>
                     </CardContent>
                   </Card>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Backup-Plan</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-sm">Tägliches automatisches Backup um 03:00 Uhr (siehe <code>backups/</code> Verzeichnis).</div>
@@ -865,7 +940,7 @@ export default function AdminDashboard() {
               {segment === 'backup' && (
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">Backup & Restore</h1>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Datenbank-Backup</CardTitle></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       <Button onClick={handleBackupDownload} className="w-48 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold" size="lg">
@@ -874,7 +949,7 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Das Backup enthält alle Messwerte, Wetterdaten und Konfigurationen.</div>
                     </CardContent>
                   </Card>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Restore (Wiederherstellen)</CardTitle></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -886,7 +961,7 @@ export default function AdminDashboard() {
                       {restoreMessage && <div className="text-xs text-emerald-600">{restoreMessage}</div>}
                     </CardContent>
                   </Card>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Factory Reset</CardTitle></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       <Button onClick={handleFactoryReset} className="w-48 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold" size="lg" disabled={resetting}>
@@ -895,7 +970,7 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Löscht alle Messwerte, Wetterdaten und CSV-Dateien unwiderruflich.</div>
                     </CardContent>
                   </Card>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Backup-Plan</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-sm">Tägliches automatisches Backup um 03:00 Uhr (siehe <code>backups/</code> Verzeichnis).</div>
@@ -906,7 +981,7 @@ export default function AdminDashboard() {
               {segment === 'correction' && (
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">Datenkorrektur</h1>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Suche & Filter</CardTitle></CardHeader>
                     <CardContent className="flex flex-wrap gap-4 items-end">
                       <div>
@@ -938,7 +1013,7 @@ export default function AdminDashboard() {
                       <Button variant="outline" onClick={fetchCorrectionData}><Search className="w-4 h-4 mr-1" />Suchen</Button>
                     </CardContent>
                   </Card>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Statistiken</CardTitle></CardHeader>
                     <CardContent>
                       {correctionStats ? (
@@ -949,7 +1024,7 @@ export default function AdminDashboard() {
                       ) : <div className="text-gray-400">Keine Daten</div>}
                     </CardContent>
                   </Card>
-                  <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Daten</CardTitle></CardHeader>
                     <CardContent>
                       {correctionError && <div className="text-xs text-red-500 mb-2">{correctionError}</div>}
@@ -1043,7 +1118,16 @@ export default function AdminDashboard() {
                   </Sheet>
                 </section>
               )}
-              {segment === 'settings' && <AdminSettings />}
+              {segment === 'settings' && (
+                <section className="space-y-8">
+                  <h1 className="text-2xl font-bold mb-6">Globale Einstellungen</h1>
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                    <CardContent>
+                      <AdminSettings />
+                    </CardContent>
+                  </Card>
+                </section>
+              )}
             </main>
           </div>
         </div>
@@ -1063,35 +1147,6 @@ function AdminSettings() {
     fetch('/api/admin/config').then(res => res.json()).then(setConfig)
   }, [])
 
-  // Handler für spätere Settings-Änderungen (z.B. Chart-Limits, Granularitäten)
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value } = e.target
-    setConfig((prev: any) => ({ ...prev, [name]: value }))
-  }
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
-    setSuccess(false)
-    try {
-      const res = await fetch('/api/admin/config', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...config,
-          // Hier später weitere Settings explizit updaten
-        })
-      })
-      if (!res.ok) throw new Error('Fehler beim Speichern')
-      setSuccess(true)
-    } catch (e: any) {
-      setError(e.message || 'Unbekannter Fehler')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   // Optionen für Intervalle und Granularitäten
   const intervalOptions = [
     { value: '24h', label: '24 Stunden' },
@@ -1105,91 +1160,138 @@ function AdminSettings() {
     { value: '1min', label: '1 Minute' },
   ]
 
+  function setField(name: string, value: any) {
+    setConfig((prev: any) => ({ ...prev, [name]: value }))
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    setSuccess(false)
+    try {
+      const res = await fetch('/api/admin/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      })
+      if (!res.ok) throw new Error('Fehler beim Speichern')
+      setSuccess(true)
+    } catch (e: any) {
+      setError(e.message || 'Unbekannter Fehler')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!config) return <div>Lade Einstellungen...</div>
+
+  const fields: SettingsField[] = [
+    {
+      name: "chartLimit",
+      label: "Maximale Datenpunkte pro Chart",
+      type: "number",
+      value: config.chartLimit ?? 50,
+      onChange: v => setField("chartLimit", v),
+      min: 10,
+      max: 500,
+      step: 1,
+    },
+    {
+      name: "defaultInterval",
+      label: "Standard-Intervall",
+      type: "text",
+      value: config.defaultInterval ?? "24h",
+      onChange: v => setField("defaultInterval", v),
+      placeholder: "24h oder 7d",
+    },
+    {
+      name: "defaultGranularity",
+      label: "Standard-Granularität",
+      type: "text",
+      value: config.defaultGranularity ?? "15min",
+      onChange: v => setField("defaultGranularity", v),
+      placeholder: "z.B. 15min",
+    },
+    {
+      name: "pollingIntervalSeconds",
+      label: "Polling-Intervall (Sekunden)",
+      type: "number",
+      value: config.pollingIntervalSeconds ?? 120,
+      onChange: v => setField("pollingIntervalSeconds", v),
+      min: 30,
+      max: 3600,
+      step: 10,
+    },
+    {
+      name: "apiMaxRequests",
+      label: "API Rate-Limit: Max. Requests",
+      type: "number",
+      value: config.apiMaxRequests ?? 30,
+      onChange: v => setField("apiMaxRequests", v),
+      min: 1,
+      max: 1000,
+      step: 1,
+    },
+    {
+      name: "apiIntervalMs",
+      label: "API Rate-Limit: Intervall (ms)",
+      type: "number",
+      value: config.apiIntervalMs ?? 60000,
+      onChange: v => setField("apiIntervalMs", v),
+      min: 1000,
+      max: 3600000,
+      step: 1000,
+    },
+    {
+      name: "weatherFallbackWindSpeed",
+      label: "Wetterdaten-Fallback: Windgeschwindigkeit (km/h)",
+      type: "number",
+      value: config.weatherFallbackWindSpeed ?? 0,
+      onChange: v => setField("weatherFallbackWindSpeed", v),
+      min: 0,
+      max: 200,
+      step: 0.1,
+    },
+    {
+      name: "weatherFallbackWindDir",
+      label: "Wetterdaten-Fallback: Windrichtung (°/Text)",
+      type: "text",
+      value: config.weatherFallbackWindDir ?? "N",
+      onChange: v => setField("weatherFallbackWindDir", v),
+      placeholder: "z.B. N, S, E, W",
+    },
+    {
+      name: "weatherFallbackRelHumidity",
+      label: "Wetterdaten-Fallback: rel. Luftfeuchtigkeit (%)",
+      type: "number",
+      value: config.weatherFallbackRelHumidity ?? 50,
+      onChange: v => setField("weatherFallbackRelHumidity", v),
+      min: 0,
+      max: 100,
+      step: 1,
+    },
+    {
+      name: "weatherFallbackTemperature",
+      label: "Wetterdaten-Fallback: Temperatur (°C)",
+      type: "number",
+      value: config.weatherFallbackTemperature ?? 15,
+      onChange: v => setField("weatherFallbackTemperature", v),
+      min: -50,
+      max: 60,
+      step: 0.1,
+    },
+  ]
+
   return (
     <section className="space-y-8">
       <h1 className="text-2xl font-bold mb-6">Globale Einstellungen</h1>
-      <form onSubmit={handleSave} className="flex flex-col gap-8">
-        <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-lg">Chart-Konfiguration</CardTitle>
-            <CardDescription>Steuere Anzeige- und Standardwerte für alle Diagramme.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4 pt-2">
-            <div>
-              <Label htmlFor="chartLimit">Maximale Datenpunkte pro Chart</Label>
-              <Input id="chartLimit" type="number" name="chartLimit" value={config?.chartLimit ?? 50} onChange={handleChange} min={10} max={500} step={1} />
-            </div>
-            <div>
-              <Label htmlFor="defaultInterval">Standard-Intervall</Label>
-              <Select name="defaultInterval" value={config?.defaultInterval ?? '24h'} onValueChange={val => handleChange({ target: { name: 'defaultInterval', value: val } } as any)}>
-                <SelectTrigger id="defaultInterval">
-                  <SelectValue placeholder="Intervall wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {intervalOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="defaultGranularity">Standard-Granularität</Label>
-              <Select name="defaultGranularity" value={config?.defaultGranularity ?? '15min'} onValueChange={val => handleChange({ target: { name: 'defaultGranularity', value: val } } as any)}>
-                <SelectTrigger id="defaultGranularity">
-                  <SelectValue placeholder="Granularität wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {granularityOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="pollingIntervalSeconds">Polling-Intervall (Sekunden)</Label>
-              <Input id="pollingIntervalSeconds" type="number" name="pollingIntervalSeconds" value={config?.pollingIntervalSeconds ?? 120} onChange={handleChange} min={30} max={3600} step={10} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="max-w-7xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-lg">API & Wetter-Konfiguration</CardTitle>
-            <CardDescription>Globale Limits und Fallbacks für API und Wetterdaten.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4 pt-2">
-            <div>
-              <Label htmlFor="apiMaxRequests">API Rate-Limit: Max. Requests</Label>
-              <Input id="apiMaxRequests" type="number" name="apiMaxRequests" value={config?.apiMaxRequests ?? 30} onChange={handleChange} min={1} max={1000} step={1} />
-            </div>
-            <div>
-              <Label htmlFor="apiIntervalMs">API Rate-Limit: Intervall (ms)</Label>
-              <Input id="apiIntervalMs" type="number" name="apiIntervalMs" value={config?.apiIntervalMs ?? 60000} onChange={handleChange} min={1000} max={3600000} step={1000} />
-            </div>
-            <div className="pt-2 border-t mt-2">
-              <div className="font-semibold mb-2">Wetterdaten-Fallbacks</div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="weatherFallbackWindSpeed">Windgeschwindigkeit (km/h)</Label>
-                  <Input id="weatherFallbackWindSpeed" type="number" name="weatherFallbackWindSpeed" value={config?.weatherFallbackWindSpeed ?? 0} onChange={handleChange} min={0} max={200} step={0.1} />
-                </div>
-                <div>
-                  <Label htmlFor="weatherFallbackWindDir">Windrichtung (°/Text)</Label>
-                  <Input id="weatherFallbackWindDir" type="text" name="weatherFallbackWindDir" value={config?.weatherFallbackWindDir ?? 'N'} onChange={handleChange} />
-                </div>
-                <div>
-                  <Label htmlFor="weatherFallbackRelHumidity">rel. Luftfeuchtigkeit (%)</Label>
-                  <Input id="weatherFallbackRelHumidity" type="number" name="weatherFallbackRelHumidity" value={config?.weatherFallbackRelHumidity ?? 50} onChange={handleChange} min={0} max={100} step={1} />
-                </div>
-                <div>
-                  <Label htmlFor="weatherFallbackTemperature">Temperatur (°C)</Label>
-                  <Input id="weatherFallbackTemperature" type="number" name="weatherFallbackTemperature" value={config?.weatherFallbackTemperature ?? 15} onChange={handleChange} min={-50} max={60} step={0.1} />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <div className="flex justify-end max-w-6xl mx-auto w-full">
-          <Button type="submit" className="mt-4 px-8" disabled={saving}>{saving ? 'Speichern...' : 'Speichern'}</Button>
-        </div>
-        {error && <div className="text-red-500 mt-2 max-w-6xl mx-auto w-full">{error}</div>}
-        {success && <div className="text-green-600 mt-2 max-w-6xl mx-auto w-full">Gespeichert!</div>}
-      </form>
+      <SettingsForm
+        fields={fields}
+        onSubmit={handleSave}
+        error={error || (success ? "Gespeichert!" : undefined)}
+        loading={saving}
+      />
     </section>
   )
 } 

@@ -9,7 +9,7 @@ import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, 
 import { useStationData, StationDataPoint } from "@/hooks/useStationData"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { STATION_COLORS, CHART_COLORS } from "@/lib/colors"
+import { STATION_META } from "@/lib/stationMeta"
 import {
   TooltipProvider,
   Tooltip as UITooltip,
@@ -17,22 +17,8 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-// Standort-spezifische Farben für konsistente Darstellung
-const locationColors = {
-  Ort: "#10b981", // emerald
-  TechnoFloor: "#ec4899", // pink
-  Bandbuehne: "#a855f7", // purple
-  Heuballern: "#06b6d4", // cyan
-}
-
-// Standort-Routing Mapping
-const locationRoutes = {
-  Ort: "/dashboard/ort",
-  TechnoFloor: "/dashboard/techno",
-  Bandbuehne: "/dashboard/band",
-  Heuballern: "/dashboard/heuballern",
-}
+import { useWeatherData } from "@/hooks/useWeatherData"
+import { useConfig } from "@/hooks/useConfig"
 
 // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
 function windDirectionText(dir: number | string | null | undefined): string {
@@ -92,33 +78,16 @@ export default function AllLocationsPage() {
 
   // Compose current levels for KPI cards (last value in each array)
   const currentLevels = {
-    Ort: ortData.length > 0 ? ortData[ortData.length - 1].las : 0,
-    TechnoFloor: technoData.length > 0 ? technoData[technoData.length - 1].las : 0,
-    Bandbuehne: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
-    Heuballern: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].las : 0,
+    ort: ortData.length > 0 ? ortData[ortData.length - 1].las : 0,
+    techno: technoData.length > 0 ? technoData[technoData.length - 1].las : 0,
+    band: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
+    heuballern: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].las : 0,
   }
 
   // Aktuellster Wetterwert (aus API)
-  const [latestWeather, setLatestWeather] = useState<{ windSpeed?: number; windDir?: string; relHumidity?: number; temperature?: number } | null>(null)
-  useEffect(() => {
-    async function fetchLatestWeather() {
-      try {
-        const res = await fetch("/api/weather?station=global&time=now")
-        if (res.ok) {
-          const data = await res.json()
-          setLatestWeather(data)
-        }
-      } catch {}
-    }
-    fetchLatestWeather()
-    const interval = setInterval(fetchLatestWeather, 60000)
-    return () => clearInterval(interval)
-  }, [])
+  const { weather: latestWeather, loading: weatherLoading, error: weatherError } = useWeatherData("global", "now")
 
-  const [config, setConfig] = useState<any>(null)
-  useEffect(() => {
-    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
-  }, [])
+  const { config, loading: configLoading, error: configError } = useConfig()
 
   // Für jede Station aktuelle Zeit und Schwellenwerte bestimmen
   const getThresholds = (station: string, data: any[]) => {
@@ -155,10 +124,10 @@ export default function AllLocationsPage() {
     const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
     return {
       time,
-      Ort: ort?.las ?? null,
-      TechnoFloor: techno?.las ?? null,
-      Bandbuehne: band?.las ?? null,
-      Heuballern: heuballern?.las ?? null,
+      ort: ort?.las ?? null,
+      techno: techno?.las ?? null,
+      band: band?.las ?? null,
+      heuballern: heuballern?.las ?? null,
       windSpeed: windSpeed ?? null,
     }
   })
@@ -168,6 +137,8 @@ export default function AllLocationsPage() {
 
   // Daten für das Chart filtern
   const filteredChartData = maxPoints > 0 && chartData.length > maxPoints ? chartData.slice(-maxPoints) : chartData
+
+  const WIND_COLOR = "#06b6d4" // cyan-500
 
   return (
     <TooltipProvider>
@@ -193,44 +164,46 @@ export default function AllLocationsPage() {
 
         {/* Standort-Übersicht Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          {Object.entries(currentLevels).map(([location, level]) => (
-            <motion.div key={location}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              {/* Link zu spezifischem Standort Dashboard */}
-              <Link href={locationRoutes[location as keyof typeof locationRoutes]}>
-                <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-200 cursor-pointer hover:scale-105">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
-                        {location}
-                      </CardTitle>
-                      <UITooltip>
-                        <TooltipTrigger asChild>
-                          <div>{getStatusBadge(level, location, ortData)}</div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Status: {level.toFixed(1)} dB</p>
-                          <p className="text-xs text-muted-foreground">Klicken für Details</p>
-                        </TooltipContent>
-                      </UITooltip>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center space-x-2">
-                      <Volume2 className="w-4 h-4" style={{ color: locationColors[location as keyof typeof locationColors] }} />
-                      <span className={`text-xl lg:text-2xl font-bold ${getStatusColor(level, location, ortData)}`}>{level.toFixed(1)}</span>
-                      <span className="text-xs lg:text-sm text-gray-500">dB</span>
-                    </div>
-                    {/* Klick-Hinweis */}
-                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Klicken für Details →</div>
-                  </CardContent>
-                </Card>
-              </Link>
-            </motion.div>
-          ))}
+          {Object.entries(currentLevels).map(([location, level]) => {
+            const meta = STATION_META[location as keyof typeof STATION_META]
+            return (
+              <motion.div key={location}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                {/* Link zu spezifischem Standort Dashboard */}
+                <Link href={`/dashboard/${location}`}>
+                  <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-200 cursor-pointer hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
+                          {meta.name}
+                        </CardTitle>
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <div>{getStatusBadge(level, location, ortData)}</div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Status: {level.toFixed(1)} dB</p>
+                            <p className="text-xs text-muted-foreground">Klicken für Details</p>
+                          </TooltipContent>
+                        </UITooltip>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center space-x-2">
+                        <meta.icon className={`w-4 h-4 text-${meta.kpiColor}`} />
+                        <span className={`text-xl lg:text-2xl font-bold ${getStatusColor(level, location, ortData)}`}>{level.toFixed(1)}</span>
+                        <span className="text-xs lg:text-sm text-gray-500">dB</span>
+                      </div>
+                      {/* Klick-Hinweis */}
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Klicken für Details →</div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            )})}
         </div>
 
         {/* Wetter-Übersicht Card */}
@@ -384,46 +357,46 @@ export default function AllLocationsPage() {
                     {/* Standort-Linien */}
                     <Line
                       type="monotone"
-                      dataKey="Ort"
-                      stroke={STATION_COLORS.ort.primary}
+                      dataKey="ort"
+                      stroke={STATION_META.ort.chartColor}
                       strokeWidth={2}
                       dot={false}
-                      name="Ort"
+                      name={STATION_META.ort.name}
                     />
                     <Line
                       type="monotone"
-                      dataKey="TechnoFloor"
-                      stroke={STATION_COLORS.techno.primary}
+                      dataKey="techno"
+                      stroke={STATION_META.techno.chartColor}
                       strokeWidth={2}
                       dot={false}
-                      name="Techno Floor"
+                      name={STATION_META.techno.name}
                     />
                     <Line
                       type="monotone"
-                      dataKey="Bandbuehne"
-                      stroke={STATION_COLORS.band.primary}
+                      dataKey="band"
+                      stroke={STATION_META.band.chartColor}
                       strokeWidth={2}
                       dot={false}
-                      name="Band Bühne"
+                      name={STATION_META.band.name}
                     />
                     <Line
                       type="monotone"
-                      dataKey="Heuballern"
-                      stroke={STATION_COLORS.heuballern.primary}
+                      dataKey="heuballern"
+                      stroke={STATION_META.heuballern.chartColor}
                       strokeWidth={2}
                       dot={false}
-                      name="Heuballern"
+                      name={STATION_META.heuballern.name}
                     />
                     {/* Windgeschwindigkeit */}
                     <Line
                       yAxisId="wind"
                       type="monotone"
                       dataKey="windSpeed"
-                      stroke={CHART_COLORS.warning}
+                      stroke={WIND_COLOR}
                       strokeWidth={2}
                       strokeDasharray="5 5"
                       dot={false}
-                      name="Wind (km/h)"
+                      name="Windgeschwindigkeit"
                     />
                   </LineChart>
                 </ResponsiveContainer>

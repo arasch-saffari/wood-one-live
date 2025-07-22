@@ -53,6 +53,8 @@ export function useStationData(
 ) {
   const [data, setData] = useState<StationDataPoint[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastAlertRef = useRef<{ level: number; time: number }>({ level: 0, time: 0 })
   const [config, setConfig] = useState<any>(null)
@@ -62,6 +64,8 @@ export function useStationData(
   }, [])
 
   async function fetchAndProcess() {
+    setLoading(true)
+    setError(null)
     try {
       let url = `/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=${granularity}`
       if (page && pageSize) {
@@ -83,6 +87,8 @@ export function useStationData(
         })
         setData([])
         setTotalCount(0)
+        setError(errorMsg)
+        setLoading(false)
         return
       }
       if (result && Array.isArray(result.data)) {
@@ -113,9 +119,11 @@ export function useStationData(
         })
         setData([])
         setTotalCount(0)
+        setError(result.error)
       } else {
         setData([])
         setTotalCount(0)
+        setError('Die Daten konnten nicht geladen werden.')
         toast({
           title: `Unbekannter Fehler für ${station}`,
           description: `Die Daten konnten nicht geladen werden.`,
@@ -152,14 +160,18 @@ export function useStationData(
         }
       }
     } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e)
       toast({
         title: `Fehler für ${station}`,
-        description: e instanceof Error ? e.message : String(e),
+        description: errMsg,
         variant: "destructive"
       })
       setData([])
       setTotalCount(0)
+      setError(errMsg)
       console.error('Error fetching station data:', e)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -173,5 +185,5 @@ export function useStationData(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [station, interval, granularity, page, pageSize, config?.pollingIntervalSeconds])
 
-  return { data, totalCount }
+  return { data, totalCount, loading, error }
 } 

@@ -11,15 +11,19 @@ import { useStationData } from "@/hooks/useStationData"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { STATION_META } from "@/lib/stationMeta"
+import { useWeatherData } from "@/hooks/useWeatherData"
 
 // Navigation Menü Konfiguration
 const navigation = [
-  { name: "Alle Standorte", href: "/dashboard/all", icon: Home, color: STATION_COLORS.all.menuColor },
-  { name: "Ort", href: "/dashboard/ort", icon: MapPin, color: STATION_COLORS.ort.menuColor },
-  { name: "Techno Floor", href: "/dashboard/techno", icon: Volume2, color: STATION_COLORS.techno.menuColor },
-  { name: "Band Bühne", href: "/dashboard/band", icon: Music, color: STATION_COLORS.band.menuColor },
-  { name: "Heuballern", href: "/dashboard/heuballern", icon: MapPin, color: STATION_COLORS.heuballern.menuColor },
-  { name: "Daten Export", href: "/dashboard/export", icon: Download, color: STATION_COLORS.export.menuColor },
+  { name: "Alle Standorte", href: "/dashboard/all", icon: Home, color: "text-slate-500" },
+  ...Object.values(STATION_META).map(meta => ({
+    name: meta.name,
+    href: `/dashboard/${meta.id}`,
+    icon: meta.icon,
+    color: `text-${meta.kpiColor}`
+  })),
+  { name: "Daten Export", href: "/dashboard/export", icon: Download, color: "text-slate-500" },
 ]
 
 export default function DashboardLayout({
@@ -84,26 +88,8 @@ export default function DashboardLayout({
     return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " Uhr"
   }
 
-  // Wetter-Status: Letztes Wetter-Update
-  const [lastWeatherUpdate, setLastWeatherUpdate] = useState<string | null>(null)
-  const [lastWeatherAgo, setLastWeatherAgo] = useState<string | null>(null)
-  const [lastWeatherIsoUtc, setLastWeatherIsoUtc] = useState<string | null>(null)
-  useEffect(() => {
-    async function fetchLastWeather() {
-      try {
-        const res = await fetch("/api/weather/last-update")
-        if (res.ok) {
-          const data = await res.json()
-          setLastWeatherUpdate(data.time)
-          setLastWeatherAgo(data.ago)
-          setLastWeatherIsoUtc(data.isoUtc)
-        }
-      } catch {}
-    }
-    fetchLastWeather()
-    const interval = setInterval(fetchLastWeather, 60000)
-    return () => clearInterval(interval)
-  }, [])
+  // Wetterdaten für Sidebar laden
+  const { weather: sidebarWeather, loading: sidebarWeatherLoading, error: sidebarWeatherError } = useWeatherData("global", "now")
 
   // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
   function windDirectionText(dir: number | string | null | undefined): string {
@@ -129,33 +115,6 @@ export default function DashboardLayout({
     ];
     const idx = Math.round(((deg % 360) / 22.5));
     return directions[idx];
-  }
-
-  // Wetterdaten für Sidebar laden
-  const [sidebarWeather, setSidebarWeather] = useState<{ windSpeed?: number; windDir?: string | number; relHumidity?: number; temperature?: number } | null>(null)
-  useEffect(() => {
-    async function fetchSidebarWeather() {
-      try {
-        const res = await fetch('/api/weather?station=global&time=now')
-        if (res.ok) {
-          const data = await res.json()
-          setSidebarWeather(data)
-        }
-      } catch {}
-    }
-    fetchSidebarWeather()
-    const interval = setInterval(fetchSidebarWeather, 60000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Hilfsfunktion: Zeitstring (z.B. '17:05') in Date-Objekt für heute (Europe/Berlin) umwandeln
-  function parseBerlinTime(time: string | null | undefined): Date | null {
-    if (!time || typeof time !== 'string' || !/^\d{2}:\d{2}$/.test(time)) return null;
-    const now = new Date();
-    const [h, m] = time.split(':').map(Number);
-    // Erzeuge ein Date-Objekt für heute in Europe/Berlin
-    const berlin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
-    return berlin;
   }
 
   // Nach dem Laden der Daten für alle Stationen:
@@ -286,6 +245,7 @@ export default function DashboardLayout({
           {/* Desktop Navigation */}
           <nav className="flex-1 px-6 py-10 space-y-4">
             {navigation.map((item) => {
+              const Icon = item.icon
               const isActive = pathname === item.href
               return (
                 <Link key={item.name} href={item.href}>
@@ -301,7 +261,7 @@ export default function DashboardLayout({
                         : "text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white",
                     )}
                   >
-                    <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", 
+                    <Icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", 
                       sidebarOpen ? "mr-4" : "",
                       isActive ? "text-white" : item.color
                     )} />
@@ -361,9 +321,7 @@ export default function DashboardLayout({
                 </ul>
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                Letztes Wetter-Update: {lastWeatherIsoUtc
-                  ? `${new Date(lastWeatherIsoUtc).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })} (${lastWeatherAgo})`
-                  : '-'}
+                Letztes Wetter-Update: -
               </div>
             </motion.div>
           )}

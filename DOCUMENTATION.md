@@ -74,6 +74,32 @@ The **Noise Monitoring Dashboard** is a real-time web platform for environmental
 - **Status Badges**: Dynamic status indicators
 - **Export Function**: CSV export for data analysis
 
+### 🧩 **Modulare Dashboard-Komponenten (ab Juni 2024)**
+
+Für maximale Wartbarkeit und einheitliches Design wurden zentrale UI-Komponenten für die Stations-Dashboards extrahiert:
+
+- **StationHeader**: Zeigt Icon, Titel, Untertitel und Status-Badge der Station. Props: `icon`, `name`, `color`, `gradient`, `statusBadge`, `subtitle`.
+- **StationKPIs**: Zeigt die vier wichtigsten Kennzahlen (aktueller Pegel, 24h-Durchschnitt, 24h-Spitze, Wind) als Karten. Props: `current`, `avg24h`, `max24h`, `trend`, `currentWind`, `windDirection`, `kpiColor`.
+- **StationAlert**: Hinweis-Card für Statusmeldungen (z.B. Warnung, Alarm). Props: `bg`, `icon`, `title`, `text`, `textColor`.
+- **StationTableLink**: Link-Button zur Tabellenansicht der Station. Prop: `station` (string).
+- **StationDashboardPage**: Zentrale Page-Komponente, die alle obigen Sub-Komponenten orchestriert und die Logik für eine Stations-Dashboardseite kapselt. Wird in allen Einzelstationen (`/dashboard/ort`, `/dashboard/techno`, etc.) verwendet.
+
+**Vorteile:**
+- Einheitliches UI und Verhalten für alle Stationen
+- Einfachere Wartung und Erweiterung (z.B. neue KPIs, Designänderungen)
+- Reduzierte Redundanz im Code
+- Bessere Testbarkeit der einzelnen UI-Bausteine
+
+**Verwendung:**
+Die Subpages der einzelnen Stationen bestehen nur noch aus einem Einzeiler:
+```tsx
+import { StationDashboardPage } from "@/components/StationDashboardPage"
+export default function OrtPage() {
+  return <StationDashboardPage station="ort" />
+}
+```
+Alle Logik und UI-Elemente werden zentral in den Komponenten gepflegt.
+
 ---
 
 ## 3. System Architecture
@@ -618,6 +644,32 @@ grep "ERROR" logs/app.log
 - Batch-Import und Transaktionen für große CSV-Dateien.
 - Circular Dependency-Fixes im Backend.
 
+### 🧩 **Modulare Dashboard-Komponenten (ab Juni 2024)**
+
+Für maximale Wartbarkeit und einheitliches Design wurden zentrale UI-Komponenten für die Stations-Dashboards extrahiert:
+
+- **StationHeader**: Zeigt Icon, Titel, Untertitel und Status-Badge der Station. Props: `icon`, `name`, `color`, `gradient`, `statusBadge`, `subtitle`.
+- **StationKPIs**: Zeigt die vier wichtigsten Kennzahlen (aktueller Pegel, 24h-Durchschnitt, 24h-Spitze, Wind) als Karten. Props: `current`, `avg24h`, `max24h`, `trend`, `currentWind`, `windDirection`, `kpiColor`.
+- **StationAlert**: Hinweis-Card für Statusmeldungen (z.B. Warnung, Alarm). Props: `bg`, `icon`, `title`, `text`, `textColor`.
+- **StationTableLink**: Link-Button zur Tabellenansicht der Station. Prop: `station` (string).
+- **StationDashboardPage**: Zentrale Page-Komponente, die alle obigen Sub-Komponenten orchestriert und die Logik für eine Stations-Dashboardseite kapselt. Wird in allen Einzelstationen (`/dashboard/ort`, `/dashboard/techno`, etc.) verwendet.
+
+**Vorteile:**
+- Einheitliches UI und Verhalten für alle Stationen
+- Einfachere Wartung und Erweiterung (z.B. neue KPIs, Designänderungen)
+- Reduzierte Redundanz im Code
+- Bessere Testbarkeit der einzelnen UI-Bausteine
+
+**Verwendung:**
+Die Subpages der einzelnen Stationen bestehen nur noch aus einem Einzeiler:
+```tsx
+import { StationDashboardPage } from "@/components/StationDashboardPage"
+export default function OrtPage() {
+  return <StationDashboardPage station="ort" />
+}
+```
+Alle Logik und UI-Elemente werden zentral in den Komponenten gepflegt.
+
 ---
 
 Weitere Details und API-/Fehlerdokumentation folgen. 
@@ -801,3 +853,13 @@ Weitere Endpunkte und Details werden fortlaufend ergänzt.
 - Tooltips sind barrierefrei und funktionieren auch mit Tastatur und Screenreader.
 - Best Practice: Immer TooltipTrigger asChild verwenden, wenn ein Button, Icon oder Wert als Trigger dient.
 - TooltipProvider ist im Root-Layout gesetzt und muss nicht pro Seite verwendet werden. 
+
+### 🖥️ **Admin Dashboard: Breite & Layout (Update Juni 2024)**
+
+Alle Haupt-Cards im Admin-Bereich (Schwellenwerte, System, CSV, Backup, Korrektur, Einstellungen) sind jetzt standardmäßig breit und nehmen den Screen ein:
+- **min-width:** min(100vw, 900px)
+- **max-width:** 1200px
+- **zentriert** mit `mx-auto`
+- Gilt für alle Cards außer KPI- und Grid-Karten (z.B. Übersicht)
+
+Das sorgt für maximale Übersichtlichkeit und ein modernes, großzügiges Layout – unabhängig vom Inhalt oder der Bildschirmgröße. 
