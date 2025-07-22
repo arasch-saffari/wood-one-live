@@ -24,3 +24,29 @@ SqliteError: duplicate column name: datetime
     at cjsLoader (node:internal/modules/esm/translators:298:15)
     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
 
+[2025-07-22T00:03:19.018Z] ExternalApiError: Failed to fetch weather after retries
+ExternalApiError: Failed to fetch weather after retries
+    at Module.fetchWeather (/Users/araschsaffari/code/cursor/wood-one-live/lib/weather.ts:33:18)
+    at /Users/araschsaffari/code/cursor/wood-one-live/lib/weather.test.ts:35:5
+    at runTest (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
+
+[2025-07-22T00:03:22.047Z] ExternalApiError: Failed to fetch weather after retries
+ExternalApiError: Failed to fetch weather after retries
+    at Module.fetchWeather (/Users/araschsaffari/code/cursor/wood-one-live/lib/weather.ts:33:18)
+    at /Users/araschsaffari/code/cursor/wood-one-live/lib/weather.test.ts:40:5
+    at runTest (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
+

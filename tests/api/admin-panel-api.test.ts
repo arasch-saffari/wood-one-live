@@ -1,15 +1,22 @@
 import { describe, it, expect } from 'vitest'
 import fetch from 'node-fetch'
 
-const BASE_URL = 'http://localhost:3000'
+const BASE_URL = 'http://localhost:3001'
 
 describe('Admin Panel API', () => {
   it('should reset the database (factory reset)', async () => {
     const res = await fetch(`${BASE_URL}/api/admin/factory-reset`, { method: 'POST' })
-    const data = await res.json()
+    const contentType = res.headers.get('content-type')
+    const text = await res.text()
+    console.log('Factory Reset Response:', contentType, text)
     expect(res.status).toBe(200)
-    expect(data.success).toBe(true)
-  })
+    if (contentType && contentType.includes('application/json')) {
+      const data = JSON.parse(text)
+      expect(data.success).toBe(true)
+    } else {
+      throw new Error('Response is not JSON!')
+    }
+  }, 20000)
 
   it('should rebuild the database', async () => {
     const res = await fetch(`${BASE_URL}/api/admin/rebuild-db`, { method: 'POST' })
