@@ -7,7 +7,7 @@ import { ReactNode, FormEvent } from "react"
 export interface SettingsField {
   name: string
   label: string
-  type: "text" | "number" | "password" | "email"
+  type: "text" | "number" | "password" | "email" | "select"
   value: any
   onChange: (value: any) => void
   placeholder?: string
@@ -15,6 +15,7 @@ export interface SettingsField {
   max?: number
   step?: number
   disabled?: boolean
+  options?: { value: string; label: string }[] // für select
 }
 
 export interface SettingsFormProps {
@@ -35,18 +36,32 @@ export function SettingsForm({ fields, onSubmit, submitLabel = "Speichern", erro
           {fields.map(field => (
             <div key={field.name} className="flex flex-col gap-1">
               <Label htmlFor={field.name}>{field.label}</Label>
-              <Input
-                id={field.name}
-                type={field.type}
-                value={field.value}
-                onChange={e => field.onChange(field.type === "number" ? Number(e.target.value) : e.target.value)}
-                placeholder={field.placeholder}
-                min={field.min}
-                max={field.max}
-                step={field.step}
-                disabled={field.disabled}
-                className="max-w-xs"
-              />
+              {field.type === "select" ? (
+                <select
+                  id={field.name}
+                  value={field.value}
+                  onChange={e => field.onChange(e.target.value)}
+                  disabled={field.disabled}
+                  className="max-w-xs border rounded px-2 py-1"
+                >
+                  {(field.options || []).map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  id={field.name}
+                  type={field.type}
+                  value={field.value}
+                  onChange={e => field.onChange(field.type === "number" ? Number(e.target.value) : e.target.value)}
+                  placeholder={field.placeholder ? String(field.placeholder) : undefined}
+                  min={field.min}
+                  max={field.max}
+                  step={field.step}
+                  disabled={field.disabled}
+                  className="max-w-xs"
+                />
+              )}
             </div>
           ))}
           {children}

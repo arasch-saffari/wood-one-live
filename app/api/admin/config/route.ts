@@ -21,6 +21,26 @@ const defaultConfig = {
   weatherApiKey: '',
   apiCacheDuration: 60, // Sekunden, wie lange API-Responses gecacht werden
   pollingIntervalSeconds: 120, // NEU: Polling-Intervall für Charts in Sekunden
+  chartLimit: 200, // Maximale Datenpunkte pro Chart
+  pageSize: 20, // Standard-Pagination-Größe
+  defaultInterval: '24h', // Standard-Intervall
+  defaultGranularity: '15min', // Standard-Granularität
+  allowedIntervals: ['24h', '7d'],
+  allowedGranularities: ['1h', '15min', '10min', '5min', '1min'],
+  chartColors: {
+    primary: '#8b5cf6',
+    wind: '#06b6d4',
+    humidity: '#10b981',
+    temperature: '#f59e0b',
+    warning: '#facc15',
+    danger: '#f87171',
+    alarm: '#f87171',
+    reference: '#94a3b8',
+    gradients: {
+      primary: { from: '#8b5cf6', to: '#a78bfa' },
+      secondary: { from: '#06b6d4', to: '#67e8f9' }
+    }
+  },
   thresholdsByStationAndTime: {
     ort: [
       { from: '08:00', to: '20:00', warning: 55, alarm: 60, las: 50, laf: 52 },

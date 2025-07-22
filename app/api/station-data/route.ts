@@ -36,64 +36,6 @@ function roundTo5MinBlock(time: string): string {
   return `${h.padStart(2, "0")}:${blockMin.toString().padStart(2, "0")}`;
 }
 
-function parseCSVFallback(station: string, interval: "24h" | "7d" = "24h") {
-  try {
-    const csvPath = path.join(process.cwd(), "data", `${station}.csv`);
-    if (!fs.existsSync(csvPath)) return [];
-    const csvContent = fs.readFileSync(csvPath, "utf-8");
-    const parsed = Papa.parse(csvContent, {
-      header: true,
-      delimiter: ";",
-      skipEmptyLines: true,
-    });
-    let rows = parsed.data as Record<string, string>[];
-    if (!Array.isArray(rows) || rows.length < 1) return [];
-    const noiseColumn = station === "heuballern" ? "LAF" : "LAS";
-    const validRows = rows.filter(
-      (row) =>
-        row["Systemzeit "] &&
-        row[noiseColumn] &&
-        !isNaN(Number(row[noiseColumn].replace(",", ".")))
-    );
-    const blocks: { [block: string]: number[] } = {};
-    validRows.forEach((row) => {
-      const sysTime = row["Systemzeit "]?.trim();
-      const las = Number(row[noiseColumn].replace(",", "."));
-      if (!sysTime || isNaN(las)) return;
-      const [h, m] = sysTime.split(":");
-      if (!h || !m) return;
-      const blockTime = `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
-      if (!blocks[blockTime]) blocks[blockTime] = [];
-      blocks[blockTime].push(las);
-    });
-    let result = Object.entries(blocks)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([time, lasArr]) => {
-        const las = Number((lasArr.reduce((a, b) => a + b, 0) / lasArr.length).toFixed(2));
-        return {
-          time,
-          las,
-          ws: 0,
-          wd: "N/A",
-          rh: 0,
-        };
-      });
-    
-    // Use dynamic limit based on interval and granularity
-    let limit = 50; // fallback
-    if (interval === "24h") {
-      limit = 144; // reasonable default for 24h
-    } else if (interval === "7d") {
-      limit = 336; // reasonable default for 7d
-    }
-    
-    return result.slice(-limit);
-  } catch (e) {
-    console.error(`Error parsing CSV fallback for ${station}:`, e);
-    return [];
-  }
-}
-
 async function getWeatherWithCache(station: string, time: string) {
   // Check cache first
   const cacheKey = `${station}-${time}`;
@@ -273,16 +215,7 @@ export async function GET(req: Request) {
       datetime?: string | undefined;
     }> = [];
     if (pagedAggregated.length === 0) {
-      // parseCSVFallback liefert nur time, las, ws, wd, rh
-      const fallback = parseCSVFallback(station, interval);
-      result = fallback.map(row => ({
-        ...row,
-        temp: null,
-        lasThreshold,
-        lafThreshold,
-        warningThreshold,
-        alarmThreshold,
-      }));
+      result = [];
     } else {
       const weatherBlocks = pagedAggregated.map(m => roundTo5MinBlock(m.time));
       const uniqueWeatherBlocks = Array.from(new Set(weatherBlocks));

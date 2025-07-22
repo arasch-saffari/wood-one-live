@@ -18,6 +18,41 @@
   "weatherApiKey": "",
   "apiCacheDuration": 60,
   "pollingIntervalSeconds": 180,
+  "chartLimit": 200,
+  "pageSize": 20,
+  "defaultInterval": "24h",
+  "defaultGranularity": "15min",
+  "allowedIntervals": [
+    "24h",
+    "7d"
+  ],
+  "allowedGranularities": [
+    "1h",
+    "15min",
+    "10min",
+    "5min",
+    "1min"
+  ],
+  "chartColors": {
+    "primary": "#8b5cf6",
+    "wind": "#06b6d4",
+    "humidity": "#10b981",
+    "temperature": "#f59e0b",
+    "warning": "#facc15",
+    "danger": "#f87171",
+    "alarm": "#f87171",
+    "reference": "#94a3b8",
+    "gradients": {
+      "primary": {
+        "from": "#8b5cf6",
+        "to": "#a78bfa"
+      },
+      "secondary": {
+        "from": "#06b6d4",
+        "to": "#67e8f9"
+      }
+    }
+  },
   "thresholdsByStationAndTime": {
     "ort": [
       {

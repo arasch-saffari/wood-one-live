@@ -8,11 +8,13 @@ import { useStationData } from "@/hooks/useStationData"
 import { DataTable } from "@/components/DataTable"
 import { ErrorMessage } from "@/components/ErrorMessage"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { useConfig } from "@/hooks/useConfig"
 
 export default function AllTablePage() {
   const [interval, setInterval] = useState<"24h" | "7d">("24h")
   const [page, setPage] = useState(1)
-  const PAGE_SIZE = 20
+  const { config } = useConfig()
+  const PAGE_SIZE = config?.pageSize || 20
   // Für jede Station aktuelle Seite laden
   const { data: ortRows, totalCount: ortCount, loading: loadingOrt, error: errorOrt } = useStationData("ort", interval, "15min", page, PAGE_SIZE)
   const { data: technoRows, totalCount: technoCount, loading: loadingTechno, error: errorTechno } = useStationData("techno", interval, "15min", page, PAGE_SIZE)

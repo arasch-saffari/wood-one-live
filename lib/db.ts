@@ -321,8 +321,6 @@ cron.schedule('0 3 * * *', () => {
       notify: (missingCreatedAt.count > 0 || nulls.count > 0)
     }
     if (health.notify) {
-      const fs = require('fs')
-      const path = require('path')
       const file = path.join(process.cwd(), 'backups', 'last-health-problem.json')
       fs.writeFileSync(file, JSON.stringify(health, null, 2))
       console.warn('[HealthCheck] Integritätsproblem erkannt und notify-Flag gesetzt:', health)
@@ -335,8 +333,6 @@ cron.schedule('0 3 * * *', () => {
 // Monitoring für wiederkehrende Fehler (täglich)
 cron.schedule('30 3 * * *', () => {
   try {
-    const fs = require('fs')
-    const path = require('path')
     const logPath = path.join(process.cwd(), 'logs', 'system.log')
     if (!fs.existsSync(logPath)) return
     const lines = fs.readFileSync(logPath, 'utf-8').split('\n').filter(Boolean)

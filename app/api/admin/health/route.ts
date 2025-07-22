@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 // Optional: import diskusage from 'diskusage' (wenn installiert)
+import db from '@/lib/database'
 
 export const runtime = 'nodejs'
 
@@ -44,16 +45,14 @@ export async function GET() {
     // Letzter Wetterabruf
     let lastWeather = null
     try {
-      const db = require('@/lib/database').default
-      const row = db.prepare('SELECT created_at FROM weather ORDER BY created_at DESC LIMIT 1').get()
+      const row = db.prepare('SELECT created_at FROM weather ORDER BY created_at DESC LIMIT 1').get() as { created_at?: string } | undefined
       if (row && row.created_at) lastWeather = row.created_at
     } catch {}
     // Integritäts-Check: Messungen mit NULL in NOT NULL-Spalten
     let integrityProblem = false, integrityCount = 0
     try {
-      const db = require('@/lib/database').default
-      const row = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get()
-      if (row && row.count > 0) {
+      const row = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get() as { count?: number } | undefined
+      if (row && row.count && row.count > 0) {
         integrityProblem = true
         integrityCount = row.count
       }

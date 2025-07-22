@@ -14,7 +14,6 @@ export const STATION_META: Record<StationKey, {
   gradient: string
   kpiColor: string
   chartColor: string
-  defaultThresholds: { warning: number; alarm: number }
 }> = {
   ort: {
     id: "ort",
@@ -24,7 +23,6 @@ export const STATION_META: Record<StationKey, {
     gradient: "from-emerald-400 to-emerald-600",
     kpiColor: "emerald-500",
     chartColor: STATION_COLORS.ort.chartColor,
-    defaultThresholds: { warning: 55, alarm: 60 },
   },
   techno: {
     id: "techno",
@@ -34,7 +32,6 @@ export const STATION_META: Record<StationKey, {
     gradient: "from-pink-400 to-pink-600",
     kpiColor: "pink-500",
     chartColor: STATION_COLORS.techno.chartColor,
-    defaultThresholds: { warning: 55, alarm: 60 },
   },
   band: {
     id: "band",
@@ -44,7 +41,6 @@ export const STATION_META: Record<StationKey, {
     gradient: "from-purple-400 to-purple-600",
     kpiColor: "purple-500",
     chartColor: STATION_COLORS.band.chartColor,
-    defaultThresholds: { warning: 55, alarm: 60 },
   },
   heuballern: {
     id: "heuballern",
@@ -54,7 +50,6 @@ export const STATION_META: Record<StationKey, {
     gradient: "from-cyan-400 to-cyan-600",
     kpiColor: "cyan-500",
     chartColor: STATION_COLORS.heuballern.chartColor,
-    defaultThresholds: { warning: 55, alarm: 60 },
   },
 }
 
