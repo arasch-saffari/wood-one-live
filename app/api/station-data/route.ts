@@ -107,172 +107,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Zu viele Anfragen. Bitte warte einen Moment.' }, { status: 429 })
   }
   const station = searchParams.get("station")
-  const interval = (searchParams.get("interval") as "24h" | "7d") || "24h"
-  const granularity = searchParams.get("granularity") || "10min"
-  const page = parseInt(searchParams.get("page") || "1", 10)
-  const pageSize = parseInt(searchParams.get("pageSize") || "0", 10) // 0 = alles
-  const cacheKey = `${station}-${interval}-${granularity}-${page}-${pageSize}`
-  const CACHE_DURATION = getCacheDuration()
-  // Cache-Check
-  const cached = apiCache.get(cacheKey)
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return new Response(JSON.stringify(cached.data), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  if (!station) {
+    return NextResponse.json({ error: "Missing station parameter" }, { status: 400 });
   }
-  try {
-    const station = searchParams.get("station");
-    const interval = (searchParams.get("interval") as "24h" | "7d") || "24h";
-    const granularity = searchParams.get("granularity") || "10min";
-    
-    if (!station) {
-      return NextResponse.json({ error: "Missing station parameter" }, { status: 400 });
-    }
-    
-    // Konfiguration laden
-    const config = getConfig();
-    const calculationMode = config.calculationMode || 'average';
-    const lasThreshold = config.lasThreshold ?? 50;
-    const lafThreshold = config.lafThreshold ?? 52;
-    const warningThreshold = config.warningThreshold ?? 55;
-    const alarmThreshold = config.alarmThreshold ?? 60;
-
-    // Dynamische Chart-Limits je nach Zeitraum und Granularität
-    // Ziel: Übersichtlichkeit + ausreichend Detailtiefe
-    let chartLimit = 50; // Fallback
-    
-    if (interval === "24h") {
-      if (granularity === "1min") chartLimit = 1440; // 24h vollständig (1440 min = 24h)
-      else if (granularity === "5min") chartLimit = 288; // 24h vollständig (288 × 5min = 24h)
-      else if (granularity === "10min") chartLimit = 144; // 24h vollständig (144 × 10min = 24h)
-      else if (granularity === "1h") chartLimit = 24; // 24h vollständig (24 × 1h = 24h)
-    } else if (interval === "7d") {
-      if (granularity === "1min") chartLimit = 2016; // 7d × 288 (5min-Intervalle für bessere Übersicht)
-      else if (granularity === "5min") chartLimit = 2016; // 7d × 288 (5min-Intervalle)
-      else if (granularity === "10min") chartLimit = 1008; // 7d × 144 (10min-Intervalle)
-      else if (granularity === "1h") chartLimit = 168; // 7d vollständig (168 × 1h = 7d)
-    }
-
-    // chartLimit nur anwenden, wenn pageSize > 0 (also nicht "Alle")
-    const measurements = getMeasurementsForStation(station, interval);
-    
-    // In aggregateByBlock: Sammle zu jedem Block auch das zugehörige späteste datetime
-    function aggregateByBlock(measurements: { time: string; las: number; datetime?: string }[], blockMinutes: number) {
-      if (measurements.length === 0) {
-        return [];
-      }
-      const blocks: Record<string, { las: number[]; datetimes: string[] }> = {};
-      for (const m of measurements) {
-        // Nutze datetime für die Blockbildung
-        if (!m.datetime) continue;
-        // datetime-Format: YYYY-MM-DD HH:MM:SS
-        const [date, t] = m.datetime.split(' ');
-        if (!t) continue;
-        const [h, mStr, s] = t.split(':');
-        if (!h || !mStr) continue;
-        const min = parseInt(mStr, 10);
-        const blockMin = Math.floor(min / blockMinutes) * blockMinutes;
-        // Block-Schlüssel: YYYY-MM-DD HH:MM (z.B. 2025-07-21 18:45)
-        const blockTime = `${date} ${h.padStart(2, '0')}:${blockMin.toString().padStart(2, '0')}`;
-        if (!blocks[blockTime]) blocks[blockTime] = { las: [], datetimes: [] };
-        blocks[blockTime].las.push(m.las);
-        blocks[blockTime].datetimes.push(m.datetime);
-      }
-      const result = Object.entries(blocks)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([blockTime, { las, datetimes }]) => {
-          let lasValue = 0;
-          if (calculationMode === 'max') {
-            lasValue = Math.max(...las);
-          } else if (calculationMode === 'median') {
-            const sorted = [...las].sort((a, b) => a - b);
-            const mid = Math.floor(sorted.length / 2);
-            lasValue = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-          } else {
-            lasValue = las.reduce((a, b) => a + b, 0) / las.length;
-          }
-          // Wähle das späteste datetime für diesen Block
-          const datetime = datetimes.length > 0 ? datetimes.sort().reverse()[0] : undefined;
-          // Extrahiere nur die Block-Zeit (HH:MM) für das Chart
-          const time = blockTime.slice(11, 16);
-          return {
-            time,
-            las: Number(lasValue.toFixed(2)),
-            datetime,
-          };
-        });
-      return result;
-    }
-    
-    let blockMinutes = 10;
-    if (granularity === "5min") blockMinutes = 5;
-    if (granularity === "1min") blockMinutes = 1;
-    if (granularity === "1h") blockMinutes = 60;
-
-    let aggregated = aggregateByBlock(measurements, blockMinutes);
-    // Debug-Log: Anzahl der aggregierten Blöcke
-    console.log(`[API station-data] station=${station}, interval=${interval}, granularity=${granularity}, blockMinutes=${blockMinutes}, chartLimit=${chartLimit}, pageSize=${pageSize}, aggregated.length=${aggregated.length}`);
-    let limitedAggregated = aggregated;
-    if (pageSize > 0) {
-      limitedAggregated = aggregated.slice(-chartLimit);
-    }
-    // Pagination anwenden (optional)
-    let pagedAggregated = limitedAggregated
-    const totalCount = limitedAggregated.length
-    if (pageSize > 0) {
-      const start = (page - 1) * pageSize
-      pagedAggregated = limitedAggregated.slice(start, start + pageSize)
-    }
-    let result: Array<{
-      time: string;
-      las: number;
-      ws: number | null;
-      wd: string | null;
-      rh: number | null;
-      temp: number | null;
-      lasThreshold: number;
-      lafThreshold: number;
-      warningThreshold: number;
-      alarmThreshold: number;
-      datetime?: string | undefined;
-    }> = [];
-    if (pagedAggregated.length === 0) {
-      result = [];
-    } else {
-      const weatherBlocks = pagedAggregated.map(m => roundTo5MinBlock(m.time));
-      const uniqueWeatherBlocks = Array.from(new Set(weatherBlocks));
-      const weatherPromises = uniqueWeatherBlocks.map(async (time) => {
-        const weather = await getWeatherWithCache(station, time);
-        return { time, weather };
-      });
-      const weatherResults = await Promise.all(weatherPromises);
-      const weatherMap: Record<string, { windSpeed: number; windDir: string; relHumidity: number }> = Object.fromEntries(
-        weatherResults.map(({ time, weather }) => [time, weather])
-      );
-      result = pagedAggregated.map(measurement => {
-        const w = weatherMap[roundTo5MinBlock(measurement.time)];
-        const weather = (w && typeof w.windSpeed === 'number' && typeof w.windDir === 'string' && typeof w.relHumidity === 'number')
-          ? { windSpeed: w.windSpeed, windDir: w.windDir, relHumidity: w.relHumidity, temperature: (w as any).temperature ?? null }
-          : { windSpeed: null, windDir: null, relHumidity: null, temperature: null };
-        // Dynamische Schwellenwerte bestimmen
-        const thresholds = getThresholdsForStationAndTime(config, station, measurement.time)
-        return {
-          time: measurement.time,
-          las: measurement.las,
-          datetime: measurement.datetime,
-          ws: weather.windSpeed,
-          wd: weather.windDir,
-          rh: weather.relHumidity,
-          temp: weather.temperature,
-          lasThreshold: thresholds.las,
-          lafThreshold: thresholds.laf,
-          warningThreshold: thresholds.warning,
-          alarmThreshold: thresholds.alarm,
-        };
-      });
-    }
-    apiCache.set(cacheKey, { data: { data: result, totalCount }, timestamp: Date.now() })
-    return new Response(JSON.stringify({ data: result, totalCount }), { status: 200, headers: { 'Content-Type': 'application/json' } })
-  } catch (e) {
-    console.error('Error in station-data API:', e);
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
+  // Konfiguration laden
+  const config = getConfig();
+  // Hole die letzten 1000 (24h) oder 5000 (7d) Messwerte für die Station
+  const interval = (searchParams.get("interval") as "24h" | "7d") || "24h";
+  const measurements = getMeasurementsForStation(station, interval);
+  // Hole Wetterdaten für die Zeitpunkte (optional, falls benötigt)
+  // ... Wetterdaten-Logik kann optional bleiben ...
+  // Baue das Ergebnis-Array
+  const result = measurements.map(m => ({
+    time: m.time,
+    las: m.las,
+    datetime: m.datetime,
+    // Wetterdaten können hier ergänzt werden, falls benötigt
+  }));
+  return NextResponse.json({ data: result, totalCount: result.length });
 } 

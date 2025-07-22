@@ -39,15 +39,8 @@ const stationOptions = [
 ];
 
 export default function ChartTestPage() {
-  const { config } = useConfig();
-  const intervals = config?.allowedIntervals || ['12h', '24h', '48h', '5d', '7d'];
-  const [interval, setInterval] = useState(intervals[0] || '24h');
-  const [granularity, setGranularity] = useState('15min')
-  const [maxPoints, setMaxPoints] = useState(0)
   const [data, setData] = useState(generateDemoData())
   const [loading, setLoading] = useState(false)
-  const [station, setStation] = useState(stationOptions[0].key);
-
   // Simulierter Loading-Spinner
   function handleGenerateData() {
     setLoading(true)
@@ -56,19 +49,6 @@ export default function ChartTestPage() {
       setLoading(false)
     }, 600)
   }
-
-  function handleReset() {
-    setInterval('24h')
-    setGranularity('15min')
-    setMaxPoints(0)
-    setData(generateDemoData())
-  }
-
-  // Dummy-Export
-  function handleExport(type: 'csv' | 'img') {
-    alert(`Export als ${type.toUpperCase()} (Demo)`)
-  }
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-8">
       <div className="w-full max-w-5xl">
@@ -76,49 +56,11 @@ export default function ChartTestPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-500" />
-              <span className="text-lg font-bold">{stationOptions[0].label}</span>
+              <span className="text-lg font-bold">Ort</span>
             </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                {/* Zeitraum-Auswahl */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold mr-2" title="Datenzeitraum">Zeitraum:</span>
-                  <Select value={interval} onValueChange={setInterval}>
-                    <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {intervals.map((int: string) => (
-                        <SelectItem key={int} value={int}>{int}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {/* Granularität-Auswahl */}
-                <div className="flex items-center gap-2 overflow-x-auto md:gap-2 md:overflow-visible pb-2 md:pb-0">
-                  <span className="text-xs font-semibold mr-2 shrink-0" title="Wie fein die Messpunkte sind">Granularität:</span>
-                  <Select value={granularity} onValueChange={setGranularity}>
-                    <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {granularities.map(gran => (
-                        <SelectItem key={gran} value={gran}>{gran}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {/* Anzahl Punkte-Auswahl */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold mr-2" title="Wie viele Datenpunkte im Chart angezeigt werden">Anzahl Punkte:</span>
-                  <Select value={String(maxPoints)} onValueChange={v => setMaxPoints(Number(v))}>
-                    <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {pointOptions.map(val => (
-                        <SelectItem key={val} value={String(val)}>{val === 0 ? 'Alle' : val}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
               {/* Chart */}
               <GenericChart
                 data={data}
@@ -126,7 +68,6 @@ export default function ChartTestPage() {
                 axes={axes}
                 legend={true}
                 height={400}
-                maxPointsDefault={maxPoints}
               />
             </div>
           </CardContent>

@@ -184,33 +184,15 @@ export function insertMeasurement(station: string, time: string, las: number) {
 // Fast database queries with optimized indexing
 export function getMeasurementsForStation(station: string, interval: "24h" | "7d" = "24h") {
   const limit = interval === "7d" ? 5000 : 1000;
-  
-  // For 24h interval, we need to get recent measurements from all hours
-  // Since time is stored as HH:MM, we need a different approach
-  if (interval === "24h") {
-    // Try to get measurements from as many different hours as possible
-    // First, get a larger sample to increase chances of hour diversity
-    const stmt = db.prepare(`
-      SELECT time, las, datetime
-      FROM measurements 
-      WHERE station = ? 
-      ORDER BY rowid DESC 
-      LIMIT ?
-    `)
-    const results = stmt.all(station, Math.min(limit * 2, 2000)) as Array<{ time: string; las: number; datetime: string }>;
-    return results.reverse(); // Return in chronological order
-  } else {
-    // For 7d interval, also use rowid DESC for better coverage
-    const stmt = db.prepare(`
-      SELECT time, las, datetime
-      FROM measurements 
-      WHERE station = ? 
-      ORDER BY rowid DESC 
-      LIMIT ?
-    `)
-    const results = stmt.all(station, limit) as Array<{ time: string; las: number; datetime: string }>;
-    return results.reverse(); // Return in chronological order
-  }
+  const stmt = db.prepare(`
+    SELECT time, las, datetime
+    FROM measurements 
+    WHERE station = ? 
+    ORDER BY rowid DESC 
+    LIMIT ?
+  `)
+  const results = stmt.all(station, limit) as Array<{ time: string; las: number; datetime: string }>;
+  return results.reverse(); // Chronologische Reihenfolge
 }
 
 // Utility function to check database health

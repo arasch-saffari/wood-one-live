@@ -1,8 +1,20 @@
 import React, { useState, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from "recharts"
 import { TooltipProvider, Tooltip as UITooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { ArrowLeft, ArrowRight, Plus, Minus } from 'lucide-react'
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip as ChartJsTooltip,
+  Legend as ChartJsLegend,
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, ChartJsTooltip, ChartJsLegend);
 
 // Typen für GenericChart
 interface GenericChartLine {
@@ -120,7 +132,7 @@ export function GenericChart({
   const [maxPoints, setMaxPoints] = useState<number>(maxPointsDefault)
   const [zoomRange, setZoomRange] = useState<{ start: number; end: number } | null>(null)
   const [hoveredLineKey, setHoveredLineKey] = useState<string | null>(null)
-  const chartRef = useRef<HTMLDivElement | null>(null)
+  const chartRef = useRef<HTMLCanvasElement | null>(null)
   const filteredChartData = useMemo(() => {
     return maxPoints > 0 && data.length > maxPoints ? data.slice(-maxPoints) : data
   }, [data, maxPoints])
@@ -161,85 +173,91 @@ export function GenericChart({
           canPanRight={canPanRight}
         />
         <div style={{ height }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={visibleData} ref={chartRef}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              {/* Linke Y-Achse immer anzeigen */}
-              <YAxis
-                yAxisId={leftAxis.id}
-                orientation={leftAxis.orientation}
-                domain={leftAxis.domain}
-                tick={{ fontSize: 12, fill: '#fff' }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-                tickLine={{ stroke: "hsl(var(--border))" }}
-                label={{ value: leftAxis.label, angle: -90, position: 'insideLeft', offset: 0, style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))', fontSize: 12 } }}
-                allowDecimals={false}
-                type="number"
-                interval={0}
-              />
-              {/* Weitere Achsen */}
-              {axes.filter(a => a.id !== 'left').map(axis => (
-                <YAxis
-                  key={axis.id}
-                  yAxisId={axis.id}
-                  orientation={axis.orientation || "left"}
-                  domain={axis.domain}
-                  ticks={axis.ticks}
-                  tick={{ fontSize: 12, fill: '#fff' }}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                  label={axis.label ? { value: axis.label, angle: axis.orientation === "right" ? 90 : -90, position: axis.orientation === "right" ? "insideRight" : "insideLeft", offset: 0, style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))', fontSize: 12 } } : undefined}
-                  allowDecimals={false}
-                  type="number"
-                  interval={0}
-                />
-              ))}
-              <XAxis
-                dataKey="time"
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-                tickLine={{ stroke: "hsl(var(--border))" }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
-                  color: "hsl(var(--card-foreground))",
-                }}
-                formatter={tooltipFormatter || defaultTooltipFormatter}
-              />
-              {lines.map(line => visibleLines[line.key] && (
-                <Line
-                  key={line.key}
-                  type={line.type || "monotone"}
-                  dataKey={line.key}
-                  stroke={line.color}
-                  strokeWidth={hoveredLineKey === line.key ? 4 : 2}
-                  strokeOpacity={hoveredLineKey && hoveredLineKey !== line.key ? 0.3 : 1}
-                  dot={false}
-                  activeDot={line.activeDotColor ? { r: 4, fill: line.activeDotColor } : undefined}
-                  yAxisId={line.yAxisId}
-                  strokeDasharray={line.strokeDasharray}
-                  name={line.label}
-                />
-              ))}
-              {thresholds.map(thr => visibleLines[thr.label] && (
-                <Line
-                  key={thr.label}
-                  type="monotone"
-                  dataKey={() => thr.value}
-                  stroke={thr.color}
-                  strokeWidth={1}
-                  strokeDasharray={thr.strokeDasharray || "3 3"}
-                  dot={false}
-                  yAxisId={thr.yAxisId}
-                  name={thr.label}
-                />
-              ))}
-            </ComposedChart>
-          </ResponsiveContainer>
+          <Line
+            data={{
+              labels: visibleData.map((d: any) => d.time),
+              datasets: lines.filter(line => visibleLines[line.key]).map(line => ({
+                label: line.label,
+                data: visibleData.map((d: any) => d[line.key]),
+                borderColor: line.color,
+                backgroundColor: line.color,
+                borderWidth: hoveredLineKey === line.key ? 4 : 2,
+                borderDash: line.strokeDasharray ? line.strokeDasharray.split(' ').map(Number) : undefined,
+                yAxisID: line.yAxisId || 'left',
+                pointRadius: 0,
+                tension: 0.3,
+              })),
+              // Thresholds als zusätzliche Datasets (optional)
+              ...thresholds && thresholds.length > 0 ? {
+                datasets: [
+                  ...lines.filter(line => visibleLines[line.key]).map(line => ({
+                    label: line.label,
+                    data: visibleData.map((d: any) => d[line.key]),
+                    borderColor: line.color,
+                    backgroundColor: line.color,
+                    borderWidth: hoveredLineKey === line.key ? 4 : 2,
+                    borderDash: line.strokeDasharray ? line.strokeDasharray.split(' ').map(Number) : undefined,
+                    yAxisID: line.yAxisId || 'left',
+                    pointRadius: 0,
+                    tension: 0.3,
+                  })),
+                  ...thresholds.filter(thr => visibleLines[thr.label]).map(thr => ({
+                    label: thr.label,
+                    data: visibleData.map(() => thr.value),
+                    borderColor: thr.color,
+                    borderWidth: 1,
+                    borderDash: thr.strokeDasharray ? thr.strokeDasharray.split(' ').map(Number) : [3, 3],
+                    pointRadius: 0,
+                    fill: false,
+                    yAxisID: thr.yAxisId || 'left',
+                    tension: 0,
+                  })),
+                ]
+              } : {}
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: legend },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      if (tooltipFormatter) {
+                        const [val, label] = tooltipFormatter(context.parsed.y, context.dataset.label || '')
+                        return `${label}: ${val}`
+                      }
+                      return `${context.dataset.label}: ${context.parsed.y}`
+                    }
+                  }
+                },
+                title: { display: false },
+              },
+              scales: {
+                left: {
+                  type: 'linear',
+                  position: 'left',
+                  min: axes.find(a => a.id === 'left')?.domain[0],
+                  max: axes.find(a => a.id === 'left')?.domain[1],
+                  title: { display: !!axes.find(a => a.id === 'left')?.label, text: axes.find(a => a.id === 'left')?.label },
+                  grid: { color: 'rgba(200,200,200,0.1)' },
+                },
+                ...axes.filter(a => a.id !== 'left').reduce((acc, axis) => {
+                  acc[axis.id] = {
+                    type: 'linear',
+                    position: axis.orientation,
+                    min: axis.domain[0],
+                    max: axis.domain[1],
+                    title: { display: !!axis.label, text: axis.label },
+                    grid: { color: 'rgba(200,200,200,0.1)' },
+                  }
+                  return acc
+                }, {} as any)
+              },
+              animation: false,
+            }}
+            height={height}
+          />
         </div>
         {legend && (
           <ChartLegend lines={lines} visibleLines={visibleLines} toggleLine={toggleLine} thresholds={thresholds} setHoveredLineKey={setHoveredLineKey} />

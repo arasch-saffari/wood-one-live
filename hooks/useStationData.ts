@@ -46,29 +46,18 @@ function showNoiseAlert(station: string, level: number, threshold: number) {
 
 export function useStationData(
   station: string,
-  interval: "24h" | "7d" = "24h",
-  granularity: "15min" | "10min" | "5min" | "1min" | "1h" = "15min",
-  page?: number,
-  pageSize?: number // <- pageSize kann jetzt explizit übergeben werden
+  interval: "24h" | "7d" = "24h"
 ) {
   const [data, setData] = useState<StationDataPoint[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const lastAlertRef = useRef<{ level: number; time: number }>({ level: 0, time: 0 })
-  const [config, setConfig] = useState<any>(null)
 
   useEffect(() => {
-    // Datenfetch nur im Client
     async function fetchAndSetData() {
       setLoading(true)
       setError(null)
-      let url = `/api/station-data?station=${station}`
-      if (interval) url += `&interval=${interval}`
-      if (granularity) url += `&granularity=${granularity}`
-      if (page) url += `&page=${page}`
-      if (pageSize) url += `&pageSize=${pageSize}`
+      let url = `/api/station-data?station=${station}&interval=${interval}`
       try {
         const response = await fetch(url)
         if (!response.ok) {
@@ -77,13 +66,10 @@ export function useStationData(
           return
         }
         let result = await response.json()
-        // Debug-Ausgabe: Datenlänge und erstes Element
         if (result && Array.isArray(result.data)) {
-          console.log(`[useStationData] station=${station} interval=${interval} granularity=${granularity} -> data.length=`, result.data.length, 'first:', result.data[0]);
           setData(result.data)
           setTotalCount(result.totalCount || result.data.length)
         } else if (Array.isArray(result)) {
-          console.log(`[useStationData] station=${station} interval=${interval} granularity=${granularity} -> data.length=`, result.length, 'first:', result[0]);
           setData(result)
           setTotalCount(result.length)
         } else {
@@ -99,9 +85,7 @@ export function useStationData(
       }
     }
     fetchAndSetData()
-  }, [station, interval, granularity, page, pageSize])
-
-  // Entferne alle fetchAndProcess-Intervall-Logik
+  }, [station, interval])
 
   return { data, totalCount, loading, error }
 } 

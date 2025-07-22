@@ -93,15 +93,13 @@ function formatTime(latest: string | undefined) {
 export default function AllLocationsPage() {
   // 1. Context und State
   const { config } = useConfig();
-  const [chartInterval] = useState<string | undefined>(config?.defaultInterval)
-  const [granularity] = useState<string | undefined>(config?.defaultGranularity)
-  const [maxPoints, setMaxPoints] = useState<number>(0)
+  // Keine Granularität, Zeit oder maxPoints mehr
 
   // 2. Daten-Hooks
-  const ortDataObj: StationDataObj = useStationData("ort", chartInterval as "24h" | "7d" | undefined, granularity as any, 1, maxPoints)
-  const heuballernDataObj: StationDataObj = useStationData("heuballern", chartInterval as "24h" | "7d" | undefined, granularity as any, 1, maxPoints)
-  const technoDataObj: StationDataObj = useStationData("techno", chartInterval as "24h" | "7d" | undefined, granularity as any, 1, maxPoints)
-  const bandDataObj: StationDataObj = useStationData("band", chartInterval as "24h" | "7d" | undefined, granularity as any, 1, maxPoints)
+  const ortDataObj = useStationData("ort");
+  const heuballernDataObj = useStationData("heuballern");
+  const technoDataObj = useStationData("techno");
+  const bandDataObj = useStationData("band");
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []
@@ -124,10 +122,10 @@ export default function AllLocationsPage() {
     ...heuballernData.map(d => d.time),
   ])).sort();
   const chartData = chartTimes.map(time => {
-    const ort = ortData.find((d: { time: string }) => d.time === time)
-    const techno = technoData.find((d: { time: string }) => d.time === time)
-    const band = bandData.find((d: { time: string }) => d.time === time)
-    const heuballern = heuballernData.find((d: { time: string }) => d.time === time)
+    const ort = ortData.find((d) => d.time === time)
+    const techno = technoData.find((d) => d.time === time)
+    const band = bandData.find((d) => d.time === time)
+    const heuballern = heuballernData.find((d) => d.time === time)
     // Windgeschwindigkeit: Mittelwert der vier Standorte, falls vorhanden
     const windVals = [ort, techno, band, heuballern].map(d => d?.ws).filter((v): v is number => typeof v === 'number')
     const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
@@ -186,7 +184,7 @@ export default function AllLocationsPage() {
   }
 
   // Daten für das Chart filtern
-  const filteredChartData = maxPoints > 0 && chartData.length > maxPoints ? chartData.slice(-maxPoints) : chartData
+  const filteredChartData = chartData
 
   const WIND_COLOR = config?.chartColors?.wind || "#06b6d4" // cyan-500
 
@@ -331,7 +329,7 @@ export default function AllLocationsPage() {
         {/* Nach System Status Card, vor Grenzwert-Referenz: */}
         {(ortData.length > 0 || heuballernData.length > 0 || technoData.length > 0 || bandData.length > 0) ? (
           <ChartPlayground
-            data={filteredChartData}
+            data={chartData}
             lines={[
               { key: 'ort', label: STATION_META.ort.name, color: STATION_META.ort.chartColor },
               { key: 'heuballern', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor },
@@ -345,8 +343,6 @@ export default function AllLocationsPage() {
             ]}
             title="Alle Standorte"
             icon={<BarChart3 className="w-5 h-5 text-blue-500" />}
-            maxPoints={maxPoints}
-            onMaxPointsChange={setMaxPoints}
           />
         ) : (
           <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Daten ...</div>
