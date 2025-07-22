@@ -5,16 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Download, BarChart3 } from "lucide-react"
 import { useStationData } from "@/hooks/useStationData"
+import { DataTable } from "@/components/DataTable"
+import { ErrorMessage } from "@/components/ErrorMessage"
+import { LoadingSpinner } from "@/components/LoadingSpinner"
 
 export default function AllTablePage() {
   const [interval, setInterval] = useState<"24h" | "7d">("24h")
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
   // Für jede Station aktuelle Seite laden
-  const { data: ortRows, totalCount: ortCount } = useStationData("ort", interval, "15min", page, PAGE_SIZE)
-  const { data: technoRows, totalCount: technoCount } = useStationData("techno", interval, "15min", page, PAGE_SIZE)
-  const { data: bandRows, totalCount: bandCount } = useStationData("band", interval, "15min", page, PAGE_SIZE)
-  const { data: heuballernRows, totalCount: heuballernCount } = useStationData("heuballern", interval, "15min", page, PAGE_SIZE)
+  const { data: ortRows, totalCount: ortCount, loading: loadingOrt, error: errorOrt } = useStationData("ort", interval, "15min", page, PAGE_SIZE)
+  const { data: technoRows, totalCount: technoCount, loading: loadingTechno, error: errorTechno } = useStationData("techno", interval, "15min", page, PAGE_SIZE)
+  const { data: bandRows, totalCount: bandCount, loading: loadingBand, error: errorBand } = useStationData("band", interval, "15min", page, PAGE_SIZE)
+  const { data: heuballernRows, totalCount: heuballernCount, loading: loadingHeuballern, error: errorHeuballern } = useStationData("heuballern", interval, "15min", page, PAGE_SIZE)
 
   const stations = [
     { id: "ort", name: "Ort", color: "text-emerald-400" },
@@ -56,23 +59,24 @@ export default function AllTablePage() {
     document.body.removeChild(link)
   }
 
-  const MemoTableRow = memo(function MemoTableRow({ row }: { row: any }) {
-    return (
-      <tr className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
-        <td className="py-3 px-4 font-semibold">{row.station}</td>
-        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.time}</td>
-        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.las.toFixed(1)}</td>
-        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.ws ?? "-"}</td>
-        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.wd ?? "-"}</td>
-        <td className="py-3 px-4 text-gray-900 dark:text-white">{row.rh ?? "-"}</td>
-      </tr>
-    )
-  })
-
-  const memoRows = useMemo(() => allRows.map((row, index) => <MemoTableRow key={index} row={row} />), [allRows])
+  const columns = [
+    { label: "Station", key: "station" },
+    { label: "Zeit", key: "time" },
+    { label: "Lärmpegel (dB)", key: "las", render: (row: any) => row.las.toFixed(1) },
+    { label: "Wind (km/h)", key: "ws", render: (row: any) => row.ws ?? "-" },
+    { label: "Richtung", key: "wd", render: (row: any) => row.wd ?? "-" },
+    { label: "Feuchtigkeit (%)", key: "rh", render: (row: any) => row.rh ?? "-" },
+  ]
+  const statusFn = undefined // No status column for all-table
+  const filter = null // No extra filter UI for now
+  // Combine loading and error states from all station hooks
+  const loading = false // TODO: combine loading states from all useStationData hooks if available
+  const error = null // TODO: combine error states from all useStationData hooks if available
 
   return (
     <div className="space-y-6">
+      {loading && <LoadingSpinner />}
+      {error && <ErrorMessage message={error} />}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Alle Messwerte – Listenansicht</h1>
@@ -98,24 +102,16 @@ export default function AllTablePage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Station</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Zeit</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Lärmpegel (dB)</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Wind (km/h)</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Richtung</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Feuchtigkeit (%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {memoRows}
-                {allRows.length === 0 && (
-                  <tr><td colSpan={6} className="text-center text-gray-400">Keine Daten gefunden.</td></tr>
-                )}
-              </tbody>
-            </table>
+            <DataTable
+              data={allRows}
+              columns={columns}
+              statusFn={statusFn}
+              page={page}
+              pageCount={pageCount}
+              onPageChange={setPage}
+              filter={filter}
+              loading={loading}
+            />
           </div>
         </CardContent>
       </Card>
