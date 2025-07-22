@@ -161,20 +161,24 @@ export async function GET(req: Request) {
       }
       const blocks: Record<string, { las: number[]; datetimes: string[] }> = {};
       for (const m of measurements) {
-        const timeParts = m.time.split(":");
-        if (timeParts.length < 2) continue;
-        const h = timeParts[0];
-        const mStr = timeParts[1];
+        // Nutze datetime für die Blockbildung
+        if (!m.datetime) continue;
+        // datetime-Format: YYYY-MM-DD HH:MM:SS
+        const [date, t] = m.datetime.split(' ');
+        if (!t) continue;
+        const [h, mStr, s] = t.split(':');
+        if (!h || !mStr) continue;
         const min = parseInt(mStr, 10);
         const blockMin = Math.floor(min / blockMinutes) * blockMinutes;
-        const blockTime = `${h.padStart(2, "0")}:${blockMin.toString().padStart(2, "0")}`;
+        // Block-Schlüssel: YYYY-MM-DD HH:MM (z.B. 2025-07-21 18:45)
+        const blockTime = `${date} ${h.padStart(2, '0')}:${blockMin.toString().padStart(2, '0')}`;
         if (!blocks[blockTime]) blocks[blockTime] = { las: [], datetimes: [] };
         blocks[blockTime].las.push(m.las);
-        if (m.datetime) blocks[blockTime].datetimes.push(m.datetime);
+        blocks[blockTime].datetimes.push(m.datetime);
       }
       const result = Object.entries(blocks)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([time, { las, datetimes }]) => {
+        .map(([blockTime, { las, datetimes }]) => {
           let lasValue = 0;
           if (calculationMode === 'max') {
             lasValue = Math.max(...las);
@@ -187,6 +191,8 @@ export async function GET(req: Request) {
           }
           // Wähle das späteste datetime für diesen Block
           const datetime = datetimes.length > 0 ? datetimes.sort().reverse()[0] : undefined;
+          // Extrahiere nur die Block-Zeit (HH:MM) für das Chart
+          const time = blockTime.slice(11, 16);
           return {
             time,
             las: Number(lasValue.toFixed(2)),

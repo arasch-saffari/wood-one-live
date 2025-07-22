@@ -95,13 +95,13 @@ export default function AllLocationsPage() {
   const { config } = useConfig();
   const [chartInterval] = useState<string | undefined>(config?.defaultInterval)
   const [granularity] = useState<string | undefined>(config?.defaultGranularity)
-  const [maxPoints] = useState<number>(config?.chartLimit || 0)
+  const [maxPoints, setMaxPoints] = useState<number>(0)
 
   // 2. Daten-Hooks
-  const ortDataObj: StationDataObj = useStationData("ort", chartInterval as "24h" | "7d" | undefined, granularity as any, undefined, maxPoints)
-  const heuballernDataObj: StationDataObj = useStationData("heuballern", chartInterval as "24h" | "7d" | undefined, granularity as any, undefined, maxPoints)
-  const technoDataObj: StationDataObj = useStationData("techno", chartInterval as "24h" | "7d" | undefined, granularity as any, undefined, maxPoints)
-  const bandDataObj: StationDataObj = useStationData("band", chartInterval as "24h" | "7d" | undefined, granularity as any, undefined, maxPoints)
+  const ortDataObj: StationDataObj = useStationData("ort", chartInterval as "24h" | "7d" | undefined, granularity as any, 1, maxPoints)
+  const heuballernDataObj: StationDataObj = useStationData("heuballern", chartInterval as "24h" | "7d" | undefined, granularity as any, 1, maxPoints)
+  const technoDataObj: StationDataObj = useStationData("techno", chartInterval as "24h" | "7d" | undefined, granularity as any, 1, maxPoints)
+  const bandDataObj: StationDataObj = useStationData("band", chartInterval as "24h" | "7d" | undefined, granularity as any, 1, maxPoints)
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []
@@ -345,6 +345,8 @@ export default function AllLocationsPage() {
             ]}
             title="Alle Standorte"
             icon={<BarChart3 className="w-5 h-5 text-blue-500" />}
+            maxPoints={maxPoints}
+            onMaxPointsChange={setMaxPoints}
           />
         ) : (
           <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Daten ...</div>

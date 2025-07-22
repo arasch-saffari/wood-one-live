@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { GenericChart } from '@/components/GenericChart';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -77,7 +77,7 @@ export function ChartPlayground({
   const intervalsList = intervals.length > 0 ? intervals : ['24h']
   const [interval, setInterval] = useState(intervalProp || intervalsList[0])
   const [granularity, setGranularity] = useState(granularityProp || granularities[0])
-  const [maxPoints, setMaxPoints] = useState(maxPointsProp ?? 0)
+  const [maxPoints, setMaxPoints] = useState(maxPointsProp ?? 288)
   let data = dataProp ?? generateDemoData();
   // Fallback: las immer laf bevorzugen, falls vorhanden
   if (Array.isArray(data)) {
@@ -123,10 +123,16 @@ export function ChartPlayground({
     onGranularityChange?.(v);
   };
   const handleMaxPointsChange = (v: string) => {
-    const num = Number(v);
-    setMaxPoints(num);
-    onMaxPointsChange?.(num);
-  };
+    const num = Number(v)
+    setMaxPoints(num)
+    onMaxPointsChange?.(num)
+    console.log('[ChartPlayground] handleMaxPointsChange: maxPoints =', num)
+  }
+
+  // Debug-Ausgabe für maxPoints bei jedem Render
+  React.useEffect(() => {
+    console.log('[ChartPlayground] aktueller maxPoints:', maxPoints)
+  }, [maxPoints])
 
   return (
     <Card className="mb-6 rounded-lg shadow-sm border border-card bg-card text-card-foreground">
@@ -163,7 +169,7 @@ export function ChartPlayground({
           {/* Anzahl Punkte-Auswahl */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold mr-2" title="Wie viele Datenpunkte im Chart angezeigt werden">Anzahl Punkte:</span>
-            <Select value={String(maxPoints) || '200'} onValueChange={handleMaxPointsChange}>
+            <Select value={String(maxPoints)} onValueChange={v => { handleMaxPointsChange(v); console.log('[ChartPlayground Select] onValueChange:', v, 'typeof:', typeof v); }}>
               <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {pointOptions.map(val => (
