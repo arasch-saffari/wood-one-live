@@ -90,7 +90,7 @@ async function getWeatherWithCache(station: string, time: string) {
 export async function GET(req: Request) {
   // --- Rate Limiting ---
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || ''
-  if (!checkRateLimit(ip, '/api/station-data', 30, 60_000)) {
+  if (!checkRateLimit(ip, '/api/station-data', 200, 60_000)) {
     return NextResponse.json({ error: 'Zu viele Anfragen. Bitte warte einen Moment.' }, { status: 429 })
   }
   const { searchParams } = new URL(req.url)

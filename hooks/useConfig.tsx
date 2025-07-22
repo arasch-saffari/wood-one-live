@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react"
+"use client";
+import React, { createContext, useContext, useEffect, useState } from "react"
 
-export function useConfig() {
+const ConfigContext = createContext<any>(null)
+
+export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -38,5 +41,12 @@ export function useConfig() {
     }
   }
 
-  return { config, loading, error, saving, saveError, success, saveConfig, setConfig }
+  const value = { config, loading, error, saving, saveError, success, saveConfig, setConfig }
+  return (
+    <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>
+  );
+}
+
+export function useConfig() {
+  return useContext(ConfigContext);
 } 

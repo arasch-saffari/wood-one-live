@@ -7,7 +7,7 @@ import { ReactNode, FormEvent } from "react"
 export interface SettingsField {
   name: string
   label: string
-  type: "text" | "number" | "password" | "email" | "select"
+  type: "text" | "number" | "password" | "email" | "select" | "checkbox-group"
   value: any
   onChange: (value: any) => void
   placeholder?: string
@@ -15,7 +15,7 @@ export interface SettingsField {
   max?: number
   step?: number
   disabled?: boolean
-  options?: { value: string; label: string }[] // für select
+  options?: { value: string; label: string }[] // für select und checkbox-group
 }
 
 export interface SettingsFormProps {
@@ -48,6 +48,26 @@ export function SettingsForm({ fields, onSubmit, submitLabel = "Speichern", erro
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
+              ) : field.type === "checkbox-group" ? (
+                <div className="flex gap-4 flex-wrap">
+                  {(field.options || []).map(opt => (
+                    <label key={opt.value} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={Array.isArray(field.value) ? field.value.includes(opt.value) : false}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            field.onChange([...(field.value || []), opt.value])
+                          } else {
+                            field.onChange((field.value || []).filter((v: string) => v !== opt.value))
+                          }
+                        }}
+                        disabled={field.disabled}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
               ) : (
                 <Input
                   id={field.name}

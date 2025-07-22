@@ -7,24 +7,31 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get('type') || 'measurement'
   const q = searchParams.get('q') || ''
   let rows: any[] = []
-  if (type === 'measurement') {
-    let sql = 'SELECT id, datetime, las AS value, time FROM measurements WHERE station = ?'
-    const params: any[] = [station]
-    if (q) {
-      sql += ' AND (time LIKE ? OR las LIKE ? OR id LIKE ? OR datetime LIKE ?)' 
-      params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
+  try {
+    if (type === 'measurement') {
+      let sql = 'SELECT id, datetime, las AS value, time FROM measurements WHERE station = ?'
+      const params: any[] = [station]
+      if (q) {
+        sql += ' AND (time LIKE ? OR las LIKE ? OR id LIKE ? OR datetime LIKE ?)' 
+        params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
+      }
+      sql += ' ORDER BY datetime DESC LIMIT 100'
+      rows = db.prepare(sql).all(...params)
+    } else if (type === 'weather') {
+      let sql = 'SELECT id, datetime, value, time FROM weather WHERE station = ?'
+      const params: any[] = [station]
+      if (q) {
+        sql += ' AND (time LIKE ? OR value LIKE ? OR id LIKE ? OR datetime LIKE ?)' 
+        params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
+      }
+      sql += ' ORDER BY datetime DESC LIMIT 100'
+      rows = db.prepare(sql).all(...params)
     }
-    sql += ' ORDER BY datetime DESC LIMIT 100'
-    rows = db.prepare(sql).all(...params)
-  } else if (type === 'weather') {
-    let sql = 'SELECT id, datetime, value, time FROM weather WHERE station = ?'
-    const params: any[] = [station]
-    if (q) {
-      sql += ' AND (time LIKE ? OR value LIKE ? OR id LIKE ? OR datetime LIKE ?)' 
-      params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
+    return Response.json(rows)
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      return Response.json({ error: e.message }, { status: 500 })
     }
-    sql += ' ORDER BY datetime DESC LIMIT 100'
-    rows = db.prepare(sql).all(...params)
+    return Response.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
-  return Response.json(rows)
 } 

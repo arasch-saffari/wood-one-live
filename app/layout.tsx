@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { EnablePwaBanner } from "@/components/enable-sound-banner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { ConfigProvider } from '@/hooks/useConfig'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  console.log('RENDER App')
   return (
     <html lang="de" suppressHydrationWarning>
       <head>
@@ -41,18 +43,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TooltipProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-            <Toaster />
-            <EnablePwaBanner />
-          </ThemeProvider>
-        </TooltipProvider>
+        <ConfigProvider>
+          <TooltipProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+              <Toaster />
+              <EnablePwaBanner />
+            </ThemeProvider>
+          </TooltipProvider>
+        </ConfigProvider>
       </body>
     </html>
   )

@@ -93,3 +93,5 @@
   - System-Banner im Admin-UI bei Problemen
   - Zentrales Logging mit Fehlerklassen
 - **Teststrategie:** API-Tests prüfen jetzt auch Pagination und das neue Response-Format. 
+- Zentrale Einstellungen (Chart-Limit, Pagination, Intervall, Granularität, Chart-Farben) sind jetzt im Admin-Panel unter Einstellungen editierbar.
+- Die UI der Settings-Seite ist übersichtlich und an die Schwellenwert-Seite angelehnt. 

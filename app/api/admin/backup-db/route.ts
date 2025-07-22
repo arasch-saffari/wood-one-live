@@ -18,7 +18,8 @@ export async function GET() {
         'Content-Disposition': 'attachment; filename="data.sqlite"',
       },
     })
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'Fehler beim Backup', notify: true }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+  } catch (e: unknown) {
+    const errorMsg = e instanceof Error ? e.message : 'Fehler beim Backup';
+    return new Response(JSON.stringify({ error: errorMsg, notify: true }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   }
 } 

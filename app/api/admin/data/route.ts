@@ -10,23 +10,24 @@ export async function GET(req: Request) {
     const station = searchParams.get('station')
     const limit = parseInt(searchParams.get('limit') || '50', 10)
     const search = searchParams.get('search')
-    let rows = []
+    let rows: unknown[] = []
     if (type === 'measurements') {
       let sql = 'SELECT * FROM measurements'
-      const params: any[] = []
+      const params: unknown[] = []
       if (station) { sql += ' WHERE station = ?'; params.push(station) }
       sql += ' ORDER BY id DESC LIMIT ?'; params.push(limit)
       rows = db.prepare(sql).all(...params)
     } else if (type === 'weather') {
       let sql = 'SELECT * FROM weather'
-      const params: any[] = []
+      const params: unknown[] = []
       if (station) { sql += ' WHERE station = ?'; params.push(station) }
       sql += ' ORDER BY id DESC LIMIT ?'; params.push(limit)
       rows = db.prepare(sql).all(...params)
     }
     return NextResponse.json({ rows })
-  } catch (e: any) {
-    return NextResponse.json({ rows: [], error: e?.message || 'Fehler bei der Suche.' }, { status: 500 })
+  } catch (e: unknown) {
+    const error = e as Error
+    return NextResponse.json({ rows: [], error: error.message || 'Fehler bei der Suche.' }, { status: 500 })
   }
 }
 
@@ -42,8 +43,9 @@ export async function DELETE(req: Request) {
     else return NextResponse.json({ success: false, message: 'Ungültiger Typ.' }, { status: 400 })
     db.prepare(sql).run(id)
     return NextResponse.json({ success: true })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Löschen.' }, { status: 500 })
+  } catch (e: unknown) {
+    const error = e as Error
+    return NextResponse.json({ success: false, message: error.message || 'Fehler beim Löschen.' }, { status: 500 })
   }
 }
 
@@ -55,7 +57,7 @@ export async function PATCH(req: Request) {
     if (!id) return NextResponse.json({ success: false, message: 'ID fehlt.' }, { status: 400 })
     const data = await req.json()
     let sql = ''
-    let params: any[] = []
+    let params: unknown[] = []
     if (type === 'measurements') {
       sql = 'UPDATE measurements SET station = ?, time = ?, las = ? WHERE id = ?'
       params = [data.station, data.time, data.las, id]
@@ -65,7 +67,8 @@ export async function PATCH(req: Request) {
     } else return NextResponse.json({ success: false, message: 'Ungültiger Typ.' }, { status: 400 })
     db.prepare(sql).run(...params)
     return NextResponse.json({ success: true })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Bearbeiten.' }, { status: 500 })
+  } catch (e: unknown) {
+    const error = e as Error
+    return NextResponse.json({ success: false, message: error.message || 'Fehler beim Bearbeiten.' }, { status: 500 })
   }
 } 

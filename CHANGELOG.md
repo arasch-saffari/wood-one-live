@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- Zentrale Konfiguration für Chart-Limit, Pagination, Intervall, Granularität und Chart-Farben im Admin-Panel
+- Einstellungen-Seite im Admin-Bereich neu gestaltet (übersichtlich, an Schwellenwert-Seite angelehnt)
 - Weitere Testfälle und End-to-End-Tests geplant
 
 ## Juni 2024

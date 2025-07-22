@@ -863,3 +863,15 @@ Alle Haupt-Cards im Admin-Bereich (Schwellenwerte, System, CSV, Backup, Korrektu
 - Gilt für alle Cards außer KPI- und Grid-Karten (z.B. Übersicht)
 
 Das sorgt für maximale Übersichtlichkeit und ein modernes, großzügiges Layout – unabhängig vom Inhalt oder der Bildschirmgröße. 
+
+## Zentrale Konfiguration im Admin-Panel
+
+Globale Einstellungen wie Chart-Limit, Pagination-Größe, Standard-Intervall, Granularität und Chart-Farben können im Admin-Panel unter "Einstellungen" angepasst werden. Änderungen werden sofort im gesamten Dashboard übernommen. Die Konfiguration ist für alle Nutzer mit Admin-Rechten zugänglich.
+
+- Chart-Limit: Maximale Datenpunkte pro Chart
+- Pagination: Zeilen pro Seite in Tabellen
+- Standard-Intervall & Granularität: Default für Diagramme
+- Erlaubte Intervalle & Granularitäten: Auswahloptionen
+- Chart-Farben: Farbschema für alle Diagramme
+
+Pfad: `/admin` → Tab "Einstellungen" 
