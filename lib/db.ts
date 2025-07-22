@@ -5,6 +5,7 @@ import Papa from 'papaparse'
 import cron from 'node-cron'
 import { ExternalApiError, logError } from './logger'
 import csvWatcher from './csv-watcher'
+import { fetchWeather } from './weather'
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file
@@ -320,6 +321,20 @@ cron.schedule('30 3 * * *', () => {
     }
   } catch (e) {
     console.error('[Monitoring] Fehler bei der Fehleranalyse:', e)
+  }
+})
+
+// Automatischer Wetter-Update-Cronjob (alle 10 Minuten)
+cron.schedule('*/10 * * * *', async () => {
+  try {
+    const now = new Date()
+    const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
+    const weather = await fetchWeather()
+    db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+      .run('global', time, weather.windSpeed ?? 0, weather.windDir ?? '', weather.relHumidity ?? 0, weather.temperature ?? null)
+    console.log('[Wetter-Cron] Wetterdaten aktualisiert:', weather)
+  } catch (e) {
+    console.error('[Wetter-Cron] Fehler beim Wetter-Update:', e)
   }
 })
 
