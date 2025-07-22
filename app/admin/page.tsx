@@ -240,6 +240,13 @@ export default function AdminDashboard() {
             icon: '/alert-icon.png',
           })
         }
+      } else {
+        toast({
+          title: 'Werkseinstellungen wiederhergestellt',
+          description: 'Alle Daten wurden gelöscht. Die Seite wird neu geladen...',
+          variant: 'default',
+        })
+        setTimeout(() => window.location.reload(), 2000)
       }
     } catch (e: any) {
       toast({
@@ -1133,6 +1140,10 @@ function AdminSettings() {
                   {granularityOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label htmlFor="pollingIntervalSeconds">Polling-Intervall (Sekunden)</Label>
+              <Input id="pollingIntervalSeconds" type="number" name="pollingIntervalSeconds" value={config?.pollingIntervalSeconds ?? 120} onChange={handleChange} min={30} max={3600} step={10} />
             </div>
           </CardContent>
         </Card>

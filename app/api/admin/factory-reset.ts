@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import db from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
-import { processAllCSVFiles } from '@/lib/db'
+import { processAllCSVFiles } from '@/lib/csv-processing'
 import { fetchWeather } from '@/lib/weather'
 
 export async function POST() {
