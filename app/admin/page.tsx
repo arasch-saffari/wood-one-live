@@ -83,9 +83,20 @@ function ThresholdsAuditTable() {
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  useEffect(() => {
+  const [station, setStation] = useState<string>('')
+  const [action, setAction] = useState<string>('')
+  const [search, setSearch] = useState<string>('')
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
+  const fetchAudit = useCallback(() => {
     setLoading(true)
-    fetch('/api/admin/thresholds/audit')
+    const params = new URLSearchParams()
+    if (station) params.append('station', station)
+    if (action) params.append('action', action)
+    if (search) params.append('search', search)
+    if (dateFrom) params.append('from', dateFrom)
+    if (dateTo) params.append('to', dateTo)
+    fetch('/api/admin/thresholds/audit?' + params.toString())
       .then(res => res.json())
       .then(data => {
         setRows(data.rows || [])
@@ -95,40 +106,82 @@ function ThresholdsAuditTable() {
         setError(e.message || 'Fehler beim Laden des Audit-Logs')
         setLoading(false)
       })
-  }, [])
-  if (loading) return <LoadingSpinner text="Audit-Log wird geladen..." />
-  if (error) return <ErrorMessage message={error} />
-  if (!rows.length) return <div className="text-gray-400">Keine Änderungen protokolliert.</div>
+  }, [station, action, search, dateFrom, dateTo])
+  useEffect(() => { fetchAudit() }, [fetchAudit])
+
+  function exportCSV() {
+    if (!rows.length) return
+    const header = ['Zeit','Station','Zeitblock','Aktion','Warnung alt','Warnung neu','Alarm alt','Alarm neu','LAS alt','LAS neu','LAF alt','LAF neu']
+    const csv = [header.join(',')].concat(rows.map(row => [
+      new Date(row.changed_at).toLocaleString(),
+      row.station,
+      `${row.from_time} – ${row.to_time}`,
+      row.action,
+      row.old_warning ?? '', row.new_warning ?? '',
+      row.old_alarm ?? '', row.new_alarm ?? '',
+      row.old_las ?? '', row.new_las ?? '',
+      row.old_laf ?? '', row.new_laf ?? ''
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'thresholds-audit.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  function exportJSON() {
+    if (!rows.length) return
+    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'thresholds-audit.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // UI für Filter
   return (
-    <div className="overflow-x-auto max-w-6xl mx-auto">
-      <table className="min-w-full text-xs border border-gray-200 dark:border-gray-700 rounded-xl">
-        <thead className="bg-gray-100 dark:bg-gray-900/40">
-          <tr>
-            <th className="px-2 py-1">Zeit</th>
-            <th className="px-2 py-1">Station</th>
-            <th className="px-2 py-1">Zeitblock</th>
-            <th className="px-2 py-1">Aktion</th>
-            <th className="px-2 py-1">Warnung</th>
-            <th className="px-2 py-1">Alarm</th>
-            <th className="px-2 py-1">LAS</th>
-            <th className="px-2 py-1">LAF</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="border-t border-gray-200 dark:border-gray-700">
-              <td className="px-2 py-1 whitespace-nowrap">{new Date(row.changed_at).toLocaleString()}</td>
-              <td className="px-2 py-1">{row.station}</td>
-              <td className="px-2 py-1">{row.from_time} – {row.to_time}</td>
-              <td className="px-2 py-1 font-semibold capitalize">{row.action}</td>
-              <td className="px-2 py-1">{row.old_warning ?? '-'} → <b>{row.new_warning ?? '-'}</b></td>
-              <td className="px-2 py-1">{row.old_alarm ?? '-'} → <b>{row.new_alarm ?? '-'}</b></td>
-              <td className="px-2 py-1">{row.old_las ?? '-'} → <b>{row.new_las ?? '-'}</b></td>
-              <td className="px-2 py-1">{row.old_laf ?? '-'} → <b>{row.new_laf ?? '-'}</b></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <div className="flex flex-wrap gap-2 mb-4 items-end">
+        <div>
+          <label className="block text-xs font-semibold mb-1">Station</label>
+          <select value={station} onChange={e => setStation(e.target.value)} className="border rounded px-2 py-1 text-xs">
+            <option value="">Alle</option>
+            <option value="ort">Ort</option>
+            <option value="techno">Techno</option>
+            <option value="heuballern">Heuballern</option>
+            <option value="band">Band</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1">Aktion</label>
+          <select value={action} onChange={e => setAction(e.target.value)} className="border rounded px-2 py-1 text-xs">
+            <option value="">Alle</option>
+            <option value="insert">Insert</option>
+            <option value="update">Update</option>
+            <option value="delete">Delete</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1">Von</label>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="border rounded px-2 py-1 text-xs" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1">Bis</label>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="border rounded px-2 py-1 text-xs" />
+        </div>
+        <div className="flex-1 min-w-[180px]">
+          <label className="block text-xs font-semibold mb-1">Suche</label>
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Zeitblock, Wert..." className="border rounded px-2 py-1 text-xs w-full" />
+        </div>
+        <button onClick={fetchAudit} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-1 rounded text-xs font-semibold">Filtern</button>
+        <button onClick={exportCSV} className="ml-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-3 py-1 rounded text-xs font-semibold">Export CSV</button>
+        <button onClick={exportJSON} className="ml-2 bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-1 rounded text-xs font-semibold">Export JSON</button>
+      </div>
+      {/* ... bestehende Tabelle ... */}
+      {/* ... existing code ... */}
     </div>
   )
 }

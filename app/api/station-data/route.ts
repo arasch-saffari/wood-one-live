@@ -122,7 +122,9 @@ export async function GET(req: Request) {
     time: m.time,
     las: m.las,
     datetime: m.datetime,
-    // Wetterdaten können hier ergänzt werden, falls benötigt
+    ws: m.ws,
+    wd: m.wd,
+    rh: m.rh,
   }));
   return NextResponse.json({ data: result, totalCount: result.length });
 } 

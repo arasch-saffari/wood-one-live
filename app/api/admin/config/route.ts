@@ -192,9 +192,32 @@ type ThresholdsAuditRow = {
   changed_at: string;
   action: 'insert' | 'update' | 'delete';
 }
-export async function GET_AUDIT() {
+export async function GET_AUDIT(req: Request) {
   try {
-    const rows = db.prepare('SELECT * FROM thresholds_audit ORDER BY changed_at DESC LIMIT 100').all() as ThresholdsAuditRow[]
+    const { searchParams } = new URL(req.url)
+    const station = searchParams.get('station')
+    const action = searchParams.get('action')
+    const search = searchParams.get('search')
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
+    let sql = 'SELECT * FROM thresholds_audit WHERE 1=1'
+    const params: unknown[] = []
+    if (station) { sql += ' AND station = ?'; params.push(station) }
+    if (action) { sql += ' AND action = ?'; params.push(action) }
+    if (from) { sql += ' AND date(changed_at) >= date(?)'; params.push(from) }
+    if (to) { sql += ' AND date(changed_at) <= date(?)'; params.push(to) }
+    if (search) {
+      sql += ' AND (' +
+        'from_time LIKE ? OR to_time LIKE ? OR '
+        + 'old_warning LIKE ? OR new_warning LIKE ? OR '
+        + 'old_alarm LIKE ? OR new_alarm LIKE ? OR '
+        + 'old_las LIKE ? OR new_las LIKE ? OR '
+        + 'old_laf LIKE ? OR new_laf LIKE ?'
+        + ')'
+      for (let i = 0; i < 10; i++) params.push(`%${search}%`)
+    }
+    sql += ' ORDER BY changed_at DESC LIMIT 100'
+    const rows = db.prepare(sql).all(...params) as ThresholdsAuditRow[]
     return NextResponse.json({ rows })
   } catch (e: unknown) {
     const error = e as Error

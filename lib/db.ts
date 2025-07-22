@@ -214,13 +214,15 @@ export function insertMeasurement(station: string, time: string, las: number) {
 export function getMeasurementsForStation(station: string, interval: "24h" | "7d" = "24h") {
   const limit = interval === "7d" ? 5000 : 1000;
   const stmt = db.prepare(`
-    SELECT time, las, datetime
-    FROM measurements 
-    WHERE station = ? 
-    ORDER BY rowid DESC 
+    SELECT m.time, m.las, m.datetime,
+      w.windSpeed as ws, w.windDir as wd, w.relHumidity as rh
+    FROM measurements m
+    LEFT JOIN weather w ON w.station = 'global' AND w.time = m.time
+    WHERE m.station = ?
+    ORDER BY m.rowid DESC
     LIMIT ?
   `)
-  const results = stmt.all(station, limit) as Array<{ time: string; las: number; datetime: string }>;
+  const results = stmt.all(station, limit) as Array<{ time: string; las: number; datetime: string; ws?: number; wd?: string; rh?: number }>;
   return results.reverse(); // Chronologische Reihenfolge
 }
 
