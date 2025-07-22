@@ -9,7 +9,7 @@
     "heuballern",
     "band"
   ],
-  "enableNotifications": true,
+  "enableNotifications": false,
   "csvAutoProcess": true,
   "backupRetentionDays": 14,
   "uiTheme": "system",
@@ -17,7 +17,7 @@
   "adminEmail": "",
   "weatherApiKey": "",
   "apiCacheDuration": 60,
-  "pollingIntervalSeconds": 120,
+  "pollingIntervalSeconds": 180,
   "thresholdsByStationAndTime": {
     "ort": [
       {
