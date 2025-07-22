@@ -64,13 +64,15 @@ interface ThresholdBlock {
 
 export default function AllLocationsPage() {
   // Chart-Intervall-Button-State
-  const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
-  const [granularity, setGranularity] = useState<"1h" | "15min" | "10min" | "5min" | "1min">("15min")
+  const { config, loading: configLoading, error: configError } = useConfig()
+
+  const [chartInterval, setChartInterval] = useState<string | undefined>(config?.defaultInterval)
+  const [granularity, setGranularity] = useState<string | undefined>(config?.defaultGranularity)
   // Fetch live data für jede Station mit Intervall und Granularity
-  const ortDataObj = useStationData("ort", chartInterval, granularity)
-  const heuballernDataObj = useStationData("heuballern", chartInterval, granularity)
-  const technoDataObj = useStationData("techno", chartInterval, granularity)
-  const bandDataObj = useStationData("band", chartInterval, granularity)
+  const ortDataObj = useStationData("ort", chartInterval as any, granularity as any)
+  const heuballernDataObj = useStationData("heuballern", chartInterval as any, granularity as any)
+  const technoDataObj = useStationData("techno", chartInterval as any, granularity as any)
+  const bandDataObj = useStationData("band", chartInterval as any, granularity as any)
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []
@@ -87,27 +89,39 @@ export default function AllLocationsPage() {
   // Aktuellster Wetterwert (aus API)
   const { weather: latestWeather, loading: weatherLoading, error: weatherError } = useWeatherData("global", "now")
 
-  const { config, loading: configLoading, error: configError } = useConfig()
-
   // Für jede Station aktuelle Zeit und Schwellenwerte bestimmen
   const getThresholds = (station: string, data: any[]) => {
     const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
-    return config && now ? { warning: 55, alarm: 60 } : { warning: 55, alarm: 60 }
+    if (!config || !now) return undefined;
+    const blocks = config.thresholdsByStationAndTime?.[station];
+    if (!blocks) return undefined;
+    const currentBlock = blocks.find((block: any) => {
+      // Annahme: block.from und block.to im Format HH:MM
+      if (!block.from || !block.to) return false;
+      if (block.from < block.to) {
+        // Tag-Block
+        return now >= block.from && now < block.to;
+      } else {
+        // Nacht-Block (z.B. 20:00 - 08:00)
+        return now >= block.from || now < block.to;
+      }
+    });
+    return currentBlock;
   }
 
   // Status-Farbe basierend auf Lärmwert bestimmen
   const getStatusColor = (level: number, station: string, data: any[]) => {
     const thresholds = getThresholds(station, data)
-    if (level >= thresholds.alarm) return "text-red-400"
-    if (level >= thresholds.warning) return "text-yellow-400"
+    if (level >= thresholds?.alarm) return "text-red-400"
+    if (level >= thresholds?.warning) return "text-yellow-400"
     return "text-emerald-400"
   }
 
   // Status-Badge basierend auf Lärmwert
   const getStatusBadge = (level: number, station: string, data: any[]) => {
     const thresholds = getThresholds(station, data)
-    if (level >= thresholds.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
-    if (level >= thresholds.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
+    if (level >= thresholds?.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
+    if (level >= thresholds?.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
     return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Normal</Badge>
   }
 
@@ -133,12 +147,12 @@ export default function AllLocationsPage() {
   })
 
   // State für maxPoints
-  const [maxPoints, setMaxPoints] = useState<number>(200)
+  const [maxPoints, setMaxPoints] = useState<number>(config?.chartLimit || 200)
 
   // Daten für das Chart filtern
   const filteredChartData = maxPoints > 0 && chartData.length > maxPoints ? chartData.slice(-maxPoints) : chartData
 
-  const WIND_COLOR = "#06b6d4" // cyan-500
+  const WIND_COLOR = config?.chartColors?.wind || "#06b6d4" // cyan-500
 
   return (
     <TooltipProvider>

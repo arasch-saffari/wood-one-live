@@ -88,6 +88,11 @@ export default function AdminDashboard() {
   const [editTimeIdx, setEditTimeIdx] = useState<number|null>(null)
   const [editTimeFrom, setEditTimeFrom] = useState('08:00')
   const [editTimeTo, setEditTimeTo] = useState('20:00')
+  // Verschiebe die States und Hilfsfunktionen aus AdminSettings in den Hauptbereich:
+  const [settingsConfig, setSettingsConfig] = useState<any>(null)
+  const [settingsSaving, setSettingsSaving] = useState(false)
+  const [settingsError, setSettingsError] = useState<string|null>(null)
+  const [settingsSuccess, setSettingsSuccess] = useState(false)
 
   useEffect(() => {
     if (segment === 'thresholds') {
@@ -115,6 +120,9 @@ export default function AdminDashboard() {
     if (segment === 'correction') {
       fetchCorrectionStats()
       fetchCorrectionData()
+    }
+    if (segment === 'settings') {
+      fetch('/api/admin/config').then(res => res.json()).then(setSettingsConfig)
     }
   }, [segment, health])
 
@@ -572,6 +580,30 @@ export default function AdminDashboard() {
           icon: '/alert-icon.png',
         })
       }
+    }
+  }
+
+  function setField(name: string, value: any) {
+    setSettingsConfig((prev: any) => ({ ...prev, [name]: value }))
+  }
+
+  async function handleSettingsSave(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    setSettingsSaving(true)
+    setSettingsError(null)
+    setSettingsSuccess(false)
+    try {
+      const res = await fetch('/api/admin/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsConfig)
+      })
+      if (!res.ok) throw new Error('Fehler beim Speichern')
+      setSettingsSuccess(true)
+    } catch (e: any) {
+      setSettingsError(e.message || 'Unbekannter Fehler')
+    } finally {
+      setSettingsSaving(false)
     }
   }
 
@@ -1118,14 +1150,68 @@ export default function AdminDashboard() {
                   </Sheet>
                 </section>
               )}
-              {segment === 'settings' && (
-                <section className="space-y-8">
-                  <h1 className="text-2xl font-bold mb-6">Globale Einstellungen</h1>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+              {segment === 'settings' && settingsConfig && (
+                <section className="space-y-12">
+                  <h1 className="text-3xl font-extrabold tracking-tight mb-8 flex items-center gap-4 sticky top-0 z-10 bg-gradient-to-b from-white/80 to-transparent dark:from-gray-900/80 dark:to-transparent backdrop-blur-xl py-4 px-2 rounded-2xl shadow-lg">
+                    <Settings className="w-8 h-8 text-violet-500" />
+                    Einstellungen
+                    <span className="text-base font-normal text-gray-400 ml-4">Globale System- und Chart-Optionen</span>
+                  </h1>
+                  <Card className="max-w-6xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                    <CardHeader><CardTitle>Chart & Anzeige</CardTitle></CardHeader>
                     <CardContent>
-                      <AdminSettings />
+                      <form onSubmit={handleSettingsSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="flex flex-col gap-2">
+                          <Label>Maximale Datenpunkte pro Chart</Label>
+                          <Input type="number" value={settingsConfig.chartLimit ?? 200} min={10} max={2000} step={1} onChange={e => setField("chartLimit", Number(e.target.value))} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label>Standard-Seitengröße (Tabellen)</Label>
+                          <Input type="number" value={settingsConfig.pageSize ?? 20} min={5} max={200} step={1} onChange={e => setField("pageSize", Number(e.target.value))} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label>Standard-Intervall</Label>
+                          <select value={settingsConfig.defaultInterval ?? "24h"} onChange={e => setField("defaultInterval", e.target.value)} className="input">
+                            {(settingsConfig.allowedIntervals || ["24h", "7d"]).map((v: string) => <option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label>Standard-Granularität</Label>
+                          <select value={settingsConfig.defaultGranularity ?? "15min"} onChange={e => setField("defaultGranularity", e.target.value)} className="input">
+                            {(settingsConfig.allowedGranularities || ["1h", "15min", "10min", "5min", "1min"]).map((v: string) => <option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex flex-col gap-2 md:col-span-2">
+                          <Label>Erlaubte Intervalle (Komma-getrennt)</Label>
+                          <Input type="text" value={(settingsConfig.allowedIntervals || ["24h", "7d"]).join(", ")} onChange={e => setField("allowedIntervals", e.target.value.split(",").map((s: string) => s.trim()))} />
+                        </div>
+                        <div className="flex flex-col gap-2 md:col-span-2">
+                          <Label>Erlaubte Granularitäten (Komma-getrennt)</Label>
+                          <Input type="text" value={(settingsConfig.allowedGranularities || ["1h", "15min", "10min", "5min", "1min"]).join(", ")} onChange={e => setField("allowedGranularities", e.target.value.split(",").map((s: string) => s.trim()))} />
+                        </div>
+                      </form>
                     </CardContent>
                   </Card>
+                  <Card className="max-w-6xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                    <CardHeader><CardTitle>Chart-Farben</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {Object.entries(settingsConfig.chartColors || {}).filter(([k]) => k !== 'gradients').map(([key, value]) => (
+                          <div key={key} className="flex flex-col gap-2">
+                            <Label>Farbe für {key}</Label>
+                            <Input type="text" value={value as string} onChange={e => setField("chartColors", { ...settingsConfig.chartColors, [key]: e.target.value })} />
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <div className="flex justify-end max-w-6xl mx-auto w-full mt-8">
+                    <Button type="button" className="px-8 py-3 text-lg font-bold rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg hover:scale-[1.02] transition-all" onClick={handleSettingsSave} disabled={settingsSaving}>
+                      {settingsSaving ? 'Speichern...' : 'Speichern'}
+                    </Button>
+                  </div>
+                  {settingsError && <div className="text-red-500 font-semibold text-sm mt-2 text-center">{settingsError}</div>}
+                  {settingsSuccess && <div className="text-green-600 font-semibold text-sm mt-2 text-center">Gespeichert!</div>}
                 </section>
               )}
             </main>
@@ -1133,165 +1219,5 @@ export default function AdminDashboard() {
         </div>
       </SidebarProvider>
     </div>
-  )
-}
-
-function AdminSettings() {
-  // Settings für weitere Konfigurationen (ohne Schwellenwerte)
-  const [config, setConfig] = useState<any>(null)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string|null>(null)
-  const [success, setSuccess] = useState(false)
-
-  useEffect(() => {
-    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
-  }, [])
-
-  // Optionen für Intervalle und Granularitäten
-  const intervalOptions = [
-    { value: '24h', label: '24 Stunden' },
-    { value: '7d', label: '7 Tage' },
-  ]
-  const granularityOptions = [
-    { value: '1h', label: '1 Stunde' },
-    { value: '15min', label: '15 Minuten' },
-    { value: '10min', label: '10 Minuten' },
-    { value: '5min', label: '5 Minuten' },
-    { value: '1min', label: '1 Minute' },
-  ]
-
-  function setField(name: string, value: any) {
-    setConfig((prev: any) => ({ ...prev, [name]: value }))
-  }
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
-    setSuccess(false)
-    try {
-      const res = await fetch('/api/admin/config', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      })
-      if (!res.ok) throw new Error('Fehler beim Speichern')
-      setSuccess(true)
-    } catch (e: any) {
-      setError(e.message || 'Unbekannter Fehler')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (!config) return <div>Lade Einstellungen...</div>
-
-  const fields: SettingsField[] = [
-    {
-      name: "chartLimit",
-      label: "Maximale Datenpunkte pro Chart",
-      type: "number",
-      value: config.chartLimit ?? 50,
-      onChange: v => setField("chartLimit", v),
-      min: 10,
-      max: 500,
-      step: 1,
-    },
-    {
-      name: "defaultInterval",
-      label: "Standard-Intervall",
-      type: "text",
-      value: config.defaultInterval ?? "24h",
-      onChange: v => setField("defaultInterval", v),
-      placeholder: "24h oder 7d",
-    },
-    {
-      name: "defaultGranularity",
-      label: "Standard-Granularität",
-      type: "text",
-      value: config.defaultGranularity ?? "15min",
-      onChange: v => setField("defaultGranularity", v),
-      placeholder: "z.B. 15min",
-    },
-    {
-      name: "pollingIntervalSeconds",
-      label: "Polling-Intervall (Sekunden)",
-      type: "number",
-      value: config.pollingIntervalSeconds ?? 120,
-      onChange: v => setField("pollingIntervalSeconds", v),
-      min: 30,
-      max: 3600,
-      step: 10,
-    },
-    {
-      name: "apiMaxRequests",
-      label: "API Rate-Limit: Max. Requests",
-      type: "number",
-      value: config.apiMaxRequests ?? 30,
-      onChange: v => setField("apiMaxRequests", v),
-      min: 1,
-      max: 1000,
-      step: 1,
-    },
-    {
-      name: "apiIntervalMs",
-      label: "API Rate-Limit: Intervall (ms)",
-      type: "number",
-      value: config.apiIntervalMs ?? 60000,
-      onChange: v => setField("apiIntervalMs", v),
-      min: 1000,
-      max: 3600000,
-      step: 1000,
-    },
-    {
-      name: "weatherFallbackWindSpeed",
-      label: "Wetterdaten-Fallback: Windgeschwindigkeit (km/h)",
-      type: "number",
-      value: config.weatherFallbackWindSpeed ?? 0,
-      onChange: v => setField("weatherFallbackWindSpeed", v),
-      min: 0,
-      max: 200,
-      step: 0.1,
-    },
-    {
-      name: "weatherFallbackWindDir",
-      label: "Wetterdaten-Fallback: Windrichtung (°/Text)",
-      type: "text",
-      value: config.weatherFallbackWindDir ?? "N",
-      onChange: v => setField("weatherFallbackWindDir", v),
-      placeholder: "z.B. N, S, E, W",
-    },
-    {
-      name: "weatherFallbackRelHumidity",
-      label: "Wetterdaten-Fallback: rel. Luftfeuchtigkeit (%)",
-      type: "number",
-      value: config.weatherFallbackRelHumidity ?? 50,
-      onChange: v => setField("weatherFallbackRelHumidity", v),
-      min: 0,
-      max: 100,
-      step: 1,
-    },
-    {
-      name: "weatherFallbackTemperature",
-      label: "Wetterdaten-Fallback: Temperatur (°C)",
-      type: "number",
-      value: config.weatherFallbackTemperature ?? 15,
-      onChange: v => setField("weatherFallbackTemperature", v),
-      min: -50,
-      max: 60,
-      step: 0.1,
-    },
-  ]
-
-  return (
-    <section className="space-y-8">
-      <h1 className="text-2xl font-bold mb-6">Globale Einstellungen</h1>
-      <SettingsForm
-        fields={fields}
-        onSubmit={handleSave}
-        error={error || (success ? "Gespeichert!" : undefined)}
-        loading={saving}
-      />
-    </section>
   )
 } 
