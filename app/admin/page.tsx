@@ -1053,6 +1053,26 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Löscht alle Messwerte und Wetterdaten unwiderruflich und baut die Tabellenstruktur neu auf. Nutze danach "Alle CSV-Dateien neu einlesen" für einen vollständigen Reimport.</div>
                     </CardContent>
                   </Card>
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                    <CardHeader><CardTitle>Wetterdaten manuell aktualisieren</CardTitle></CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <Button onClick={async () => {
+                          setLoading(true)
+                          try {
+                            const res = await fetch('/api/weather?station=global&time=now')
+                            const data = await res.json()
+                            toast({ title: 'Wetterdaten aktualisiert', description: JSON.stringify(data), variant: 'default' })
+                          } catch (e: any) {
+                            toast({ title: 'Fehler beim Wetter-Update', description: e?.message, variant: 'destructive' })
+                          } finally {
+                            setLoading(false)
+                          }
+                        }} disabled={loading}>Wetter jetzt abrufen</Button>
+                      </div>
+                      <div className="text-xs text-gray-500">Ruft die aktuellen Wetterdaten manuell ab und speichert sie in der Datenbank. Automatische Updates erfolgen alle 10 Minuten.</div>
+                    </CardContent>
+                  </Card>
                 </section>
               )}
               {segment === 'backup' && (

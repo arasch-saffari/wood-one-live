@@ -84,6 +84,18 @@ export function ChartPlayground({
     data = data.map(d => ({ ...d, las: d.laf ?? d.las ?? d.las }));
   }
 
+  // Stelle sicher, dass die Daten aufsteigend nach Zeit sortiert sind
+  const sortedData = useState(() => {
+    if (!Array.isArray(data)) return data
+    // Versuche nach datetime oder time zu sortieren
+    return [...data].sort((a, b) => {
+      const tA = (a.datetime || a.time)
+      const tB = (b.datetime || b.time)
+      if (!tA || !tB) return 0
+      return tA.localeCompare(tB)
+    })
+  })[0]
+
   const lines = linesProp ?? [
     { key: 'las', label: 'Lärmpegel', color: '#10b981', yAxisId: 'noise' },
     { key: 'ws', label: 'Wind', color: '#06b6d4', yAxisId: 'wind', strokeDasharray: '5 5' },
@@ -160,7 +172,7 @@ export function ChartPlayground({
         </div>
         {/* Chart */}
         <GenericChart
-          data={data}
+          data={sortedData}
           lines={lines}
           axes={axes}
           thresholds={thresholds ?? defaultThresholds}

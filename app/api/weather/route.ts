@@ -85,8 +85,15 @@ export async function GET(req: Request) {
     }
     let weather: any
     if (time === 'now') {
-      // Gib den letzten Wetterwert zurück
-      const row = db.prepare('SELECT * FROM weather WHERE station = ? ORDER BY created_at DESC LIMIT 1').get(station) as any
+      // Gib den letzten Wetterwert mit echten Daten zurück
+      const row = db.prepare(`
+        SELECT * FROM weather
+        WHERE station = ?
+          AND windSpeed IS NOT NULL
+          AND relHumidity IS NOT NULL
+          AND temperature IS NOT NULL
+        ORDER BY created_at DESC LIMIT 1
+      `).get(station) as any
       weather = row || null
     } else {
       weather = await getOrFetchWeather(station, time)
