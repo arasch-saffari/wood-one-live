@@ -235,14 +235,28 @@ checkDatabaseHealth()
 //   processAllCSVFiles() // This line was removed as per the edit hint.
 // }
 
-// Starte den CSV-Watcher automatisch, wenn nicht production oder explizit erlaubt
-if (process.env.NODE_ENV !== 'production' || process.env.CSV_WATCHER_AUTO_START === 'true') {
+// Starte CSV-Watcher und Wetter-Cronjob nur, wenn explizit erlaubt
+if (process.env.ENABLE_BACKGROUND_JOBS === 'true') {
   try {
     startCsvWatcher()
     console.log('CSV-Watcher automatisch gestartet.')
   } catch (e) {
     console.error('Fehler beim Starten des CSV-Watchers:', e)
   }
+
+  // Automatischer Wetter-Update-Cronjob (alle 10 Minuten)
+  cron.schedule('*/10 * * * *', async () => {
+    try {
+      const now = new Date()
+      const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
+      const weather = await fetchWeather()
+      db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+        .run('global', time, weather.windSpeed ?? 0, weather.windDir ?? '', weather.relHumidity ?? 0, weather.temperature ?? null)
+      console.log('[Wetter-Cron] Wetterdaten aktualisiert:', weather)
+    } catch (e) {
+      console.error('[Wetter-Cron] Fehler beim Wetter-Update:', e)
+    }
+  })
 }
 
 // Initial-Import aller vorhandenen CSV-Dateien
@@ -321,20 +335,6 @@ cron.schedule('30 3 * * *', () => {
     }
   } catch (e) {
     console.error('[Monitoring] Fehler bei der Fehleranalyse:', e)
-  }
-})
-
-// Automatischer Wetter-Update-Cronjob (alle 10 Minuten)
-cron.schedule('*/10 * * * *', async () => {
-  try {
-    const now = new Date()
-    const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
-    const weather = await fetchWeather()
-    db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
-      .run('global', time, weather.windSpeed ?? 0, weather.windDir ?? '', weather.relHumidity ?? 0, weather.temperature ?? null)
-    console.log('[Wetter-Cron] Wetterdaten aktualisiert:', weather)
-  } catch (e) {
-    console.error('[Wetter-Cron] Fehler beim Wetter-Update:', e)
   }
 })
 
