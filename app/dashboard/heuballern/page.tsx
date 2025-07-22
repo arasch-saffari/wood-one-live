@@ -437,21 +437,19 @@ export default function HeuballernPage() {
                       tickLine={{ stroke: "hsl(var(--border))" }}
                     />
                     <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload || !payload.length) return null
-                        const d = payload[0].payload
-                        return (
-                          <div className="rounded-md border bg-white dark:bg-gray-900 p-2 shadow-md text-xs min-w-[180px]">
-                            <div className="font-semibold mb-1">{label}</div>
-                            <div>Lärmpegel: <b>{d.las?.toFixed(1)} dB</b></div>
-                            <div>Wind: <b>{d.ws ?? "-"} km/h</b></div>
-                            <div>Windrichtung: <b>{d.wd ?? "-"}</b></div>
-                            <div>Luftfeuchte: <b>{d.rh ?? "-"} %</b></div>
-                            <div>Warnung: <b>{thresholds.warning} dB</b></div>
-                            <div>Alarm: <b>{thresholds.alarm} dB</b></div>
-                            {d.temp !== undefined && <div>Temperatur: <b>{d.temp}°C</b></div>}
-                          </div>
-                        )
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "12px",
+                        boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+                        color: "hsl(var(--card-foreground))",
+                      }}
+                      formatter={(value, name) => {
+                        if (name === "ws") return [`${value} km/h`, "Windgeschwindigkeit"]
+                        if (name === "rh") return [`${value} %`, "Luftfeuchte"]
+                        if (name === "las") return [`${value} dB`, "Lärmpegel"]
+                        if (name === "temp") return [`${value}°C`, "Temperatur"]
+                        return [String(value), name]
                       }}
                     />
                     <Line
@@ -504,6 +502,14 @@ export default function HeuballernPage() {
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
+              </div>
+              {/* Legende unter dem Chart */}
+              <div className="flex flex-wrap gap-4 mt-4 text-xs">
+                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{background: STATION_COLORS.heuballern.primary}}></span> Lärmpegel</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{background: CHART_COLORS.wind}}></span> Wind</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{background: CHART_COLORS.humidity}}></span> Luftfeuchte</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{background: CHART_COLORS.warning}}></span> Warnung</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{background: CHART_COLORS.alarm}}></span> Alarm</div>
               </div>
             </CardContent>
           </Card>
