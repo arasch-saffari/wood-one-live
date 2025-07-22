@@ -3,14 +3,14 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 import { StatusBadge } from "@/components/StatusBadge"
 import { ReactNode, useState } from "react"
 
-export interface DataTableColumn<T = any> {
+export interface DataTableColumn<T = unknown> {
   label: string
   key: string
   render?: (row: T) => ReactNode
   sortable?: boolean
 }
 
-export interface DataTableProps<T = any> {
+export interface DataTableProps<T = unknown> {
   data: T[]
   columns: DataTableColumn<T>[]
   statusFn?: (row: T) => { label: string; color: string }
@@ -24,7 +24,7 @@ export interface DataTableProps<T = any> {
   sortDirection?: 'asc' | 'desc'
 }
 
-export function DataTable<T = any>({
+export function DataTable<T = unknown>({
   data,
   columns,
   statusFn,
@@ -84,9 +84,9 @@ export function DataTable<T = any>({
               return (
                 <TableRow key={i} className={status ? (status.label === "Alarm" ? "bg-red-50 dark:bg-red-900/30" : status.label === "Warnung" ? "bg-yellow-50 dark:bg-yellow-900/30" : "") : ""}>
                   {columns.map(col => (
-                    <TableCell key={col.key}>{col.render ? col.render(row) : (row as any)[col.key]}</TableCell>
+                    <TableCell key={col.key}>{col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key])}</TableCell>
                   ))}
-                  {status && <TableCell><StatusBadge status={status.label as any} color={status.color} /></TableCell>}
+                  {status && <TableCell><StatusBadge status={status.label as "Alarm" | "Warnung" | "Normal"} color={status.color} /></TableCell>}
                 </TableRow>
               )
             })}

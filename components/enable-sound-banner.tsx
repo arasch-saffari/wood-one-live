@@ -36,17 +36,17 @@ export function EnableSoundBanner() {
 }
 
 export function EnablePwaBanner() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null)
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
     // Prüfe, ob Android (und nicht iOS oder Desktop)
     const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as Navigator).standalone
     const alreadyShown = window.localStorage.getItem('pwaBannerShown') === 'true'
     if (!isAndroid || isStandalone || alreadyShown) return
 
-    const handler = (e: any) => {
+    const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e)
       setShowBanner(true)
@@ -71,8 +71,8 @@ export function EnablePwaBanner() {
         className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold text-xs shadow hover:scale-105 transition"
         onClick={async () => {
           if (deferredPrompt) {
-            deferredPrompt.prompt()
-            const { outcome } = await deferredPrompt.userChoice
+            (deferredPrompt as any).prompt()
+            const { outcome } = (deferredPrompt as any).userChoice
             if (outcome === "accepted") {
               setShowBanner(false)
             }

@@ -13,7 +13,7 @@ export function roundTo5MinBlock(time: string): string {
   return `${h.toString().padStart(2, "0")}:${rounded.toString().padStart(2, "0")}`
 }
 
-export function getThresholdsForStationAndTime(config: any, station: string, time: string) {
+export function getThresholdsForStationAndTime(config: unknown, station: string, time: string) {
   if (!config || !config.thresholdsByStationAndTime || !config.thresholdsByStationAndTime[station]) {
     // Fallback auf globale Werte
     return {
