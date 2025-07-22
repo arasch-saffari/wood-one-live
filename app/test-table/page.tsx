@@ -18,9 +18,9 @@ export default function TestTablePage() {
   }, [station]);
 
   const columns: DataTableColumn[] = [
-    { label: 'Datum/Zeit', key: 'datetime', sortable: true },
+    { label: 'Datum', key: 'date', sortable: true },
     { label: 'Uhrzeit', key: 'time', sortable: true },
-    { label: 'Max SPL A Fast', key: 'las', sortable: true },
+    { label: 'Max SPL A Fast', key: 'maxSPLAFast', sortable: true },
   ];
 
   return (

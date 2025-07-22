@@ -8,7 +8,7 @@ import '@testing-library/jest-dom'
 // Mock fetch für Config und andere API-Aufrufe
 beforeAll(() => {
   global.fetch = vi.fn().mockResolvedValue({
-    json: async () => ({ thresholdsByStationAndTime: { ort: [{ from: '08:00', to: '20:00', lasThreshold: 50 }] }, adminEmail: '' })
+    json: async () => ({ measurements: [{ station: 'ort', date: '2025-07-22', time: '10:00', maxSPLAFast: 80 }] })
   })
 })
 

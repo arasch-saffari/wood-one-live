@@ -152,7 +152,8 @@ export default function AdminDashboard() {
     setCorrectionError(null)
     try {
       const res = await fetch(`/api/admin/correction-data?station=${correctionStation}&type=${correctionType}&q=${encodeURIComponent(correctionQuery)}`)
-      setCorrectionData(await res.json())
+      const data = await res.json()
+      setCorrectionData(Array.isArray(data) ? data : [])
     } catch (e: unknown) {
       setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Laden der Daten')
     } finally {
@@ -956,7 +957,7 @@ export default function AdminDashboard() {
                       <Button onClick={handleFactoryReset} className="w-48 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold" size="lg" disabled={resetting}>
                         <Trash2 className="w-4 h-4 mr-2" /> {resetting ? 'Zurücksetzen...' : 'System zurücksetzen'}
                       </Button>
-                      <div className="text-xs text-gray-500">Löscht alle Messwerte, Wetterdaten und CSV-Dateien unwiderruflich.</div>
+                      <div className="text-xs text-gray-500">Löscht alle Messwerte und Wetterdaten unwiderruflich.</div>
                     </CardContent>
                   </Card>
                   <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">

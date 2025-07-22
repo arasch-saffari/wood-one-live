@@ -10,7 +10,6 @@
     "band"
   ],
   "enableNotifications": false,
-  "csvAutoProcess": true,
   "backupRetentionDays": 14,
   "uiTheme": "system",
   "calculationMode": "max",
@@ -130,6 +129,7 @@
       }
     ]
   },
+  "csvAutoProcess": true,
   "chartVisibleLines": {
     "ort": [
       "las"

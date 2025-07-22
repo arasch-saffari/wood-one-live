@@ -17,13 +17,13 @@ export async function GET(req: Request) {
     const q = searchParams.get('q') || ''
     let rows: CorrectionData[] = []
     if (type === 'measurement') {
-      let sql = 'SELECT id, datetime, las AS value, time FROM measurements WHERE station = ?'
+      let sql = 'SELECT id, (date || " " || time) as datetime, maxSPLAFast AS value, time FROM measurements WHERE station = ?'
       const params: any[] = [station]
       if (q) {
-        sql += ' AND (time LIKE ? OR las LIKE ? OR id LIKE ? OR datetime LIKE ?)' 
+        sql += ' AND (time LIKE ? OR maxSPLAFast LIKE ? OR id LIKE ? OR date LIKE ?)' 
         params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
       }
-      sql += ' ORDER BY datetime DESC LIMIT 100'
+      sql += ' ORDER BY date DESC, time DESC LIMIT 100'
       rows = db.prepare(sql).all(...params) as CorrectionData[];
     } else if (type === 'weather') {
       let sql = 'SELECT id, datetime, value, time FROM weather WHERE station = ?'

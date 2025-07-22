@@ -11,12 +11,6 @@ export async function GET() {
       lastRun: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       status: 'OK',
     },
-    {
-      name: 'CSV-Import',
-      schedule: 'alle 10 Sekunden',
-      lastRun: new Date(Date.now() - 8 * 1000).toISOString(),
-      status: 'OK',
-    },
   ]
   return NextResponse.json({ crons })
 } 

@@ -29,7 +29,14 @@ const dataTypes = [
 async function fetchExportData(station: string, interval: string) {
   const res = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=15min`)
   if (!res.ok) return { data: [] }
-  return await res.json()
+  // Nur die neuen Felder übernehmen
+  const raw = await res.json();
+  return { data: (raw.data || []).map((row: any) => ({
+    station: row.station,
+    date: row.date,
+    time: row.time,
+    maxSPLAFast: row.maxSPLAFast,
+  })) }
 }
 
 export default function ExportPage() {

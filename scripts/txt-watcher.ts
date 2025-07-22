@@ -2,6 +2,9 @@ import chokidar from 'chokidar';
 import fs from 'fs';
 import path from 'path';
 import db from '../lib/database';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const baseDir = path.join(__dirname, '../public/txt');
 

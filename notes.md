@@ -4,26 +4,25 @@
 
 - **app/**
   - **dashboard/**: Einzelne Dashboards für jede Messstation (all, ort, heuballern, techno, band, export)
-  - **api/**: API-Endpunkte (station-data, weather, process-csv, etc.)
+  - **api/**: API-Endpunkte (station-data, weather, etc.)
   - **globals.css**: Globale Styles
 - **components/**: UI-Komponenten (inkl. shadcn/ui)
 - **hooks/**: Custom React Hooks (z.B. useStationData)
-- **lib/**: Utilities, Datenbank, CSV- und Wetterintegration
-- **public/csv/**: CSV-Daten für jede Station
+- **lib/**: Utilities, Datenbank, TXT- und Wetterintegration
+- **public/txt/**: TXT-Daten für jede Station
 - **styles/**: Globale Styles
 - **README.md, DOCUMENTATION.md**: Projektbeschreibung und technische Dokumentation
 
 ## Zentrale Komponenten & Datenflüsse
 
-- **CSV-Datenfluss:**
-  1. CSV-Dateien werden in `public/csv/[station]/` abgelegt
-  2. CSV-Watcher erkennt neue Dateien (lib/csv-watcher.ts)pn
-  3. Daten werden in SQLite-DB importiert (lib/db.ts)
+- **TXT-Datenfluss:**
+  1. TXT-Dateien werden in `public/txt/[station]/` abgelegt
+  2. TXT-Watcher erkennt neue Dateien (`scripts/txt-watcher.ts`)
+  3. Daten werden in SQLite-DB importiert (`lib/db.ts`)
   4. API-Endpunkte liefern Daten an das Frontend (app/api/)
-  5. Frontend (app/dashboard/) visualisiert Daten in Charts (Recharts)
+  5. Frontend (app/dashboard/) visualisiert Daten in Charts
 
 - **Wetterdaten:**
-  - Bisher: Weisserstein.info (soll auf Open-Meteo API umgestellt werden)
   - Integration über lib/weather.ts und API-Route app/api/weather/
 
 - **Benachrichtigungen:**
@@ -64,10 +63,10 @@
 # Update Juni 2024
 
 - Wetterdaten werden im Frontend immer in Europe/Berlin angezeigt (korrekte Zeitzone, kein UTC-Fehler mehr).
-- Für Zeitpunkte ohne Wetterdaten (z.B. alte CSVs) werden alle Wetterwerte als null geliefert (kein 0 oder Platzhalter mehr).
-- CSV-Watcher läuft jetzt auch im Build/Production-Modus und verarbeitet neue CSV-Dateien automatisch.
-- Wetterdaten werden beim CSV-Import nur für aktuelle Zeitblöcke synchronisiert (keine aktuellen Wetterdaten für alte Messwerte).
-- Konfigurationsoptionen csvAutoProcess und enableNotifications wirken systemweit. 
+- Für Zeitpunkte ohne Wetterdaten werden alle Wetterwerte als null geliefert (kein 0 oder Platzhalter mehr).
+- TXT-Watcher läuft jetzt auch im Build/Production-Modus und verarbeitet neue TXT-Dateien automatisch.
+- Wetterdaten werden beim TXT-Import nur für aktuelle Zeitblöcke synchronisiert (keine aktuellen Wetterdaten für alte Messwerte).
+- Konfigurationsoptionen für Auto-Import und Notifications wirken systemweit. 
 
 ## Änderung: Wetterdaten ohne Fallbacks
 - Wetterdaten liefern keine Fallback- oder Defaultwerte mehr.
@@ -80,18 +79,4 @@
 - **Test-Framework**: Vitest + Testing Library
 - **Mocking**: Wetter-API, Browser-APIs (matchMedia) werden gemockt
 - **Fehlerquellen**: Aliase, React-Import, jsdom, Request-Mocks, matchMedia – alle gelöst
-- **Empfehlung**: Bei neuen Features immer Unit- und UI-Tests ergänzen, API-Fehlerfälle abdecken
-- **CI/CD**: Tests laufen headless und können in Pipelines integriert werden 
-
-## Update Juli 2024: API, Performance, Monitoring
-
-- **API-Response:** `/api/station-data` liefert jetzt immer `{ data, totalCount }`.
-- **Pagination:** Über `page` und `pageSize` können gezielt Seiten abgefragt werden. Tabellen laden nur noch die aktuelle Seite.
-- **Fehlerbenachrichtigung:** Kritische Fehler werden mit `notify: true` im API-Response markiert. Das Frontend zeigt Toast und Push-Notification, keine E-Mail/Slack mehr.
-- **Health-Check & Monitoring:**
-  - Automatischer täglicher Integritäts-Check der Datenbank und Wetterdaten
-  - System-Banner im Admin-UI bei Problemen
-  - Zentrales Logging mit Fehlerklassen
-- **Teststrategie:** API-Tests prüfen jetzt auch Pagination und das neue Response-Format. 
-- Zentrale Einstellungen (Chart-Limit, Pagination, Intervall, Granularität, Chart-Farben) sind jetzt im Admin-Panel unter Einstellungen editierbar.
-- Die UI der Settings-Seite ist übersichtlich und an die Schwellenwert-Seite angelehnt. 
+- **Empfehlung**: Bei neuen Features immer Unit- und UI-Tests ergänzen, API-Fehlerfälle abdecken 

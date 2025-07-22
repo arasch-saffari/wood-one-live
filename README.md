@@ -4,7 +4,7 @@
 
 - **Datenquelle:** Nur noch TXT-Dateien im Verzeichnis `public/txt/[station]/`
 - **Import:** Ein Node-basiertes Skript (`scripts/txt-watcher.ts`) überwacht und importiert neue/aktualisierte TXT-Dateien automatisch in die Datenbank.
-- **Kein CSV/JSON-Import mehr!** Alle Altlasten wurden entfernt.
+- **Kein CSV-Import mehr!**
 
 ### TXT-Watcher lokal starten
 

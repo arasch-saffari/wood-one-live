@@ -66,7 +66,19 @@ export default function ChartTestPage() {
 
   // Dummy-Export
   function handleExport(type: 'csv' | 'img') {
-    alert(`Export als ${type.toUpperCase()} (Demo)`)
+    if (type === 'csv') {
+      const headers = ['station', 'date', 'time', 'maxSPLAFast'];
+      const csvContent = [headers.join(','), ...data.map((row) => headers.map((header) => row[header]).join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `export-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (type === 'img') {
+      // ... bestehende Logik für Bildexport ...
+    }
   }
 
   return (

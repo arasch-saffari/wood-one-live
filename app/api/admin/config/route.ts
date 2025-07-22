@@ -13,7 +13,6 @@ const defaultConfig = {
   lafThreshold: 52,
   stations: ['ort', 'techno', 'heuballern', 'band'],
   enableNotifications: false,
-  csvAutoProcess: true,
   backupRetentionDays: 14,
   uiTheme: 'system', // 'light' | 'dark' | 'system'
   calculationMode: 'max', // 'max' | 'average' | 'median'

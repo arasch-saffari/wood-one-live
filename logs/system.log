@@ -24,3 +24,73 @@ ExternalApiError: Failed to fetch weather after retries
     at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
     at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
 
+[2025-07-22T18:51:43.051Z] SqliteError: no such table: measurements
+SqliteError: no such table: measurements
+    at Database.prepare (/Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/better-sqlite3@12.2.0/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at checkIntegrity (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:7:22)
+    at <anonymous> (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:20:1)
+    at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+[2025-07-22T18:52:25.935Z] SqliteError: no such column: maxSPLAFast
+SqliteError: no such column: maxSPLAFast
+    at Database.prepare (/Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/better-sqlite3@12.2.0/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at checkIntegrity (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:33:22)
+    at <anonymous> (/Users/araschsaffari/code/cursor/wood-one-live/scripts/run-migrations.ts:46:1)
+    at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+[2025-07-22T19:18:27.948Z] ExternalApiError: Failed to fetch weather after retries
+ExternalApiError: Failed to fetch weather after retries
+    at Module.fetchWeather (/Users/araschsaffari/code/cursor/wood-one-live/lib/weather.ts:32:18)
+    at /Users/araschsaffari/code/cursor/wood-one-live/lib/weather.test.ts:35:5
+    at runTest (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
+
+[2025-07-22T19:18:30.957Z] ExternalApiError: Failed to fetch weather after retries
+ExternalApiError: Failed to fetch weather after retries
+    at Module.fetchWeather (/Users/araschsaffari/code/cursor/wood-one-live/lib/weather.ts:32:18)
+    at /Users/araschsaffari/code/cursor/wood-one-live/lib/weather.test.ts:40:5
+    at runTest (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
+
+[2025-07-22T19:21:05.980Z] ExternalApiError: Failed to fetch weather after retries
+ExternalApiError: Failed to fetch weather after retries
+    at Module.fetchWeather (/Users/araschsaffari/code/cursor/wood-one-live/lib/weather.ts:32:18)
+    at /Users/araschsaffari/code/cursor/wood-one-live/lib/weather.test.ts:35:5
+    at runTest (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
+
+[2025-07-22T19:21:09.028Z] ExternalApiError: Failed to fetch weather after retries
+ExternalApiError: Failed to fetch weather after retries
+    at Module.fetchWeather (/Users/araschsaffari/code/cursor/wood-one-live/lib/weather.ts:32:18)
+    at /Users/araschsaffari/code/cursor/wood-one-live/lib/weather.test.ts:40:5
+    at runTest (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
+

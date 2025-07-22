@@ -19,8 +19,7 @@ export function getThresholdsForStationAndTime(config: unknown, station: string,
     return {
       warning: config?.warningThreshold ?? 55,
       alarm: config?.alarmThreshold ?? 60,
-      las: config?.lasThreshold ?? 50,
-      laf: config?.lafThreshold ?? 52,
+      maxSPLAFast: config?.maxSPLAFastThreshold ?? 50,
     }
   }
   // Zeit als Minuten seit Mitternacht

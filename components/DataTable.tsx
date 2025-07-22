@@ -1,3 +1,4 @@
+import React from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination"
 import { StatusBadge } from "@/components/StatusBadge"
@@ -33,22 +34,31 @@ export interface DataTableProps<T extends Record<string, unknown> = Record<strin
   exportFileName?: string
 }
 
-function exportToCSV<T extends Record<string, unknown>>(data: T[], columns: DataTableColumn<T>[], fileName: string) {
-  const header = columns.map(col => col.label).join(',')
-  const rows = data.map(row =>
-    columns.map(col => {
-      const val = col.render ? col.render(row) : row[col.key]
-      return typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val
-    }).join(',')
-  )
-  const csv = [header, ...rows].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.setAttribute('download', fileName)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+// Typ für Exportfunktion und Button anpassen
+export type StationMeasurement = { station: string; date: string; time: string; maxSPLAFast: number }
+
+function exportToCSV(data: StationMeasurement[], columns: DataTableColumn<StationMeasurement>[], fileName: string) {
+  if (!data.length) return;
+  const header = columns.map(col => col.label).join(',');
+  const rows = data.map(row => columns.map(col => row[col.key as keyof StationMeasurement]).join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName.endsWith('.csv') ? fileName : `${fileName}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportToJSON(data: StationMeasurement[], fileName: string) {
+  if (!data.length) return;
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName.endsWith('.json') ? fileName : `${fileName}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 export function DataTable<T extends Record<string, unknown>>({
@@ -122,13 +132,22 @@ export function DataTable<T extends Record<string, unknown>>({
           </button>
         </div>
         {enableExport && (
-          <button
-            className="px-3 py-1 rounded bg-emerald-500 text-white text-xs hover:bg-emerald-600"
-            onClick={() => exportToCSV(data, columns, exportFileName)}
-            disabled={loading || data.length === 0}
-          >
-            Export CSV
-          </button>
+          <>
+            <button
+              className="px-3 py-1 rounded bg-emerald-500 text-white text-xs hover:bg-emerald-600"
+              onClick={() => exportToCSV(data as StationMeasurement[], columns, exportFileName)}
+              disabled={loading || data.length === 0}
+            >
+              Export CSV
+            </button>
+            <button
+              className="px-3 py-1 rounded bg-blue-500 text-white text-xs hover:bg-blue-600"
+              onClick={() => exportToJSON(data as StationMeasurement[], exportFileName)}
+              disabled={loading || data.length === 0}
+            >
+              Export JSON
+            </button>
+          </>
         )}
       </div>
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/60">
