@@ -180,8 +180,6 @@ export default function AllLocationsPage() {
   // Daten für das Chart filtern
   const filteredChartData = maxPoints > 0 && chartData.length > maxPoints ? chartData.slice(-maxPoints) : chartData
 
-  console.log('filteredChartData (first 3):', filteredChartData.slice(0, 3))
-
   const WIND_COLOR = config?.chartColors?.wind || "#06b6d4" // cyan-500
 
   const weatherLastUpdate = useWeatherLastUpdate()

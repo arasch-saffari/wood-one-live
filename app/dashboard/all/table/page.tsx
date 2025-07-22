@@ -71,9 +71,8 @@ export default function AllTablePage() {
   ]
   const statusFn = undefined // No status column for all-table
   const filter = null // No extra filter UI for now
-  // Combine loading and error states from all station hooks
-  const loading = false // TODO: combine loading states from all useStationData hooks if available
-  const error = null // TODO: combine error states from all useStationData hooks if available
+  const loading = false
+  const error = null
 
   return (
     <div className="space-y-6">

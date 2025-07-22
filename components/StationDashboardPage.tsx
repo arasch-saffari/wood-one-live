@@ -68,8 +68,6 @@ interface ThresholdBlock {
 }
 
 export function StationDashboardPage({ station }: StationDashboardPageProps) {
-  console.log('RENDER StationDashboardPage')
-  console.log('StationDashboardPage: before useStationData for', station)
   const meta = STATION_META[station]
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
   const [granularity, setGranularity] = useState<"15min" | "10min" | "5min" | "1min" | "1h">("15min")
@@ -93,7 +91,6 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
       })
   }, [])
   useEffect(() => {
-    console.log('StationDashboardPage useEffect chartData:', chartData)
   }, [chartData])
   // KPIs
   const current = chartData.length > 0 ? chartData[chartData.length - 1].las : 0
@@ -163,12 +160,7 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const chartDataMapped = Array.isArray(chartData)
     ? (chartData as StationDataPointWithLaf[]).map(d => ({ ...d, las: d.laf ?? d.las }))
     : chartData;
-  console.log('ChartData for', station, chartData)
-  console.log('StationDashboardPage chartData', chartData)
-  console.log('StationDashboardPage chartDataMapped', chartDataMapped)
-  console.log('ChartData vor ChartPlayground:', chartDataMapped)
   if (Array.isArray(chartDataMapped)) {
-    console.log('Erste 3 las-Werte:', chartDataMapped.slice(0,3).map(d => d.las))
   }
   return (
     <div className="space-y-4 lg:space-y-6">

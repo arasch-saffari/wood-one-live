@@ -53,7 +53,7 @@ async function getWeatherWithCache(station: string, time: string) {
         return weatherData;
       }
     } catch (error) {
-      console.warn(`Failed to fetch weather from database for ${station} at ${time}:`, error);
+      // console.warn(`Failed to fetch weather from database for ${station} at ${time}:`, error);
     }
   }
 
@@ -67,7 +67,7 @@ async function getWeatherWithCache(station: string, time: string) {
     weatherCache.set(cacheKey, { data: liveData, timestamp: Date.now() });
     return liveData;
   } catch (error) {
-    console.warn(`Weather service unavailable, using fallback data:`, error);
+    // console.warn(`Weather service unavailable, using fallback data:`, error);
     
     // Try to get the most recent weather data from database
     try {
@@ -78,11 +78,10 @@ async function getWeatherWithCache(station: string, time: string) {
       //   return recentWeather; // This line is removed
       // } // This line is removed
     } catch (dbError) {
-      console.warn(`Failed to fetch recent weather from database for ${station}:`, dbError);
+      // console.warn(`Failed to fetch recent weather from database for ${station}:`, dbError);
     }
 
     // Ultimate fallback to reasonable defaults
-    console.log(`Using default fallback weather data for ${station}`);
     return { windSpeed: null, windDir: null, relHumidity: null, temperature: null, noWeatherData: true };
   }
 }
@@ -141,7 +140,6 @@ export async function GET(req: Request) {
     }
 
     const measurements = getMeasurementsForStation(station, interval);
-    console.log(`[${station}] Retrieved ${measurements.length} measurements for ${interval} interval with ${granularity} granularity`);
     
     // In aggregateByBlock: Sammle zu jedem Block auch das zugehörige späteste datetime
     function aggregateByBlock(measurements: { time: string; las: number; datetime?: string }[], blockMinutes: number) {

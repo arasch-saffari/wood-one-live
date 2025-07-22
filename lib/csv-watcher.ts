@@ -25,7 +25,6 @@ function ensureCsvDirectories() {
     const dir = path.join(baseDir, station)
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true })
-      console.log(`📁 CSV-Ordner automatisch angelegt: ${dir}`)
     }
   }
 }
@@ -38,13 +37,7 @@ class CSVWatcher {
   private heartbeatPath = path.join(process.cwd(), 'backups', 'watcher-heartbeat.txt')
 
   constructor() {
-    ensureCsvDirectories() // Ordner beim Start sicherstellen
-    const config = getConfig()
-    if (config.csvAutoProcess !== false) {
-      this.start()
-    } else {
-      console.log('⏸️  Automatische CSV-Verarbeitung ist deaktiviert (csvAutoProcess=false)')
-    }
+    // Keine Initialisierung mehr im Konstruktor!
   }
 
   private initializeWatchedDirectories() {
@@ -57,7 +50,6 @@ class CSVWatcher {
           station,
           lastCheck: Date.now()
         })
-        console.log(`👁️  Watching CSV directory: ${csvDir}`)
       }
     }
   }
@@ -67,20 +59,18 @@ class CSVWatcher {
       const now = new Date().toISOString()
       fs.writeFileSync(this.heartbeatPath, now)
     } catch (e) {
-      console.warn('[Watcher] Heartbeat konnte nicht geschrieben werden:', e)
     }
   }
 
   public start() {
+    ensureCsvDirectories()
     const config = getConfig()
     if (config.csvAutoProcess === false) {
-      console.log('⏸️  Automatische CSV-Verarbeitung ist deaktiviert (csvAutoProcess=false)')
       return
     }
     if (this.isRunning) return
     this.isRunning = true
     this.initializeWatchedDirectories()
-    console.log('🚀 Starting CSV file watcher...')
     this.checkForNewFiles()
     this.writeHeartbeat()
     this.intervalHandle = setInterval(() => {
@@ -89,20 +79,17 @@ class CSVWatcher {
         this.checkForNewFiles()
         this.writeHeartbeat()
       } catch (e) {
-        console.error('[Watcher] Fehler im Intervall:', e)
         this.restart()
       }
     }, this.checkInterval)
   }
 
   public restart() {
-    console.warn('[Watcher] Neustart nach Fehler...')
     this.stop()
     setTimeout(() => this.start(), 2000)
   }
 
   public stop() {
-    console.log('⏹️  Stopping CSV file watcher...')
     this.isRunning = false
     if (this.intervalHandle) {
       clearInterval(this.intervalHandle)
@@ -124,28 +111,22 @@ class CSVWatcher {
         // Check for new files (modified after last check)
         const newFiles = files.filter(file => file.mtime > dir.lastCheck)
         if (newFiles.length > 0) {
-          console.log(`🆕 Found ${newFiles.length} new CSV file(s) for ${dir.station}:`)
           for (const file of newFiles) {
-            console.log(`  📄 Processing: ${file.name}`)
             // Hier: Datei direkt verarbeiten
             const inserted = processCSVFile(dir.station, file.path)
             if (inserted > 0) {
-              console.log(`  ✅ ${file.name}: ${inserted} measurements inserted`)
             } else {
-              console.log(`  ⏭️  ${file.name}: Already processed or no new data`)
             }
           }
         }
         dir.lastCheck = Date.now()
       } catch (error) {
-        console.error(`❌ Error checking directory ${dir.path}:`, error)
       }
     }
   }
 
   // Manual trigger for processing all files
   public async processAllFiles() {
-    console.log('🔄 Manual CSV processing triggered...')
     for (const dir of this.watchedDirs) {
       try {
         const files = fs.readdirSync(dir.path)
@@ -154,13 +135,10 @@ class CSVWatcher {
           const filePath = path.join(dir.path, file)
           const inserted = processCSVFile(dir.station, filePath)
           if (inserted > 0) {
-            console.log(`  ✅ ${file} (${dir.station}): ${inserted} measurements inserted`)
           } else {
-            console.log(`  ⏭️  ${file} (${dir.station}): Already processed or no new data`)
           }
         }
       } catch (e) {
-        console.error(`❌ Error processing files in ${dir.path}:`, e)
       }
     }
   }
