@@ -165,12 +165,13 @@ export function useStationData(
 
   useEffect(() => {
     fetchAndProcess()
-    intervalRef.current = setInterval(fetchAndProcess, 60_000)
+    const intervalSec = (config?.pollingIntervalSeconds && !isNaN(Number(config.pollingIntervalSeconds))) ? Number(config.pollingIntervalSeconds) : 120;
+    intervalRef.current = setInterval(fetchAndProcess, intervalSec * 1000)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [station, interval, granularity, page, pageSize])
+  }, [station, interval, granularity, page, pageSize, config?.pollingIntervalSeconds])
 
   return { data, totalCount }
 } 

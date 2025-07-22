@@ -17,6 +17,7 @@
   "adminEmail": "",
   "weatherApiKey": "",
   "apiCacheDuration": 60,
+  "pollingIntervalSeconds": 120,
   "thresholdsByStationAndTime": {
     "ort": [
       {

@@ -20,6 +20,7 @@ const defaultConfig = {
   adminEmail: '',
   weatherApiKey: '',
   apiCacheDuration: 60, // Sekunden, wie lange API-Responses gecacht werden
+  pollingIntervalSeconds: 120, // NEU: Polling-Intervall für Charts in Sekunden
   thresholdsByStationAndTime: {
     ort: [
       { from: '08:00', to: '20:00', warning: 55, alarm: 60, las: 50, laf: 52 },
