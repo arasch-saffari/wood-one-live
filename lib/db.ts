@@ -234,8 +234,16 @@ checkDatabaseHealth()
 //   processAllCSVFiles() // This line was removed as per the edit hint.
 // }
 
-// Starte den CSV-Watcher für automatischen Import
-// csvWatcher.start() // This line was removed as per the edit hint.
+// Starte den CSV-Watcher automatisch, wenn nicht production oder explizit erlaubt
+if (process.env.NODE_ENV !== 'production' || process.env.CSV_WATCHER_AUTO_START === 'true') {
+  try {
+    startCsvWatcher()
+    console.log('CSV-Watcher automatisch gestartet.')
+  } catch (e) {
+    console.error('Fehler beim Starten des CSV-Watchers:', e)
+  }
+}
+
 // Initial-Import aller vorhandenen CSV-Dateien
 // csvWatcher.processAllFiles() // This line was removed as per the edit hint.
 

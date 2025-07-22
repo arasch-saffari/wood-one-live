@@ -955,6 +955,27 @@ export default function AdminDashboard() {
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">CSV & Import</h1>
                   <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                    <CardHeader><CardTitle>CSV-Watcher & Rebuild</CardTitle></CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <div className="text-sm">Status: <Badge className={csvStatus?.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{csvStatus?.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
+                        <Button onClick={async () => {
+                          setLoading(true)
+                          try {
+                            const res = await fetch('/api/process-csv', { method: 'POST' })
+                            const data = await res.json()
+                            toast({ title: data.success ? 'CSV-Import abgeschlossen' : 'Fehler beim Import', description: data.message || data.error, variant: data.success ? 'default' : 'destructive' })
+                          } catch (e: any) {
+                            toast({ title: 'Fehler beim Import', description: e?.message, variant: 'destructive' })
+                          } finally {
+                            setLoading(false)
+                          }
+                        }} disabled={loading} className="ml-4">Alle CSV-Dateien neu einlesen</Button>
+                      </div>
+                      <div className="text-xs text-gray-500">Der CSV-Watcher überwacht die Ordner und importiert neue Dateien automatisch. Mit diesem Button werden alle CSV-Dateien erneut eingelesen (Rebuild).</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>CSV-Dateien & Upload</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
                       {csvError && <div className="text-xs text-red-500">{csvError}</div>}
@@ -1009,6 +1030,27 @@ export default function AdminDashboard() {
                     <CardHeader><CardTitle>Backup-Plan</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-sm">Tägliches automatisches Backup um 03:00 Uhr (siehe <code>backups/</code> Verzeichnis).</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                    <CardHeader><CardTitle>Datenbank zurücksetzen (Rebuild DB)</CardTitle></CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <Button variant="destructive" onClick={async () => {
+                          if (!window.confirm('Möchtest du wirklich alle Messwerte und Wetterdaten löschen und die Datenbank neu aufbauen?')) return;
+                          setLoading(true)
+                          try {
+                            const res = await fetch('/api/admin/rebuild-db', { method: 'POST' })
+                            const data = await res.json()
+                            toast({ title: data.success ? 'Datenbank neu aufgebaut' : 'Fehler beim Neuaufbau', description: data.message, variant: data.success ? 'default' : 'destructive' })
+                          } catch (e: any) {
+                            toast({ title: 'Fehler beim Neuaufbau', description: e?.message, variant: 'destructive' })
+                          } finally {
+                            setLoading(false)
+                          }
+                        }} disabled={loading}>Datenbank zurücksetzen</Button>
+                      </div>
+                      <div className="text-xs text-gray-500">Löscht alle Messwerte und Wetterdaten unwiderruflich und baut die Tabellenstruktur neu auf. Nutze danach "Alle CSV-Dateien neu einlesen" für einen vollständigen Reimport.</div>
                     </CardContent>
                   </Card>
                 </section>
