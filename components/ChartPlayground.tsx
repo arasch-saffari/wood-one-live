@@ -77,7 +77,7 @@ export function ChartPlayground({
   const intervalsList = intervals.length > 0 ? intervals : ['24h']
   const [interval, setInterval] = useState(intervalProp || intervalsList[0])
   const [granularity, setGranularity] = useState(granularityProp || granularities[0])
-  const [maxPoints, setMaxPoints] = useState(maxPointsProp ?? 200)
+  const [maxPoints, setMaxPoints] = useState(maxPointsProp ?? 0)
   let data = dataProp ?? generateDemoData();
   // Fallback: las immer laf bevorzugen, falls vorhanden
   if (Array.isArray(data)) {
@@ -95,6 +95,9 @@ export function ChartPlayground({
       return tA.localeCompare(tB)
     })
   })[0]
+
+  // Debug-Ausgabe: sortedData Länge und erstes Element
+  console.log("ChartPlayground sortedData length:", Array.isArray(sortedData) ? sortedData.length : 'not array', "first:", Array.isArray(sortedData) && sortedData.length > 0 ? sortedData[0] : 'empty');
 
   const lines = linesProp ?? [
     { key: 'las', label: 'Lärmpegel', color: '#10b981', yAxisId: 'noise' },

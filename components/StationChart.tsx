@@ -23,7 +23,7 @@ export function StationChart({
   stationColors,
   chartColors,
   stationName,
-  maxPointsDefault = 200,
+  maxPointsDefault = 0,
   granularities = ["15min", "10min", "5min", "1min", "1h"],
   intervals = ["24h", "7d"],
 }: StationChartProps) {

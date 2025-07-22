@@ -38,6 +38,8 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
   const pathname = usePathname()
 
   // Letzte Aktualisierung: Hole Daten von allen Stationen und berechne das neueste Datum
@@ -276,10 +278,10 @@ export default function DashboardLayout({
                       className="w-full flex items-center gap-2 h-9 px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800/80 border border-slate-400 dark:border-slate-600 text-sm font-semibold text-slate-800 dark:text-slate-100 shadow-sm hover:bg-slate-300 dark:hover:bg-slate-700 transition-all duration-200"
                       aria-label="Switch theme"
                     >
-                      {theme === "dark"
+                      {mounted && theme === "dark"
                         ? <Sun className="w-4 h-4 text-yellow-400 flex-shrink-0" />
                         : <Moon className="w-4 h-4 text-blue-500 flex-shrink-0" />}
-                      <span className="flex-1 text-left">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+                      <span className="flex-1 text-left">{mounted && theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>

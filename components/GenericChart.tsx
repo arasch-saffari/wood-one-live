@@ -69,36 +69,27 @@ function ChartLegend({ lines, visibleLines, toggleLine, thresholds, setHoveredLi
   thresholds: GenericChartThreshold[],
   setHoveredLineKey: (key: string | null) => void,
 }) {
-  // Nur dB-Linien togglbar
-  const dbLines = lines.filter(line => (line.yAxisId ?? 'left') === 'left')
-  const windLines = lines.filter(line => line.yAxisId === 'wind')
   return (
     <div className="flex flex-wrap gap-4 mt-4 text-xs items-center justify-center">
-      {dbLines.map(line => (
+      {lines.map(line => (
         <label
           key={line.key}
           className="flex items-center gap-1 cursor-pointer"
           onMouseEnter={() => setHoveredLineKey(line.key)}
           onMouseLeave={() => setHoveredLineKey(null)}
         >
-          <input type="checkbox" checked={visibleLines[line.key]} onChange={() => toggleLine(line.key)} className="accent-emerald-500" aria-label={line.label} />
+          <input type="checkbox" checked={!!visibleLines[line.key]} onChange={() => toggleLine(line.key)} className="accent-emerald-500" aria-label={line.label} />
           <span className="w-3 h-3 rounded-full" style={{ background: line.color }}></span> {line.label}
         </label>
       ))}
-      {windLines.map(line => (
-        <span
-          key={line.key}
-          className="flex items-center gap-1"
-          onMouseEnter={() => setHoveredLineKey(line.key)}
+      {thresholds.map(thr => (
+        <label key={thr.label} className="flex items-center gap-1 cursor-pointer"
+          onMouseEnter={() => setHoveredLineKey(thr.label)}
           onMouseLeave={() => setHoveredLineKey(null)}
         >
-          <span className="w-3 h-3 rounded-full" style={{ background: line.color }}></span> {line.label}
-        </span>
-      ))}
-      {thresholds.map(thr => (
-        <span key={thr.label} className="flex items-center gap-1">
+          <input type="checkbox" checked={!!visibleLines[thr.label]} onChange={() => toggleLine(thr.label)} className="accent-yellow-500" aria-label={thr.label} />
           <span className="w-3 h-3 rounded-full" style={{ background: thr.color }}></span> {thr.label}
-        </span>
+        </label>
       ))}
     </div>
   )
@@ -120,10 +111,12 @@ export function GenericChart({
   axes,
   thresholds = [],
   legend = true,
-  maxPointsDefault = 200,
+  maxPointsDefault = 0,
   height = 350,
   tooltipFormatter,
 }: GenericChartProps) {
+  // Debug-Ausgabe: data Länge und erstes Element
+  console.log("GenericChart data length:", Array.isArray(data) ? data.length : 'not array', "first:", Array.isArray(data) && data.length > 0 ? data[0] : 'empty');
   const [maxPoints, setMaxPoints] = useState<number>(maxPointsDefault)
   const [zoomRange, setZoomRange] = useState<{ start: number; end: number } | null>(null)
   const [hoveredLineKey, setHoveredLineKey] = useState<string | null>(null)
@@ -133,19 +126,15 @@ export function GenericChart({
   }, [data, maxPoints])
   const visibleData = useMemo(() => zoomRange ? filteredChartData.slice(zoomRange.start, zoomRange.end) : filteredChartData, [filteredChartData, zoomRange])
 
-  // Sichtbarkeit der Linien
-  // Nur dB-Linien togglbar, Wind immer sichtbar
-  const dbLines = lines.filter(line => (line.yAxisId ?? 'left') === 'left')
-  const windLines = lines.filter(line => line.yAxisId === 'wind')
-  const allVisibleLines = [...dbLines.map(l => l.key), ...windLines.map(l => l.key)]
+  // Sichtbarkeit aller Linien und Schwellenwerte
+  const allKeys = [...lines.map(l => l.key), ...thresholds.map(t => t.label)]
   const [visibleLines, setVisibleLines] = useState<Record<string, boolean>>({})
   React.useEffect(() => {
     setVisibleLines(
-      Object.fromEntries(dbLines.map(l => [l.key, l.visible !== false]).concat(windLines.map(l => [l.key, true])))
+      Object.fromEntries(allKeys.map(k => [k, true]))
     )
-  }, [lines])
+  }, [allKeys.join(",")])
   function toggleLine(key: string) {
-    if (windLines.some(l => l.key === key)) return // Wind nicht togglbar
     setVisibleLines(v => ({ ...v, [key]: !v[key] }))
   }
 
@@ -221,7 +210,7 @@ export function GenericChart({
                 }}
                 formatter={tooltipFormatter || defaultTooltipFormatter}
               />
-              {dbLines.map(line => visibleLines[line.key] && (
+              {lines.map(line => visibleLines[line.key] && (
                 <Line
                   key={line.key}
                   type={line.type || "monotone"}
@@ -236,22 +225,7 @@ export function GenericChart({
                   name={line.label}
                 />
               ))}
-              {windLines.map(line => (
-                <Line
-                  key={line.key}
-                  type={line.type || "monotone"}
-                  dataKey={line.key}
-                  stroke={line.color}
-                  strokeWidth={hoveredLineKey === line.key ? 4 : 2}
-                  strokeOpacity={hoveredLineKey && hoveredLineKey !== line.key ? 0.3 : 1}
-                  dot={false}
-                  activeDot={line.activeDotColor ? { r: 4, fill: line.activeDotColor } : undefined}
-                  yAxisId={line.yAxisId}
-                  strokeDasharray={line.strokeDasharray}
-                  name={line.label}
-                />
-              ))}
-              {thresholds.map(thr => (
+              {thresholds.map(thr => visibleLines[thr.label] && (
                 <Line
                   key={thr.label}
                   type="monotone"

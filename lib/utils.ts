@@ -62,3 +62,22 @@ export function checkRateLimit(ip: string, route: string, limit: number = 30, wi
   rateLimitMap.set(key, entry)
   return true
 }
+
+export function windDirToLabel(dir: string | number | null | undefined): string {
+  if (dir == null) return '-';
+  let deg = 0;
+  if (typeof dir === 'number') deg = dir;
+  else if (typeof dir === 'string') {
+    const match = dir.match(/(\d+)(?:°)?/)
+    if (match) deg = parseInt(match[1], 10)
+    else return dir;
+  }
+  const directions = [
+    'Norden', 'Nordnordost', 'Nordost', 'Ostnordost',
+    'Osten', 'Ostsüdost', 'Südost', 'Südsüdost',
+    'Süden', 'Südsüdwest', 'Südwest', 'Westsüdwest',
+    'Westen', 'Westnordwest', 'Nordwest', 'Nordnordwest', 'Norden'
+  ];
+  const idx = Math.round(((deg % 360) / 22.5));
+  return directions[idx];
+}

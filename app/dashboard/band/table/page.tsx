@@ -12,6 +12,7 @@ import { useThresholdStatus } from "@/hooks/useThresholdStatus"
 import { DataTable } from "@/components/DataTable"
 import { ErrorMessage } from "@/components/ErrorMessage"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { windDirToLabel } from '@/lib/utils'
 
 const PAGE_SIZE = 20
 
@@ -63,7 +64,7 @@ export default function BandTablePage() {
     { label: "Zeit", key: "time" },
     { label: "dB", key: "las", render: (row: any) => row.las.toFixed(1) },
     { label: "Wind", key: "ws", render: (row: any) => row.ws ?? "-" },
-    { label: "Richtung", key: "wd", render: (row: any) => row.wd ?? "-" },
+    { label: "Richtung", key: "wd", render: (row: any) => windDirToLabel(row.wd) },
     { label: "Luftfeuchte", key: "rh", render: (row: any) => row.rh ?? "-" },
   ]
   const statusFn = (row: any) => useThresholdStatus(row.las, row.warningThreshold, row.alarmThreshold)

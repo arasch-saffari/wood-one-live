@@ -6,6 +6,7 @@ import Papa from "papaparse";
 import fs from "fs";
 import path from "path";
 import { getThresholdsForStationAndTime, checkRateLimit } from '@/lib/utils'
+import db from '@/lib/database'
 
 const configPath = path.join(process.cwd(), 'config.json')
 function getConfig() {
@@ -87,12 +88,24 @@ async function getWeatherWithCache(station: string, time: string) {
 }
 
 export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const test = searchParams.get('test')
+  if (test === '1') {
+    // Test-Endpunkt: Gib rohe Messdaten für die Station zurück
+    const station = searchParams.get('station')
+    if (!station) return NextResponse.json({ error: 'Missing station parameter' }, { status: 400 })
+    try {
+      const rows = db.prepare('SELECT * FROM measurements WHERE station = ? ORDER BY datetime ASC LIMIT 500').all(station)
+      return NextResponse.json({ data: rows, totalCount: rows.length })
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message || 'Fehler beim Test-Query' }, { status: 500 })
+    }
+  }
   // --- Rate Limiting ---
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || ''
   if (!checkRateLimit(ip, '/api/station-data', 200, 60_000)) {
     return NextResponse.json({ error: 'Zu viele Anfragen. Bitte warte einen Moment.' }, { status: 429 })
   }
-  const { searchParams } = new URL(req.url)
   const station = searchParams.get("station")
   const interval = (searchParams.get("interval") as "24h" | "7d") || "24h"
   const granularity = searchParams.get("granularity") || "10min"
@@ -106,7 +119,6 @@ export async function GET(req: Request) {
     return new Response(JSON.stringify(cached.data), { status: 200, headers: { 'Content-Type': 'application/json' } })
   }
   try {
-    const { searchParams } = new URL(req.url);
     const station = searchParams.get("station");
     const interval = (searchParams.get("interval") as "24h" | "7d") || "24h";
     const granularity = searchParams.get("granularity") || "10min";
@@ -139,6 +151,7 @@ export async function GET(req: Request) {
       else if (granularity === "1h") chartLimit = 168; // 7d vollständig (168 × 1h = 7d)
     }
 
+    // chartLimit nur anwenden, wenn pageSize > 0 (also nicht "Alle")
     const measurements = getMeasurementsForStation(station, interval);
     
     // In aggregateByBlock: Sammle zu jedem Block auch das zugehörige späteste datetime
@@ -187,11 +200,14 @@ export async function GET(req: Request) {
     if (granularity === "5min") blockMinutes = 5;
     if (granularity === "1min") blockMinutes = 1;
     if (granularity === "1h") blockMinutes = 60;
-    
+
     let aggregated = aggregateByBlock(measurements, blockMinutes);
-    
-    // Begrenze auf das dynamische Limit VOR Wetteranreicherung
-    const limitedAggregated = aggregated.slice(-chartLimit);
+    // Debug-Log: Anzahl der aggregierten Blöcke
+    console.log(`[API station-data] station=${station}, interval=${interval}, granularity=${granularity}, blockMinutes=${blockMinutes}, chartLimit=${chartLimit}, pageSize=${pageSize}, aggregated.length=${aggregated.length}`);
+    let limitedAggregated = aggregated;
+    if (pageSize > 0) {
+      limitedAggregated = aggregated.slice(-chartLimit);
+    }
     // Pagination anwenden (optional)
     let pagedAggregated = limitedAggregated
     const totalCount = limitedAggregated.length

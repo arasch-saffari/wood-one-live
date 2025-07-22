@@ -91,20 +91,55 @@ function formatTime(latest: string | undefined) {
 }
 
 export default function AllLocationsPage() {
-  // Chart-Intervall-Button-State
-  const { config } = useConfig()
-
+  // 1. Context und State
+  const { config } = useConfig();
   const [chartInterval] = useState<string | undefined>(config?.defaultInterval)
   const [granularity] = useState<string | undefined>(config?.defaultGranularity)
-  // Fetch live data für jede Station mit Intervall und Granularity
-  const ortDataObj: StationDataObj = useStationData("ort", chartInterval as "24h" | "7d" | undefined, granularity as any)
-  const heuballernDataObj: StationDataObj = useStationData("heuballern", chartInterval as "24h" | "7d" | undefined, granularity as any)
-  const technoDataObj: StationDataObj = useStationData("techno", chartInterval as "24h" | "7d" | undefined, granularity as any)
-  const bandDataObj: StationDataObj = useStationData("band", chartInterval as "24h" | "7d" | undefined, granularity as any)
+  const [maxPoints] = useState<number>(config?.chartLimit || 0)
+
+  // 2. Daten-Hooks
+  const ortDataObj: StationDataObj = useStationData("ort", chartInterval as "24h" | "7d" | undefined, granularity as any, undefined, maxPoints)
+  const heuballernDataObj: StationDataObj = useStationData("heuballern", chartInterval as "24h" | "7d" | undefined, granularity as any, undefined, maxPoints)
+  const technoDataObj: StationDataObj = useStationData("techno", chartInterval as "24h" | "7d" | undefined, granularity as any, undefined, maxPoints)
+  const bandDataObj: StationDataObj = useStationData("band", chartInterval as "24h" | "7d" | undefined, granularity as any, undefined, maxPoints)
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []
   const bandData = bandDataObj.data ?? []
+  const { weather: latestWeather } = useWeatherData("global", "now")
+  const weatherLastUpdate = useWeatherLastUpdate();
+  const { health } = useHealth();
+  const { watcherStatus: watcher } = useCsvWatcherStatus();
+
+  // 3. Early-Return für Config
+  if (!config) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
+  console.log("ConfigContext in AllLocationsPage:", config);
+
+  // Chart-Daten für alle Standorte und Windgeschwindigkeit zusammenführen
+  // Zeitbasis: Vereinigung aller Zeitpunkte aller Stationen
+  const chartTimes = Array.from(new Set([
+    ...ortData.map(d => d.time),
+    ...bandData.map(d => d.time),
+    ...technoData.map(d => d.time),
+    ...heuballernData.map(d => d.time),
+  ])).sort();
+  const chartData = chartTimes.map(time => {
+    const ort = ortData.find((d: { time: string }) => d.time === time)
+    const techno = technoData.find((d: { time: string }) => d.time === time)
+    const band = bandData.find((d: { time: string }) => d.time === time)
+    const heuballern = heuballernData.find((d: { time: string }) => d.time === time)
+    // Windgeschwindigkeit: Mittelwert der vier Standorte, falls vorhanden
+    const windVals = [ort, techno, band, heuballern].map(d => d?.ws).filter((v): v is number => typeof v === 'number')
+    const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
+    return {
+      time,
+      ort: ort?.las ?? null,
+      techno: techno?.las ?? null,
+      band: band?.las ?? null,
+      heuballern: heuballern?.las ?? null,
+      windSpeed: windSpeed ?? null,
+    }
+  })
 
   // Compose current levels for KPI cards (last value in each array)
   const currentLevels = {
@@ -113,9 +148,6 @@ export default function AllLocationsPage() {
     band: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
     heuballern: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].las : 0,
   }
-
-  // Aktuellster Wetterwert (aus API)
-  const { weather: latestWeather } = useWeatherData("global", "now")
 
   // Für jede Station aktuelle Zeit und Schwellenwerte bestimmen
   const getThresholds = (station: string, data: Array<{ datetime?: string }>): ThresholdBlock | undefined => {
@@ -153,39 +185,11 @@ export default function AllLocationsPage() {
     return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Normal</Badge>
   }
 
-  // Chart-Daten für alle Standorte und Windgeschwindigkeit zusammenführen
-  // Wir nehmen die Zeitpunkte von ortData als Basis
-  const chartTimes = ortData.map((d: { time: string }) => d.time)
-  const chartData = chartTimes.map(time => {
-    const ort = ortData.find((d: { time: string }) => d.time === time)
-    const techno = technoData.find((d: { time: string }) => d.time === time)
-    const band = bandData.find((d: { time: string }) => d.time === time)
-    const heuballern = heuballernData.find((d: { time: string }) => d.time === time)
-    // Windgeschwindigkeit: Mittelwert der vier Standorte, falls vorhanden
-    const windVals = [ort, techno, band, heuballern].map(d => d?.ws).filter((v): v is number => typeof v === 'number')
-    const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
-    return {
-      time,
-      ort: ort?.las ?? null,
-      techno: techno?.las ?? null,
-      band: band?.las ?? null,
-      heuballern: heuballern?.las ?? null,
-      windSpeed: windSpeed ?? null,
-    }
-  })
-
-  // State für maxPoints
-  const [maxPoints] = useState<number>(config?.chartLimit || 200)
-
   // Daten für das Chart filtern
   const filteredChartData = maxPoints > 0 && chartData.length > maxPoints ? chartData.slice(-maxPoints) : chartData
 
   const WIND_COLOR = config?.chartColors?.wind || "#06b6d4" // cyan-500
 
-  const weatherLastUpdate = useWeatherLastUpdate()
-
-  const { health } = useHealth()
-  const { watcherStatus: watcher } = useCsvWatcherStatus()
   // Fallback für Backup-Info
   const backupInfo = health && health.lastBackup ? { lastBackup: health.lastBackup } : null
 
@@ -325,22 +329,26 @@ export default function AllLocationsPage() {
         </motion.div>
 
         {/* Nach System Status Card, vor Grenzwert-Referenz: */}
-        <ChartPlayground
-          data={filteredChartData}
-          lines={[
-            { key: 'ort', label: STATION_META.ort.name, color: STATION_META.ort.chartColor },
-            { key: 'heuballern', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor },
-            { key: 'techno', label: STATION_META.techno.name, color: STATION_META.techno.chartColor },
-            { key: 'band', label: STATION_META.band.name, color: STATION_META.band.chartColor },
-            { key: 'windSpeed', label: 'Windgeschwindigkeit', color: WIND_COLOR, yAxisId: 'wind', strokeDasharray: '5 5' },
-          ]}
-          axes={[
-            { id: 'left', orientation: 'left', domain: [30, 85], label: 'dB' },
-            { id: 'wind', orientation: 'right', domain: [0, 25], label: 'km/h' },
-          ]}
-          title="Alle Standorte"
-          icon={<BarChart3 className="w-5 h-5 text-blue-500" />}
-        />
+        {(ortData.length > 0 || heuballernData.length > 0 || technoData.length > 0 || bandData.length > 0) ? (
+          <ChartPlayground
+            data={filteredChartData}
+            lines={[
+              { key: 'ort', label: STATION_META.ort.name, color: STATION_META.ort.chartColor },
+              { key: 'heuballern', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor },
+              { key: 'techno', label: STATION_META.techno.name, color: STATION_META.techno.chartColor },
+              { key: 'band', label: STATION_META.band.name, color: STATION_META.band.chartColor },
+              { key: 'windSpeed', label: 'Windgeschwindigkeit', color: WIND_COLOR, yAxisId: 'wind', strokeDasharray: '5 5' },
+            ]}
+            axes={[
+              { id: 'left', orientation: 'left', domain: [30, 85], label: 'dB' },
+              { id: 'wind', orientation: 'right', domain: [0, 25], label: 'km/h' },
+            ]}
+            title="Alle Standorte"
+            icon={<BarChart3 className="w-5 h-5 text-blue-500" />}
+          />
+        ) : (
+          <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Daten ...</div>
+        )}
 
         {/* Grenzwert-Referenz */}
         <motion.div

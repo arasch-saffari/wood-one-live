@@ -108,6 +108,8 @@ export default function AdminDashboard() {
   const [settingsError, setSettingsError] = useState<string|null>(null)
   const [settingsSuccess, setSettingsSuccess] = useState(false)
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (segment === 'thresholds') {
@@ -692,7 +694,7 @@ export default function AdminDashboard() {
                         className="p-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200"
                         aria-label="Ansicht wechseln: Hell/Dunkel"
                       >
-                        {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                        {!mounted ? null : theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -749,8 +751,20 @@ export default function AdminDashboard() {
                           <TableRow><TableHead>Aufgabe</TableHead><TableHead>Intervall</TableHead><TableHead>Letzter Lauf</TableHead><TableHead>Status</TableHead></TableRow>
                         </TableHeader>
                         <TableBody>
-                          {cronLoading && <LoadingSpinner text="Cron-Aufgaben werden geladen..." />}
-                          {cronError && <ErrorMessage message={cronError} />}
+                          {cronLoading && (
+                            <TableRow>
+                              <TableCell colSpan={4}>
+                                <LoadingSpinner text="Cron-Aufgaben werden geladen..." />
+                              </TableCell>
+                            </TableRow>
+                          )}
+                          {cronError && (
+                            <TableRow>
+                              <TableCell colSpan={4}>
+                                <ErrorMessage message={cronError} />
+                              </TableCell>
+                            </TableRow>
+                          )}
                           {cron?.crons?.map((c: any, i: number) => (
                             <TableRow key={i}>
                               <TableCell>{c.name}</TableCell>
@@ -1060,9 +1074,9 @@ export default function AdminDashboard() {
                         <Button onClick={async () => {
                           setLoading(true)
                           try {
-                            const res = await fetch('/api/weather?station=global&time=now')
+                            const res = await fetch('/api/weather?station=global', { method: 'POST' })
                             const data = await res.json()
-                            toast({ title: 'Wetterdaten aktualisiert', description: JSON.stringify(data), variant: 'default' })
+                            toast({ title: data.success ? 'Wetterdaten aktualisiert' : 'Fehler beim Wetter-Update', description: data.success ? JSON.stringify(data) : data.error, variant: data.success ? 'default' : 'destructive' })
                           } catch (e: any) {
                             toast({ title: 'Fehler beim Wetter-Update', description: e?.message, variant: 'destructive' })
                           } finally {

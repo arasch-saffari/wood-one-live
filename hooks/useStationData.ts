@@ -49,7 +49,7 @@ export function useStationData(
   interval: "24h" | "7d" = "24h",
   granularity: "15min" | "10min" | "5min" | "1min" | "1h" = "15min",
   page?: number,
-  pageSize?: number
+  pageSize?: number // <- pageSize kann jetzt explizit übergeben werden
 ) {
   const [data, setData] = useState<StationDataPoint[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
@@ -77,10 +77,13 @@ export function useStationData(
           return
         }
         let result = await response.json()
+        // Debug-Ausgabe: Datenlänge und erstes Element
         if (result && Array.isArray(result.data)) {
+          console.log(`[useStationData] station=${station} interval=${interval} granularity=${granularity} -> data.length=`, result.data.length, 'first:', result.data[0]);
           setData(result.data)
           setTotalCount(result.totalCount || result.data.length)
         } else if (Array.isArray(result)) {
+          console.log(`[useStationData] station=${station} interval=${interval} granularity=${granularity} -> data.length=`, result.length, 'first:', result[0]);
           setData(result)
           setTotalCount(result.length)
         } else {

@@ -11,14 +11,12 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="de" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <SystemBanner />
-          {children}
-          <Toaster />
-        </ThemeProvider>
-      </body>
-    </html>
+    <div className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <SystemBanner />
+        {children}
+        <Toaster />
+      </ThemeProvider>
+    </div>
   )
 } 

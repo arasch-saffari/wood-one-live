@@ -120,3 +120,24 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 })
   }
 } 
+
+export async function POST(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const station = searchParams.get("station") || "global"
+    const now = new Date()
+    const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
+    const weather = await fetchWeather()
+    insertWeather(
+      station,
+      time,
+      weather.windSpeed ?? 0,
+      weather.windDir ?? "N/A",
+      weather.relHumidity ?? 0,
+      typeof weather.temperature === 'number' ? weather.temperature : undefined
+    )
+    return NextResponse.json({ success: true, ...weather })
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e?.message || 'Fehler beim Wetter-Update.' }, { status: 500 })
+  }
+} 
