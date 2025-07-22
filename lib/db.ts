@@ -64,6 +64,7 @@ export function runMigrations() {
   // Migration 1: Add created_at column to weather table
   try {
     const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
+    console.log('Spalten in weather:', columns.map(c => c.name))
     const hasCreatedAt = columns.some(col => col.name === 'created_at')
     if (!hasCreatedAt) {
       db.exec('BEGIN TRANSACTION')
@@ -76,6 +77,8 @@ export function runMigrations() {
         logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
+    } else {
+      console.log('Spalte created_at existiert bereits, Migration wird übersprungen.')
     }
   } catch (e) {
     // Nur loggen, nicht crashen
@@ -84,6 +87,7 @@ export function runMigrations() {
   // Migration 2: Add source_file column to measurements table
   try {
     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+    console.log('Spalten in measurements:', columns.map(c => c.name))
     const hasSourceFile = columns.some(col => col.name === 'source_file')
     if (!hasSourceFile) {
       db.exec('BEGIN TRANSACTION')
@@ -95,6 +99,8 @@ export function runMigrations() {
         logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
+    } else {
+      console.log('Spalte source_file existiert bereits, Migration wird übersprungen.')
     }
   } catch (e) {
     console.error('❌ Migration check failed:', e)
@@ -102,6 +108,7 @@ export function runMigrations() {
   // Migration 3: Add temperature column to weather table
   try {
     const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
+    console.log('Spalten in weather:', columns.map(c => c.name))
     const hasTemperature = columns.some(col => col.name === 'temperature')
     if (!hasTemperature) {
       db.exec('BEGIN TRANSACTION')
@@ -113,6 +120,8 @@ export function runMigrations() {
         logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
+    } else {
+      console.log('Spalte temperature existiert bereits, Migration wird übersprungen.')
     }
   } catch (e) {
     console.error('❌ Migration check failed:', e)
@@ -120,6 +129,7 @@ export function runMigrations() {
   // Migration 4: Add datetime column to measurements table
   try {
     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+    console.log('Spalten in measurements:', columns.map(c => c.name))
     const hasDatetime = columns.some(col => col.name === 'datetime')
     if (!hasDatetime) {
       db.exec('BEGIN TRANSACTION')
@@ -127,13 +137,15 @@ export function runMigrations() {
         db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME')
         const now = new Date()
         const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
-        db.prepare('UPDATE measurements SET datetime = ? || \" \" || time WHERE datetime IS NULL').run(today)
+        db.prepare('UPDATE measurements SET datetime = ? || " " || time WHERE datetime IS NULL').run(today)
         db.exec('COMMIT')
       } catch (migrationError) {
         db.exec('ROLLBACK')
         logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
         throw migrationError
       }
+    } else {
+      console.log('Spalte datetime existiert bereits, Migration wird übersprungen.')
     }
   } catch (e) {
     console.error('❌ Migration check failed:', e)
