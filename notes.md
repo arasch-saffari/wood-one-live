@@ -95,3 +95,19 @@
 - **Teststrategie:** API-Tests prüfen jetzt auch Pagination und das neue Response-Format. 
 - Zentrale Einstellungen (Chart-Limit, Pagination, Intervall, Granularität, Chart-Farben) sind jetzt im Admin-Panel unter Einstellungen editierbar.
 - Die UI der Settings-Seite ist übersichtlich und an die Schwellenwert-Seite angelehnt. 
+
+## Linting/ESLint
+
+- Das Projekt verwendet ESLint mit TypeScript-, React-, Next.js- und Prettier-Support.
+- `.eslintrc.js` enthält die zentrale Konfiguration.
+- Linting ausführen:
+  ```bash
+  pnpm lint
+  pnpm lint --fix
+  ```
+- Wichtige Regeln:
+  - Keine `any`-Typen (Warnung)
+  - Keine unbenutzten Variablen/Importe
+  - Prettier-Formatierung ist Pflicht
+  - React-Hooks nur im Top-Level
+- Linting ist Pflicht vor jedem Commit/PR und wird in CI/CD geprüft. 

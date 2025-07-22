@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, memo } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Download, BarChart3 } from "lucide-react"
@@ -16,10 +16,10 @@ export default function AllTablePage() {
   const { config } = useConfig()
   const PAGE_SIZE = config?.pageSize || 20
   // Für jede Station aktuelle Seite laden
-  const { data: ortRows, totalCount: ortCount, loading: loadingOrt, error: errorOrt } = useStationData("ort", interval, "15min", page, PAGE_SIZE)
-  const { data: technoRows, totalCount: technoCount, loading: loadingTechno, error: errorTechno } = useStationData("techno", interval, "15min", page, PAGE_SIZE)
-  const { data: bandRows, totalCount: bandCount, loading: loadingBand, error: errorBand } = useStationData("band", interval, "15min", page, PAGE_SIZE)
-  const { data: heuballernRows, totalCount: heuballernCount, loading: loadingHeuballern, error: errorHeuballern } = useStationData("heuballern", interval, "15min", page, PAGE_SIZE)
+  const { data: ortRows, totalCount: ortCount } = useStationData("ort", interval, 60000)
+  const { data: technoRows, totalCount: technoCount } = useStationData("techno", interval, 60000)
+  const { data: bandRows, totalCount: bandCount } = useStationData("band", interval, 60000)
+  const { data: heuballernRows, totalCount: heuballernCount } = useStationData("heuballern", interval, 60000)
 
   const stations = [
     { id: "ort", name: "Ort", color: "text-emerald-400" },

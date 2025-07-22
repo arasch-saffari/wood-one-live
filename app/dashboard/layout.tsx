@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { STATION_META } from "@/lib/stationMeta"
-import { useWeatherData } from "@/hooks/useWeatherData"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 // Navigation Menü Konfiguration
@@ -43,21 +42,14 @@ export default function DashboardLayout({
   const pathname = usePathname()
 
   // Letzte Aktualisierung: Hole Daten von allen Stationen und berechne das neueste Datum
-  const ortDataObj = useStationData("ort", "24h")
-  const heuballernDataObj = useStationData("heuballern", "24h")
-  const technoDataObj = useStationData("techno", "24h")
-  const bandDataObj = useStationData("band", "24h")
+  const ortDataObj = useStationData("ort", "24h", 60000)
+  const heuballernDataObj = useStationData("heuballern", "24h", 60000)
+  const technoDataObj = useStationData("techno", "24h", 60000)
+  const bandDataObj = useStationData("band", "24h", 60000)
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []
   const bandData = bandDataObj.data ?? []
-  // Alle Zeitpunkte sammeln
-  const allTimes = [
-    ...ortData.map(d => d.time),
-    ...heuballernData.map(d => d.time),
-    ...technoData.map(d => d.time),
-    ...bandData.map(d => d.time),
-  ].filter(Boolean)
   // Hilfsfunktion: Uhrzeit formatieren
   function formatTime(latest: string | undefined) {
     if (!latest) return "-"

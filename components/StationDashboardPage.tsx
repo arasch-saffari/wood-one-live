@@ -70,7 +70,7 @@ interface ThresholdBlock {
 // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
 function windDirectionText(dir: number | string | null | undefined): string {
   if (dir === null || dir === undefined) return '–';
-  let deg = typeof dir === 'string' ? parseFloat(dir) : dir;
+  const deg = typeof dir === 'string' ? parseFloat(dir) : dir;
   if (isNaN(deg)) {
     // Falls es eine Abkürzung ist
     const map: Record<string, string> = {

@@ -32,7 +32,7 @@ export function processCSVFile(station: string, csvPath: string) {
         skipEmptyLines: true,
       })
       
-      let rows = parsed.data as Record<string, string>[]
+      const rows = parsed.data as Record<string, string>[]
       if (!Array.isArray(rows) || rows.length < 2) return 0
       
       // Flexible: Akzeptiere sowohl LAS als auch LAF für alle Stationen
@@ -109,7 +109,7 @@ export function parseCSVData(csvContent: string, station: string) {
     delimiter: ";",
     skipEmptyLines: true,
   })
-  let rows = parsed.data as Record<string, string>[]
+  const rows = parsed.data as Record<string, string>[]
   if (!Array.isArray(rows) || rows.length < 1) return []
   const noiseColumn = station === "heuballern" ? "LAF" : "LAS"
   const validRows = rows.filter(

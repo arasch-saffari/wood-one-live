@@ -343,6 +343,24 @@ noise-monitoring-dashboard/
 
 ---
 
+## Linting & Code Style
+
+- Das Projekt verwendet ESLint mit einer modernen Konfiguration für Next.js, TypeScript, React und Prettier.
+- Die Konfiguration befindet sich in `.eslintrc.js`.
+- Linting ausführen:
+  ```bash
+  pnpm lint
+  pnpm lint --fix
+  ```
+- Wichtige Regeln:
+  - Keine `any`-Typen (Warnung)
+  - Keine unbenutzten Variablen/Importe
+  - Prettier-Formatierung ist Pflicht
+  - React-Hooks nur im Top-Level
+- Linting ist Pflicht vor jedem Commit/PR und wird in CI/CD geprüft.
+
+---
+
 **Documentation Version**: 2.1
 **Last Updated**: July 2024
 **Maintained By**: Development Team 

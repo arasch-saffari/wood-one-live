@@ -180,3 +180,46 @@ Viele globale Einstellungen wie Chart-Limit, Pagination-Größe, Standard-Interv
 - Chart-Farben: Branding und Farbschema für alle Diagramme
 
 Die Konfiguration ist unter `/admin` im Tab "Einstellungen" erreichbar.
+
+## ⚙️ Admin & Settings
+
+- Die Schwellenwerte (Grenzwerte/Zeitblöcke pro Station) werden jetzt **in der Datenbank** gespeichert (Tabelle `thresholds`).
+- Änderungen im Admin-Bereich sind sofort persistent und gelten systemweit.
+- Die Datei `config.json` enthält keine Schwellenwerte mehr, sondern nur noch andere globale Einstellungen.
+- Beim ersten Start werden alte Schwellenwerte aus der bisherigen `config.json` automatisch in die Datenbank übernommen (Migration).
+
+## 🧹 Code-Qualität & Linting
+
+Dieses Projekt verwendet [ESLint](https://eslint.org/) mit einer modernen Konfiguration für Next.js, TypeScript, React und Prettier.
+
+- **Konfiguration:** Siehe `.eslintrc.js` im Projektroot
+- **Empfohlene Regeln:**
+  - TypeScript, React, Next.js und Prettier werden unterstützt
+  - Strikte, aber praxistaugliche Regeln (`no-explicit-any`, `no-unused-vars`, `react-hooks/exhaustive-deps`, Prettier-Formatierung)
+  - Prettier ist als ESLint-Plugin integriert
+- **Linting ausführen:**
+  ```bash
+  pnpm lint
+  # oder automatisch fixen:
+  pnpm lint --fix
+  ```
+- **Best Practices:**
+  - Keine `any`-Typen verwenden (Warnung)
+  - Unbenutzte Variablen/Importe entfernen
+  - React-Hooks nur im Top-Level verwenden
+  - Code-Formatierung immer mit Prettier/ESLint sicherstellen
+
+Linting ist in CI/CD und im lokalen Workflow empfohlen, um Codequalität und Konsistenz zu gewährleisten.
+
+## 🚀 Deployment: Logs & Datenbereinigung
+
+Vor jedem Deployment solltest du alte Log-Dateien entfernen, damit im Admin-Bereich nur aktuelle System-Logs angezeigt werden und keine historischen Einträge aus der lokalen Entwicklung.
+
+**Logs löschen:**
+```sh
+pnpm tsx scripts/clear-logs.ts
+```
+
+- Das Script entfernt alle *.log-Dateien im `logs/`-Verzeichnis.
+- Führe es vor jedem Deployment oder Server-Neustart aus, um einen sauberen Zustand zu gewährleisten.
+- Optional kannst du auch die Datenbank und Backups zurücksetzen, wenn du komplett neu starten möchtest (siehe Admin-Bereich: Factory Reset).

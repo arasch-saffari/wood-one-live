@@ -24,7 +24,7 @@ import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
 // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
 function windDirectionText(dir: number | string | null | undefined): string {
   if (dir === null || dir === undefined) return '–';
-  let deg = typeof dir === 'string' ? parseFloat(dir) : dir;
+  const deg = typeof dir === 'string' ? parseFloat(dir) : dir;
   if (isNaN(deg)) {
     // Falls es eine Abkürzung ist
     const map: Record<string, string> = {
@@ -96,10 +96,10 @@ export default function AllLocationsPage() {
   // Keine Granularität, Zeit oder maxPoints mehr
 
   // 2. Daten-Hooks
-  const ortDataObj = useStationData("ort");
-  const heuballernDataObj = useStationData("heuballern");
-  const technoDataObj = useStationData("techno");
-  const bandDataObj = useStationData("band");
+  const ortDataObj = useStationData("ort", "24h", 60000);
+  const heuballernDataObj = useStationData("heuballern", "24h", 60000);
+  const technoDataObj = useStationData("techno", "24h", 60000);
+  const bandDataObj = useStationData("band", "24h", 60000);
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []

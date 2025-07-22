@@ -70,6 +70,7 @@
     "vaul": "^0.9.6"
   },
   "devDependencies": {
+    "@eslint/js": "^9.31.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -79,8 +80,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/recharts": "^2.0.1",
-    "eslint": "^9",
+    "eslint": "^9.31.0",
     "eslint-config-next": "15.4.1",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^16.3.0",
     "jsdom": "^26.1.0",
     "node-fetch": "2",
     "postcss": "^8.5",
@@ -89,6 +92,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5",
+    "typescript-eslint": "^8.38.0",
     "vitest": "^1.0.0"
   },
   "pnpm": {

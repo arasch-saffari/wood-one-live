@@ -77,7 +77,7 @@ export default function ExportPage() {
     setIsExporting(true)
 
     // Echte Daten laden
-    let allData: Record<string, any>[] = []
+    const allData: Record<string, any>[] = []
     for (const locationId of selectedLocations) {
       const stationData = await fetchExportData(locationId, dateRange)
       for (const row of stationData) {

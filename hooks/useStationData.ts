@@ -1,6 +1,4 @@
-import { useEffect, useRef, useState } from "react"
-import { toast } from "@/components/ui/use-toast"
-import { getThresholdsForStationAndTime } from '@/lib/utils'
+import { useEffect, useState, useRef } from "react"
 
 export interface StationDataPoint {
   time: string // "HH:MM"
@@ -12,80 +10,54 @@ export interface StationDataPoint {
   datetime?: string // vollständiger Zeitstempel
 }
 
-// Notification functions
-async function requestNotificationPermission(): Promise<boolean> {
-  if (!("Notification" in window)) return false
-  if (Notification.permission === "granted") return true
-  if (Notification.permission === "denied") return false
-  const permission = await Notification.requestPermission()
-  return permission === "granted"
-}
-
-function showNoiseAlert(station: string, level: number, threshold: number) {
-  const stationNames = {
-    ort: "Ort",
-    techno: "Techno Floor",
-    heuballern: "Heuballern",
-    band: "Band-Bühne"
-  }
-  const stationName = stationNames[station as keyof typeof stationNames] || station
-  // Push Notification
-  new Notification("Lärmalarm", {
-    body: `${stationName}: ${level.toFixed(1)} dB überschreitet ${threshold} dB Grenzwert`,
-    icon: "/placeholder-logo.png",
-    tag: `noise-${station}-${threshold}`,
-    requireInteraction: false,
-  })
-  // UI-Toast
-  toast({
-    title: `Lärmalarm: ${stationName}`,
-    description: `${level.toFixed(1)} dB überschreitet ${threshold} dB Grenzwert`,
-    variant: threshold === 60 ? "destructive" : "default"
-  })
-}
-
 export function useStationData(
   station: string,
-  interval: "24h" | "7d" = "24h"
+  interval: "24h" | "7d" = "24h",
+  pollInterval: number = 60000 // 1 Minute Standard
 ) {
   const [data, setData] = useState<StationDataPoint[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function fetchAndSetData() {
-      setLoading(true)
-      setError(null)
-      let url = `/api/station-data?station=${station}&interval=${interval}`
-      try {
-        const response = await fetch(url)
-        if (!response.ok) {
-          setError(`Fehler: ${response.status}`)
-          setLoading(false)
-          return
-        }
-        let result = await response.json()
-        if (result && Array.isArray(result.data)) {
-          setData(result.data)
-          setTotalCount(result.totalCount || result.data.length)
-        } else if (Array.isArray(result)) {
-          setData(result)
-          setTotalCount(result.length)
-        } else {
-          setData([])
-          setTotalCount(0)
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
-        setData([])
-        setTotalCount(0)
-      } finally {
+  // Refs für aktuelle Werte
+  const stationRef = useRef(station)
+  const intervalRef = useRef(interval)
+  // Fetch-Funktion
+  async function fetchAndSetData() {
+    setLoading(true)
+    setError(null)
+    const url = `/api/station-data?station=${stationRef.current}&interval=${intervalRef.current}`
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        setError(`Fehler: ${response.status}`)
         setLoading(false)
+        return
       }
+      const json = await response.json()
+      setData(json.data ?? [])
+      setTotalCount(json.data?.length ?? 0)
+      setLoading(false)
+    } catch (e: unknown) {
+      if (typeof e === 'object' && e && 'message' in e && typeof (e as { message?: string }).message === 'string') {
+        setError((e as { message: string }).message || 'Fehler beim Laden.')
+      } else {
+        setError('Fehler beim Laden.')
+      }
+      setLoading(false)
     }
+  }
+  // Polling robust machen
+  useEffect(() => {
+    stationRef.current = station
+    intervalRef.current = interval
     fetchAndSetData()
-  }, [station, interval])
-
+    if (pollInterval > 0) {
+      const intervalId = setInterval(() => {
+        fetchAndSetData()
+      }, pollInterval)
+      return () => clearInterval(intervalId)
+    }
+  }, [station, interval, pollInterval])
   return { data, totalCount, loading, error }
 } 

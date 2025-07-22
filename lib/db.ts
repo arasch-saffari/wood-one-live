@@ -1,9 +1,8 @@
 import db from './database'
 import path from 'path'
 import fs from 'fs'
-import Papa from 'papaparse'
 import cron from 'node-cron'
-import { ExternalApiError, logError } from './logger'
+import { logError } from './logger'
 import csvWatcher from './csv-watcher'
 import { fetchWeather } from './weather'
 
@@ -30,6 +29,36 @@ db.exec(`
     temperature REAL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(station, time)
+  );
+  CREATE TABLE IF NOT EXISTS thresholds (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    station TEXT NOT NULL,
+    from_time TEXT NOT NULL,
+    to_time TEXT NOT NULL,
+    warning REAL NOT NULL,
+    alarm REAL NOT NULL,
+    las REAL,
+    laf REAL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(station, from_time, to_time)
+  );
+  CREATE TABLE IF NOT EXISTS thresholds_audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    threshold_id INTEGER,
+    station TEXT NOT NULL,
+    from_time TEXT NOT NULL,
+    to_time TEXT NOT NULL,
+    old_warning REAL,
+    new_warning REAL,
+    old_alarm REAL,
+    new_alarm REAL,
+    old_las REAL,
+    new_las REAL,
+    old_laf REAL,
+    new_laf REAL,
+    changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    action TEXT NOT NULL CHECK(action IN ('insert','update','delete'))
   );
 `)
 
@@ -198,11 +227,9 @@ export function getMeasurementsForStation(station: string, interval: "24h" | "7d
 // Utility function to check database health
 export function checkDatabaseHealth() {
   try {
-    const weatherCount = db.prepare('SELECT COUNT(*) as count FROM weather').get() as { count: number }
-    const measurementsCount = db.prepare('SELECT COUNT(*) as count FROM measurements').get() as { count: number }
+    const missingCreatedAt = db.prepare('SELECT COUNT(*) as count FROM weather WHERE created_at IS NULL').get() as { count: number }
     
     // Check for records with missing created_at (should be 0 after migration)
-    const missingCreatedAt = db.prepare('SELECT COUNT(*) as count FROM weather WHERE created_at IS NULL').get() as { count: number }
     if (missingCreatedAt.count > 0) {
       // console.warn(`⚠️  Found ${missingCreatedAt.count} weather records without created_at timestamp`)
     }
@@ -284,14 +311,10 @@ addDatabaseBackupCron()
 // Automatischer Health-Check alle 24h
 cron.schedule('0 3 * * *', () => {
   try {
-    const weatherCount = db.prepare('SELECT COUNT(*) as count FROM weather').get() as { count: number }
-    const measurementsCount = db.prepare('SELECT COUNT(*) as count FROM measurements').get() as { count: number }
     const missingCreatedAt = db.prepare('SELECT COUNT(*) as count FROM weather WHERE created_at IS NULL').get() as { count: number }
     const nulls = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get() as { count: number }
     const health = {
       time: new Date().toISOString(),
-      weatherCount: weatherCount.count,
-      measurementsCount: measurementsCount.count,
       missingCreatedAt: missingCreatedAt.count,
       nulls: nulls.count,
       notify: (missingCreatedAt.count > 0 || nulls.count > 0)

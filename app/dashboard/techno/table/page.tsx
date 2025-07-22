@@ -1,8 +1,6 @@
 "use client"
 
 import React, { useState, useMemo, memo } from "react"
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
-import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -43,7 +41,7 @@ export default function TechnoTablePage() {
   const PAGE_SIZE = 20
 
   // Pagination-API nutzen
-  const { data, totalCount, loading, error } = useStationData("techno", interval, "15min", page, PAGE_SIZE)
+  const { data, totalCount, loading, error } = useStationData("techno", interval, 60000)
 
   // Filterung clientseitig nur für Grenzwert-Überschreitungen
   const filtered = useMemo(() => {

@@ -79,6 +79,60 @@ export interface Config {
   // ... weitere Felder
 }
 
+function ThresholdsAuditTable() {
+  const [rows, setRows] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/admin/thresholds/audit')
+      .then(res => res.json())
+      .then(data => {
+        setRows(data.rows || [])
+        setLoading(false)
+      })
+      .catch(e => {
+        setError(e.message || 'Fehler beim Laden des Audit-Logs')
+        setLoading(false)
+      })
+  }, [])
+  if (loading) return <LoadingSpinner text="Audit-Log wird geladen..." />
+  if (error) return <ErrorMessage message={error} />
+  if (!rows.length) return <div className="text-gray-400">Keine Änderungen protokolliert.</div>
+  return (
+    <div className="overflow-x-auto max-w-6xl mx-auto">
+      <table className="min-w-full text-xs border border-gray-200 dark:border-gray-700 rounded-xl">
+        <thead className="bg-gray-100 dark:bg-gray-900/40">
+          <tr>
+            <th className="px-2 py-1">Zeit</th>
+            <th className="px-2 py-1">Station</th>
+            <th className="px-2 py-1">Zeitblock</th>
+            <th className="px-2 py-1">Aktion</th>
+            <th className="px-2 py-1">Warnung</th>
+            <th className="px-2 py-1">Alarm</th>
+            <th className="px-2 py-1">LAS</th>
+            <th className="px-2 py-1">LAF</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className="border-t border-gray-200 dark:border-gray-700">
+              <td className="px-2 py-1 whitespace-nowrap">{new Date(row.changed_at).toLocaleString()}</td>
+              <td className="px-2 py-1">{row.station}</td>
+              <td className="px-2 py-1">{row.from_time} – {row.to_time}</td>
+              <td className="px-2 py-1 font-semibold capitalize">{row.action}</td>
+              <td className="px-2 py-1">{row.old_warning ?? '-'} → <b>{row.new_warning ?? '-'}</b></td>
+              <td className="px-2 py-1">{row.old_alarm ?? '-'} → <b>{row.new_alarm ?? '-'}</b></td>
+              <td className="px-2 py-1">{row.old_las ?? '-'} → <b>{row.new_las ?? '-'}</b></td>
+              <td className="px-2 py-1">{row.old_laf ?? '-'} → <b>{row.new_laf ?? '-'}</b></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function AdminDashboard() {
   // Segment-Auswahl für die Sidebar
   const [segment, setSegment] = useState<'overview'|'thresholds'|'system'|'csv'|'backup'|'correction'|'settings'>('overview')
@@ -186,7 +240,7 @@ export default function AdminDashboard() {
       if (!prev) return { thresholdsByStationAndTime: {} };
       const updated = { ...prev };
       updated.thresholdsByStationAndTime = { ...prev.thresholdsByStationAndTime };
-      updated.thresholdsByStationAndTime[station] = updated.thresholdsByStationAndTime[station].map((block: any, i: number) =>
+      updated.thresholdsByStationAndTime[station] = updated.thresholdsByStationAndTime[station].map((block: ThresholdBlock, i: number) =>
         i === idx ? { ...block, [key]: value } : block
       );
       return updated;
@@ -223,18 +277,22 @@ export default function AdminDashboard() {
           })
         }
       }
-    } catch (e: any) {
-      setConfigError(e?.message || 'Fehler beim Speichern.')
-      toast({
-        title: 'Fehler beim Speichern',
-        description: e?.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
-        variant: 'destructive',
-      })
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Fehler beim Speichern', {
-          body: e?.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
-          icon: '/alert-icon.png',
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setConfigError(e.message || 'Fehler beim Speichern.')
+        toast({
+          title: 'Fehler beim Speichern',
+          description: e.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
+          variant: 'destructive',
         })
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Speichern', {
+            body: e.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      } else {
+        setConfigError('Fehler beim Speichern.')
       }
     } finally {
       setSaving(false)
@@ -261,16 +319,24 @@ export default function AdminDashboard() {
         return
       }
       window.open('/api/admin/backup-db', '_blank')
-    } catch (e: any) {
-      toast({
-        title: 'Fehler beim Backup',
-        description: e?.message || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
-        variant: 'destructive',
-      })
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Fehler beim Backup', {
-          body: e?.message || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
-          icon: '/alert-icon.png',
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        toast({
+          title: 'Fehler beim Backup',
+          description: e.message || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Backup', {
+            body: e.message || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      } else {
+        toast({
+          title: 'Fehler beim Backup',
+          description: 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+          variant: 'destructive',
         })
       }
     }
@@ -313,16 +379,24 @@ export default function AdminDashboard() {
         })
         setTimeout(() => window.location.reload(), 2000)
       }
-    } catch (e: any) {
-      toast({
-        title: 'Fehler beim Factory-Reset',
-        description: e?.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
-        variant: 'destructive',
-      })
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Fehler beim Factory-Reset', {
-          body: e?.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
-          icon: '/alert-icon.png',
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        toast({
+          title: 'Fehler beim Factory-Reset',
+          description: e.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Factory-Reset', {
+            body: e.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      } else {
+        toast({
+          title: 'Fehler beim Factory-Reset',
+          description: 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+          variant: 'destructive',
         })
       }
     } finally {
@@ -341,8 +415,12 @@ export default function AdminDashboard() {
       const data = await res.json()
       if (!res.ok || !data.success) setCsvError(data.message || 'Fehler beim Upload')
       // csvStatus will auto-refresh via hook polling
-    } catch (e: any) {
-      setCsvError(e?.message || 'Fehler beim Upload')
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setCsvError(e.message || 'Fehler beim Upload')
+      } else {
+        setCsvError('Fehler beim Upload')
+      }
     } finally {
       setCsvUploading(prev => ({ ...prev, [station]: false }))
     }
@@ -374,8 +452,12 @@ export default function AdminDashboard() {
       setEditRow(null)
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Speichern')
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setCorrectionError(e.message || 'Fehler beim Speichern')
+      } else {
+        setCorrectionError('Fehler beim Speichern')
+      }
     } finally {
       setEditSaving(false)
     }
@@ -406,8 +488,12 @@ export default function AdminDashboard() {
       })
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Löschen')
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setCorrectionError(e.message || 'Fehler beim Löschen')
+      } else {
+        setCorrectionError('Fehler beim Löschen')
+      }
     }
   }
   async function undoDelete() {
@@ -424,8 +510,12 @@ export default function AdminDashboard() {
       toast({ title: 'Wiederhergestellt', description: 'Löschung rückgängig gemacht.' })
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Wiederherstellen')
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setCorrectionError(e.message || 'Fehler beim Wiederherstellen')
+      } else {
+        setCorrectionError('Fehler beim Wiederherstellen')
+      }
     }
   }
   function handleEdit(row: CorrectionData) {
@@ -467,8 +557,12 @@ export default function AdminDashboard() {
       setEditValue('')
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Speichern')
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setCorrectionError(e.message || 'Fehler beim Speichern')
+      } else {
+        setCorrectionError('Fehler beim Speichern')
+      }
       toast({
         title: 'Fehler beim Speichern',
         description: e?.message || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
@@ -511,8 +605,12 @@ export default function AdminDashboard() {
       }
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Löschen')
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setCorrectionError(e.message || 'Fehler beim Löschen')
+      } else {
+        setCorrectionError('Fehler beim Löschen')
+      }
       toast({
         title: 'Fehler beim Löschen',
         description: e?.message || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
@@ -543,7 +641,7 @@ export default function AdminDashboard() {
       if (!prev) return { thresholdsByStationAndTime: {} };
       const updated = { ...prev };
       updated.thresholdsByStationAndTime = { ...prev.thresholdsByStationAndTime };
-      updated.thresholdsByStationAndTime[editTimeStation] = updated.thresholdsByStationAndTime[editTimeStation].map((block: any, i: number) =>
+      updated.thresholdsByStationAndTime[editTimeStation] = updated.thresholdsByStationAndTime[editTimeStation].map((block: ThresholdBlock, i: number) =>
         i === editTimeIdx ? { ...block, from: editTimeFrom, to: editTimeTo } : block
       );
       return updated;
@@ -572,8 +670,12 @@ export default function AdminDashboard() {
           })
         }
       }
-    } catch (e: any) {
-      setCsvError(e?.message || 'Fehler beim CSV-Import')
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setCsvError(e.message || 'Fehler beim CSV-Import')
+      } else {
+        setCsvError('Fehler beim CSV-Import')
+      }
       toast({
         title: 'Fehler beim CSV-Import',
         description: e?.message || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
@@ -605,16 +707,24 @@ export default function AdminDashboard() {
           })
         }
       }
-    } catch (e: any) {
-      toast({
-        title: 'Fehler beim Neuaufbau',
-        description: e?.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
-        variant: 'destructive',
-      })
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Fehler beim Neuaufbau', {
-          body: e?.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
-          icon: '/alert-icon.png',
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        toast({
+          title: 'Fehler beim Neuaufbau',
+          description: e.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Neuaufbau', {
+            body: e.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      } else {
+        toast({
+          title: 'Fehler beim Neuaufbau',
+          description: 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
+          variant: 'destructive',
         })
       }
     }
@@ -640,8 +750,12 @@ export default function AdminDashboard() {
       })
       if (!res.ok) throw new Error('Fehler beim Speichern')
       setSettingsSuccess(true)
-    } catch (e: any) {
-      setSettingsError(e.message || 'Unbekannter Fehler')
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setSettingsError(e.message || 'Unbekannter Fehler')
+      } else {
+        setSettingsError('Unbekannter Fehler')
+      }
     } finally {
       setSettingsSaving(false)
     }
@@ -988,6 +1102,12 @@ export default function AdminDashboard() {
                           <span className="ml-2 text-sm text-gray-500">(0 = kein Caching, Standard: 60)</span>
                         </CardContent>
                       </Card>
+                      <Card className="w-full max-w-6xl mx-auto mb-8 p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                        <CardHeader><CardTitle>Schwellenwert-Änderungen (Audit-Log)</CardTitle></CardHeader>
+                        <CardContent>
+                          <ThresholdsAuditTable />
+                        </CardContent>
+                      </Card>
                     </>
                   )}
                 </section>
@@ -1041,7 +1161,7 @@ export default function AdminDashboard() {
                                 <div key={file.name} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 py-1">
                                   <span>{file.name}</span>
                                   <span className="text-gray-400 ml-2">{new Date(file.modified).toLocaleString()}</span>
-                                  <a href={`/csv/${dir.station}/${file.name}`} target="_blank" rel="noopener" className="ml-2 text-blue-500 hover:underline"><Eye className="w-3 h-3 inline" /></a>
+                                  <a href={`/csv/${dir.station}/${file.name}`} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 hover:underline"><Eye className="w-3 h-3 inline" /></a>
                                 </div>
                               ))}
                             </div>
@@ -1177,7 +1297,7 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <Label>Typ</Label>
-                        <Select value={correctionType} onValueChange={v => setCorrectionType(v as any)}>
+                        <Select value={correctionType} onValueChange={v => setCorrectionType(v as 'measurement' | 'weather')}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="measurement">Messwert</SelectItem>
