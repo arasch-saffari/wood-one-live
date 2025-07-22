@@ -43,11 +43,19 @@ if (typeof db.pragma === 'function') {
     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
     const hasDatetime = columns.some(col => col.name === 'datetime')
     if (!hasDatetime) {
-      db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME')
-      // Fülle bestehende Einträge mit aktuellem Datum + time
-      const now = new Date()
-      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
-      db.prepare("UPDATE measurements SET datetime = ? || ' ' || time WHERE datetime IS NULL").run(today)
+      try {
+        db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME')
+        // Fülle bestehende Einträge mit aktuellem Datum + time
+        const now = new Date()
+        const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+        db.prepare("UPDATE measurements SET datetime = ? || ' ' || time WHERE datetime IS NULL").run(today)
+      } catch (e: any) {
+        if (e.message && e.message.includes('duplicate column name')) {
+          console.log('Spalte datetime existiert bereits, Migration wird übersprungen.')
+        } else {
+          throw e
+        }
+      }
     }
   } catch (e) {
     if (e instanceof Error) {
@@ -250,9 +258,13 @@ if (process.env.ENABLE_BACKGROUND_JOBS === 'true') {
       const now = new Date()
       const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
       const weather = await fetchWeather()
-      db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
-        .run('global', time, weather.windSpeed ?? 0, weather.windDir ?? '', weather.relHumidity ?? 0, weather.temperature ?? null)
-      console.log('[Wetter-Cron] Wetterdaten aktualisiert:', weather)
+      try {
+        const result = db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+          .run('global', time, weather.windSpeed ?? 0, weather.windDir ?? '', weather.relHumidity ?? 0, weather.temperature ?? null)
+        console.log('[Wetter-Cron] Wetterdaten aktualisiert:', weather, 'Insert result:', result)
+      } catch (insertErr) {
+        console.error('[Wetter-Cron] Fehler beim Insert:', insertErr)
+      }
     } catch (e) {
       console.error('[Wetter-Cron] Fehler beim Wetter-Update:', e)
     }

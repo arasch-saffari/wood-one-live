@@ -43,7 +43,7 @@ export default function ChartTestPage() {
   const intervals = config?.allowedIntervals || ['12h', '24h', '48h', '5d', '7d'];
   const [interval, setInterval] = useState(intervals[0] || '24h');
   const [granularity, setGranularity] = useState('15min')
-  const [maxPoints, setMaxPoints] = useState(200)
+  const [maxPoints, setMaxPoints] = useState(0)
   const [data, setData] = useState(generateDemoData())
   const [loading, setLoading] = useState(false)
   const [station, setStation] = useState(stationOptions[0].key);
@@ -60,7 +60,7 @@ export default function ChartTestPage() {
   function handleReset() {
     setInterval('24h')
     setGranularity('15min')
-    setMaxPoints(200)
+    setMaxPoints(0)
     setData(generateDemoData())
   }
 

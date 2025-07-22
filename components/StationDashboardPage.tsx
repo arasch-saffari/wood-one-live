@@ -67,6 +67,32 @@ interface ThresholdBlock {
   laf: number;
 }
 
+// Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
+function windDirectionText(dir: number | string | null | undefined): string {
+  if (dir === null || dir === undefined) return '–';
+  let deg = typeof dir === 'string' ? parseFloat(dir) : dir;
+  if (isNaN(deg)) {
+    // Falls es eine Abkürzung ist
+    const map: Record<string, string> = {
+      n: 'Norden', nne: 'Nordnordost', ne: 'Nordost', ene: 'Ostnordost',
+      e: 'Osten', ese: 'Ostsüdost', se: 'Südost', sse: 'Südsüdost',
+      s: 'Süden', ssw: 'Südsüdwest', sw: 'Südwest', wsw: 'Westsüdwest',
+      w: 'Westen', wnw: 'Westnordwest', nw: 'Nordwest', nnw: 'Nordnordwest'
+    };
+    const key = typeof dir === 'string' ? dir.toLowerCase() : '';
+    return map[key] || dir.toString();
+  }
+  // Gradzahl in Richtungstext
+  const directions = [
+    'Norden', 'Nordnordost', 'Nordost', 'Ostnordost',
+    'Osten', 'Ostsüdost', 'Südost', 'Südsüdost',
+    'Süden', 'Südsüdwest', 'Südwest', 'Westsüdwest',
+    'Westen', 'Westnordwest', 'Nordwest', 'Nordnordwest', 'Norden'
+  ];
+  const idx = Math.round(((deg % 360) / 22.5));
+  return directions[idx];
+}
+
 export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const meta = STATION_META[station]
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
@@ -92,6 +118,8 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
   }, [])
   useEffect(() => {
   }, [chartData])
+  if (!globalConfig) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
+  console.log("ConfigContext in StationDashboardPage:", globalConfig);
   // KPIs
   const current = chartData.length > 0 ? chartData[chartData.length - 1].las : 0
   const avg24h = chartData.length > 0 ? (chartData.reduce((a, b) => a + b.las, 0) / chartData.length).toFixed(1) : 0
@@ -138,14 +166,14 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
       bg: 'from-yellow-500/20 to-yellow-600/20 border-yellow-500/30',
       icon: meta.icon,
       title: 'Warnung: Lärmpegel erhöht',
-      text: `Pegel liegt im Warnbereich (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind ? currentWind : "N/A"} km/h`,
+      text: `Pegel liegt im Warnbereich (${current.toFixed(1)} dB). Windrichtung: ${windDirectionText(windDirection)} bei ${currentWind ? currentWind : "N/A"} km/h`,
       textColor: 'text-yellow-400',
     },
     alarm: {
       bg: 'from-red-500/20 to-red-600/20 border-red-500/30',
       icon: meta.icon,
       title: 'Alarm: Hoher Lärmpegel',
-      text: `Pegel überschreitet Alarmgrenzwert (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind ? currentWind : "N/A"} km/h`,
+      text: `Pegel überschreitet Alarmgrenzwert (${current.toFixed(1)} dB). Windrichtung: ${windDirectionText(windDirection)} bei ${currentWind ? currentWind : "N/A"} km/h`,
       textColor: 'text-red-400',
     },
   }[alertStatus]
@@ -185,7 +213,7 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
         max24h={max24h}
         trend={trend}
         currentWind={currentWind ?? 0}
-        windDirection={windDirection ?? "N/A"}
+        windDirection={windDirectionText(windDirection)}
         kpiColor={meta.kpiColor}
       />
       <StationTableLink station={station} />
