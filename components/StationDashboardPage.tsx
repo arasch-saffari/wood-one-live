@@ -1,18 +1,16 @@
-import { useStationData } from "@/hooks/useStationData"
+"use client";
+import { useStationData, StationDataPoint } from "@/hooks/useStationData"
 import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Table as TableIcon, Volume2, TrendingUp, Wind, MapPin, Music } from "lucide-react"
-import Link from "next/link"
-import { StationChart } from "@/components/StationChart"
-import { STATION_COLORS, CHART_COLORS } from "@/lib/colors"
+import { MapPin, Music, Volume2 } from "lucide-react"
+import { STATION_COLORS, CHART_COLORS, getStationColor } from "@/lib/colors"
 import { toast } from "@/components/ui/use-toast"
 import { StationHeader } from "@/components/StationHeader"
 import { StationKPIs } from "@/components/StationKPIs"
 import { StationAlert } from "@/components/StationAlert"
 import { StationTableLink } from "@/components/StationTableLink"
+import { ChartPlayground } from "@/components/ChartPlayground"
+import { useConfig } from "@/hooks/useConfig"
 
 const STATION_META = {
   ort: {
@@ -51,8 +49,13 @@ const STATION_META = {
 
 type StationKey = keyof typeof STATION_META
 
+// Typen für Props und Daten
 interface StationDashboardPageProps {
-  station: StationKey
+  station: StationKey;
+}
+interface Thresholds {
+  warning: number;
+  alarm: number;
 }
 
 interface ThresholdBlock {
@@ -65,11 +68,15 @@ interface ThresholdBlock {
 }
 
 export function StationDashboardPage({ station }: StationDashboardPageProps) {
+  console.log('RENDER StationDashboardPage')
+  console.log('StationDashboardPage: before useStationData for', station)
   const meta = STATION_META[station]
   const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
   const [granularity, setGranularity] = useState<"15min" | "10min" | "5min" | "1min" | "1h">("15min")
   const { data: chartData } = useStationData(station, chartInterval, granularity)
   const [config, setConfig] = useState<any>(null)
+  const { config: globalConfig } = useConfig();
+  const visibleLines = globalConfig?.chartVisibleLines?.[station] || ["las"];
   useEffect(() => {
     fetch('/api/admin/config')
       .then(res => {
@@ -85,7 +92,9 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
         })
       })
   }, [])
-  const [maxPoints, setMaxPoints] = useState<number>(200)
+  useEffect(() => {
+    console.log('StationDashboardPage useEffect chartData:', chartData)
+  }, [chartData])
   // KPIs
   const current = chartData.length > 0 ? chartData[chartData.length - 1].las : 0
   const avg24h = chartData.length > 0 ? (chartData.reduce((a, b) => a + b.las, 0) / chartData.length).toFixed(1) : 0
@@ -143,15 +152,23 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
       textColor: 'text-red-400',
     },
   }[alertStatus]
-  const getStatusColor = (level: number) => {
-    if (level >= thresholds.alarm) return `text-red-400`
-    if (level >= thresholds.warning) return `text-yellow-400`
-    return `text-${meta.kpiColor}`
-  }
   const getStatusBadge = (level: number) => {
     if (level >= thresholds.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
     if (level >= thresholds.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
     return <Badge className={`bg-${meta.color}-500/20 text-${meta.kpiColor} border-${meta.color}-500/30`}>Normal</Badge>
+  }
+  // Mappe las: immer laf bevorzugen, sonst las
+  // Typ-Erweiterung für Mapping
+  type StationDataPointWithLaf = StationDataPoint & { laf?: number };
+  const chartDataMapped = Array.isArray(chartData)
+    ? (chartData as StationDataPointWithLaf[]).map(d => ({ ...d, las: d.laf ?? d.las }))
+    : chartData;
+  console.log('ChartData for', station, chartData)
+  console.log('StationDashboardPage chartData', chartData)
+  console.log('StationDashboardPage chartDataMapped', chartDataMapped)
+  console.log('ChartData vor ChartPlayground:', chartDataMapped)
+  if (Array.isArray(chartDataMapped)) {
+    console.log('Erste 3 las-Werte:', chartDataMapped.slice(0,3).map(d => d.las))
   }
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -180,15 +197,35 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
         kpiColor={meta.kpiColor}
       />
       <StationTableLink station={station} />
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-        <StationChart
-          data={chartData}
-          thresholds={thresholds}
-          stationColors={meta.chartColor}
-          chartColors={CHART_COLORS}
-          stationName={meta.name}
-        />
-      </motion.div>
+      <ChartPlayground
+        data={chartDataMapped}
+        lines={[
+          { key: 'las', label: 'Lärmpegel', color: getStationColor(station, 'primary'), yAxisId: 'left', visible: visibleLines.includes('las') },
+          { key: 'ws', label: 'Wind', color: CHART_COLORS.wind, yAxisId: 'wind', strokeDasharray: '5 5', visible: visibleLines.includes('ws') },
+          { key: 'rh', label: 'Luftfeuchte', color: CHART_COLORS.humidity, yAxisId: 'left', strokeDasharray: '2 2', visible: visibleLines.includes('rh') },
+          { key: 'temp', label: 'Temperatur', color: CHART_COLORS.temperature, yAxisId: 'left', strokeDasharray: '3 3', visible: visibleLines.includes('temp') },
+        ]}
+        axes={[
+          { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] },
+          { id: 'wind', orientation: 'right', domain: [0, 25], label: 'Windgeschwindigkeit (km/h)', ticks: [0, 5, 10, 15, 20, 25] },
+        ]}
+        thresholds={[
+          { value: thresholds.warning, label: 'Warnung', color: CHART_COLORS.warning, yAxisId: 'noise' },
+          { value: thresholds.alarm, label: 'Alarm', color: CHART_COLORS.alarm, yAxisId: 'noise' },
+        ]}
+        title={meta.name}
+        icon={meta.icon}
+        tooltipFormatter={(value, name) => {
+          if (name === 'ws') return [`${value} km/h`, 'Windgeschwindigkeit']
+          if (name === 'rh') return [`${value} %`, 'Luftfeuchte']
+          if (name === 'las') return [`${value} dB`, 'Lärmpegel']
+          if (name === 'temp') return [`${value}°C`, 'Temperatur']
+          if (Number(value) === thresholds.warning) return [`${value} dB`, 'Warnung (Grenzwert)']
+          if (Number(value) === thresholds.alarm) return [`${value} dB`, 'Alarm (Grenzwert)']
+          if (!name) return [String(value), 'Wert']
+          return [String(value), name]
+        }}
+      />
     </div>
   )
 } 

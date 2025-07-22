@@ -2,11 +2,9 @@
 
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Home, TrendingUp, Volume2, Clock, BarChart3, Download, Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer } from "lucide-react"
-import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart, LineChart, Legend } from "recharts"
-import { useStationData, StationDataPoint } from "@/hooks/useStationData"
+import { BarChart3, Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer } from "lucide-react"
+import { useStationData } from "@/hooks/useStationData"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { STATION_META } from "@/lib/stationMeta"
@@ -16,9 +14,12 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useWeatherData } from "@/hooks/useWeatherData"
 import { useConfig } from "@/hooks/useConfig"
+import { cn } from '@/lib/utils'
+import { ChartPlayground } from '@/components/ChartPlayground'
+import { useHealth } from "@/hooks/useHealth"
+import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
 
 // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
 function windDirectionText(dir: number | string | null | undefined): string {
@@ -46,13 +47,18 @@ function windDirectionText(dir: number | string | null | undefined): string {
   return directions[idx];
 }
 
-// Hilfsfunktion: Zeit in Europe/Berlin anzeigen
-function formatBerlinTime(iso: string | null | undefined): string {
-  if (!iso) return '-';
-  const date = new Date(iso);
-  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
+function useWeatherLastUpdate() {
+  const [weatherLastUpdate, setWeatherLastUpdate] = useState<{ time: string|null } | null>(null)
+  useEffect(() => {
+    fetch('/api/weather/last-update')
+      .then(res => res.json())
+      .then(data => setWeatherLastUpdate(data))
+      .catch(() => setWeatherLastUpdate(null))
+  }, [])
+  return weatherLastUpdate
 }
 
+// Typen für Schwellenwerte und Daten
 interface ThresholdBlock {
   from: string;
   to: string;
@@ -62,17 +68,39 @@ interface ThresholdBlock {
   laf?: number;
 }
 
+interface StationDataObj {
+  data: Array<{ time: string; las: number; ws?: number; rh?: number; temp?: number; datetime?: string }>
+  totalCount?: number
+  loading?: boolean
+  error?: string | null
+}
+
+interface Config {
+  defaultInterval?: string
+  defaultGranularity?: string
+  chartLimit?: number
+  chartColors?: { wind?: string }
+  thresholdsByStationAndTime?: Record<string, ThresholdBlock[]>
+}
+
+// Definiere formatTime lokal:
+function formatTime(latest: string | undefined) {
+  if (!latest) return "-"
+  const date = new Date(latest)
+  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " Uhr"
+}
+
 export default function AllLocationsPage() {
   // Chart-Intervall-Button-State
-  const { config, loading: configLoading, error: configError } = useConfig()
+  const { config } = useConfig()
 
-  const [chartInterval, setChartInterval] = useState<string | undefined>(config?.defaultInterval)
-  const [granularity, setGranularity] = useState<string | undefined>(config?.defaultGranularity)
+  const [chartInterval] = useState<string | undefined>(config?.defaultInterval)
+  const [granularity] = useState<string | undefined>(config?.defaultGranularity)
   // Fetch live data für jede Station mit Intervall und Granularity
-  const ortDataObj = useStationData("ort", chartInterval as any, granularity as any)
-  const heuballernDataObj = useStationData("heuballern", chartInterval as any, granularity as any)
-  const technoDataObj = useStationData("techno", chartInterval as any, granularity as any)
-  const bandDataObj = useStationData("band", chartInterval as any, granularity as any)
+  const ortDataObj: StationDataObj = useStationData("ort", chartInterval as "24h" | "7d" | undefined, granularity as any)
+  const heuballernDataObj: StationDataObj = useStationData("heuballern", chartInterval as "24h" | "7d" | undefined, granularity as any)
+  const technoDataObj: StationDataObj = useStationData("techno", chartInterval as "24h" | "7d" | undefined, granularity as any)
+  const bandDataObj: StationDataObj = useStationData("band", chartInterval as "24h" | "7d" | undefined, granularity as any)
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []
@@ -87,15 +115,15 @@ export default function AllLocationsPage() {
   }
 
   // Aktuellster Wetterwert (aus API)
-  const { weather: latestWeather, loading: weatherLoading, error: weatherError } = useWeatherData("global", "now")
+  const { weather: latestWeather } = useWeatherData("global", "now")
 
   // Für jede Station aktuelle Zeit und Schwellenwerte bestimmen
-  const getThresholds = (station: string, data: any[]) => {
+  const getThresholds = (station: string, data: Array<{ datetime?: string }>): ThresholdBlock | undefined => {
     const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
     if (!config || !now) return undefined;
     const blocks = config.thresholdsByStationAndTime?.[station];
     if (!blocks) return undefined;
-    const currentBlock = blocks.find((block: any) => {
+    const currentBlock = blocks.find((block: ThresholdBlock) => {
       // Annahme: block.from und block.to im Format HH:MM
       if (!block.from || !block.to) return false;
       if (block.from < block.to) {
@@ -110,31 +138,31 @@ export default function AllLocationsPage() {
   }
 
   // Status-Farbe basierend auf Lärmwert bestimmen
-  const getStatusColor = (level: number, station: string, data: any[]) => {
+  const getStatusColor = (level: number, station: string, data: Array<{ datetime?: string }>) => {
     const thresholds = getThresholds(station, data)
-    if (level >= thresholds?.alarm) return "text-red-400"
-    if (level >= thresholds?.warning) return "text-yellow-400"
+    if (thresholds?.alarm !== undefined && level >= thresholds.alarm) return "text-red-400"
+    if (thresholds?.warning !== undefined && level >= thresholds.warning) return "text-yellow-400"
     return "text-emerald-400"
   }
 
   // Status-Badge basierend auf Lärmwert
-  const getStatusBadge = (level: number, station: string, data: any[]) => {
+  const getStatusBadge = (level: number, station: string, data: Array<{ datetime?: string }>) => {
     const thresholds = getThresholds(station, data)
-    if (level >= thresholds?.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
-    if (level >= thresholds?.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
+    if (thresholds?.alarm !== undefined && level >= thresholds.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
+    if (thresholds?.warning !== undefined && level >= thresholds.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
     return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Normal</Badge>
   }
 
   // Chart-Daten für alle Standorte und Windgeschwindigkeit zusammenführen
   // Wir nehmen die Zeitpunkte von ortData als Basis
-  const chartTimes = ortData.map(d => d.time)
+  const chartTimes = ortData.map((d: { time: string }) => d.time)
   const chartData = chartTimes.map(time => {
-    const ort = ortData.find(d => d.time === time)
-    const techno = technoData.find(d => d.time === time)
-    const band = bandData.find(d => d.time === time)
-    const heuballern = heuballernData.find(d => d.time === time)
+    const ort = ortData.find((d: { time: string }) => d.time === time)
+    const techno = technoData.find((d: { time: string }) => d.time === time)
+    const band = bandData.find((d: { time: string }) => d.time === time)
+    const heuballern = heuballernData.find((d: { time: string }) => d.time === time)
     // Windgeschwindigkeit: Mittelwert der vier Standorte, falls vorhanden
-    const windVals = [ort, techno, band, heuballern].map(d => d?.ws).filter(v => typeof v === 'number')
+    const windVals = [ort, techno, band, heuballern].map(d => d?.ws).filter((v): v is number => typeof v === 'number')
     const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
     return {
       time,
@@ -147,12 +175,34 @@ export default function AllLocationsPage() {
   })
 
   // State für maxPoints
-  const [maxPoints, setMaxPoints] = useState<number>(config?.chartLimit || 200)
+  const [maxPoints] = useState<number>(config?.chartLimit || 200)
 
   // Daten für das Chart filtern
   const filteredChartData = maxPoints > 0 && chartData.length > maxPoints ? chartData.slice(-maxPoints) : chartData
 
+  console.log('filteredChartData (first 3):', filteredChartData.slice(0, 3))
+
   const WIND_COLOR = config?.chartColors?.wind || "#06b6d4" // cyan-500
+
+  const weatherLastUpdate = useWeatherLastUpdate()
+
+  const { health } = useHealth()
+  const { watcherStatus: watcher } = useCsvWatcherStatus()
+  // Fallback für Backup-Info
+  const backupInfo = health && health.lastBackup ? { lastBackup: health.lastBackup } : null
+
+  // Definiere lines und axes für GenericChart:
+  const lines = [
+    { key: 'ort', label: STATION_META.ort.name, color: STATION_META.ort.chartColor },
+    { key: 'heuballern', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor },
+    { key: 'techno', label: STATION_META.techno.name, color: STATION_META.techno.chartColor },
+    { key: 'band', label: STATION_META.band.name, color: STATION_META.band.chartColor },
+    { key: 'windSpeed', label: 'Windgeschwindigkeit', color: WIND_COLOR, yAxisId: 'wind', strokeDasharray: '5 5' },
+  ]
+  const axes = [
+    { id: 'left', orientation: 'left', domain: [30, 85], label: 'dB' },
+    { id: 'wind', orientation: 'right', domain: [0, 25], label: 'km/h' },
+  ]
 
   return (
     <TooltipProvider>
@@ -222,7 +272,7 @@ export default function AllLocationsPage() {
 
         {/* Wetter-Übersicht Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl cursor-help">
+          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                 <Wind className="w-4 lg:w-5 h-4 lg:h-5 text-blue-400" />
@@ -276,148 +326,23 @@ export default function AllLocationsPage() {
           </Card>
         </motion.div>
 
-        {/* Haupt-Diagramm */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl cursor-help">
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold mr-2">Zeitraum:</span>
-                  <Button variant={chartInterval === "24h" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("24h")}>24</Button>
-                  <Button variant={chartInterval === "7d" ? "default" : "outline"} size="sm" onClick={() => setChartInterval("7d")}>7d</Button>
-                </div>
-                <div className="flex items-center gap-2 overflow-x-auto md:gap-2 md:overflow-visible pb-2 md:pb-0">
-                  <span className="text-xs font-semibold mr-2 shrink-0">Granularität:</span>
-                  <div className="flex flex-row gap-2 min-w-max">
-                    <Button variant={granularity === "1h" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1h")}>1h</Button>
-                    <Button variant={granularity === "15min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("15min")}>15min</Button>
-                    <Button variant={granularity === "10min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("10min")}>10min</Button>
-                    <Button variant={granularity === "5min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("5min")}>5min</Button>
-                    <Button variant={granularity === "1min" ? "default" : "outline"} size="sm" onClick={() => setGranularity("1min")}>1min</Button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold mr-2">Anzahl Punkte:</span>
-                  <Select value={String(maxPoints)} onValueChange={v => setMaxPoints(Number(v))}>
-                    <SelectTrigger className="w-24 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                      <SelectItem value="200">200</SelectItem>
-                      <SelectItem value="500">500</SelectItem>
-                      <SelectItem value="0">Alle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
-                <Activity className="w-4 lg:w-5 h-4 lg:h-5 text-blue-400" />
-                <span className="text-gray-900 dark:text-white">Vergleich aller Standorte</span>
-              </CardTitle>
-              <CardDescription className="text-xs lg:text-sm">
-                Lärmpegel-Vergleich mit Windgeschwindigkeits-Overlay
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-48 md:h-64 lg:h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={filteredChartData}>
-                    {/* Diagramm Gitter */}
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="hsl(var(--border))" // Dynamische Farbe aus CSS-Variablen
-                    />
-                    {/* X-Achse (Zeit) */}
-                    <XAxis
-                      dataKey="time"
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      tickLine={{ stroke: "hsl(var(--border))" }}
-                    />
-                    {/* Y-Achse (Lärm) */}
-                    <YAxis
-                      domain={[30, 85]}
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      tickLine={{ stroke: "hsl(var(--border))" }}
-                    />
-                    {/* Y-Achse (Wind) - rechts */}
-                    <YAxis
-                      yAxisId="wind"
-                      orientation="right"
-                      domain={[0, 25]}
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      tickLine={{ stroke: "hsl(var(--border))" }}
-                    />
-                    {/* Tooltip */}
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))", // Dynamische Farbe
-                        border: "1px solid hsl(var(--border))", // Dynamische Farbe
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
-                        color: "hsl(var(--card-foreground))", // Dynamische Farbe
-                      }}
-                      formatter={(value: number, name: string): [string, string] => {
-                        if (name === "windSpeed") return [`${value.toFixed(1)} km/h`, "Windgeschwindigkeit"]
-                        return [`${value.toFixed(1)} dB`, name]
-                      }}
-                    />
-                    {/* Legend */}
-                    <Legend />
-                    {/* Standort-Linien */}
-                    <Line
-                      type="monotone"
-                      dataKey="ort"
-                      stroke={STATION_META.ort.chartColor}
-                      strokeWidth={2}
-                      dot={false}
-                      name={STATION_META.ort.name}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="techno"
-                      stroke={STATION_META.techno.chartColor}
-                      strokeWidth={2}
-                      dot={false}
-                      name={STATION_META.techno.name}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="band"
-                      stroke={STATION_META.band.chartColor}
-                      strokeWidth={2}
-                      dot={false}
-                      name={STATION_META.band.name}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="heuballern"
-                      stroke={STATION_META.heuballern.chartColor}
-                      strokeWidth={2}
-                      dot={false}
-                      name={STATION_META.heuballern.name}
-                    />
-                    {/* Windgeschwindigkeit */}
-                    <Line
-                      yAxisId="wind"
-                      type="monotone"
-                      dataKey="windSpeed"
-                      stroke={WIND_COLOR}
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={false}
-                      name="Windgeschwindigkeit"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Nach System Status Card, vor Grenzwert-Referenz: */}
+        <ChartPlayground
+          data={filteredChartData}
+          lines={[
+            { key: 'ort', label: STATION_META.ort.name, color: STATION_META.ort.chartColor },
+            { key: 'heuballern', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor },
+            { key: 'techno', label: STATION_META.techno.name, color: STATION_META.techno.chartColor },
+            { key: 'band', label: STATION_META.band.name, color: STATION_META.band.chartColor },
+            { key: 'windSpeed', label: 'Windgeschwindigkeit', color: WIND_COLOR, yAxisId: 'wind', strokeDasharray: '5 5' },
+          ]}
+          axes={[
+            { id: 'left', orientation: 'left', domain: [30, 85], label: 'dB' },
+            { id: 'wind', orientation: 'right', domain: [0, 25], label: 'km/h' },
+          ]}
+          title="Alle Standorte"
+          icon={<BarChart3 className="w-5 h-5 text-blue-500" />}
+        />
 
         {/* Grenzwert-Referenz */}
         <motion.div
@@ -464,6 +389,62 @@ export default function AllLocationsPage() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* 1. Systemstatus-Block ans Ende verschieben und erweitern */}
+        <motion.div>
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-500" />
+                Systemstatus
+              </CardTitle>
+              <CardDescription>Übersicht: Messstationen, Wetter, Backups & System</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* 1. Stationen-Status */}
+                <div>
+                  <div className="font-semibold mb-2 flex items-center gap-2"><Droplets className="w-4 h-4 text-emerald-500" />Letzte Aktualisierung</div>
+                  <ul className="text-xs space-y-1">
+                    {([
+                      { key: 'ort', data: ortData },
+                      { key: 'heuballern', data: heuballernData },
+                      { key: 'techno', data: technoData },
+                      { key: 'band', data: bandData },
+                    ] as const).map(st => (
+                      <li key={st.key} className="flex items-center gap-2">
+                        <span className={cn('w-2 h-2 rounded-full', STATION_META[st.key].chartColor)} />
+                        <span>{STATION_META[st.key].name}:</span>
+                        <span>{formatTime(st.data.length > 0 ? st.data[st.data.length - 1].datetime : undefined)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="text-xs mt-2">Letztes Wetter-Update: {weatherLastUpdate?.time ?? '-'}</div>
+                </div>
+                {/* 2. Wetter & Backup */}
+                <div>
+                  <div className="font-semibold mb-2 flex items-center gap-2"><Droplets className="w-4 h-4 text-cyan-500" />Wetter & Backup</div>
+                  <ul className="text-xs space-y-1">
+                    <li>Letztes Backup: <span className="font-mono">{backupInfo?.lastBackup ? new Date(backupInfo.lastBackup).toLocaleString('de-DE') : '-'}</span></li>
+                    <li>CSV-Watcher: <span className={cn('font-mono', watcher?.watcherActive ? 'text-green-600' : 'text-red-500')}>{watcher?.watcherActive ? 'Aktiv' : 'Inaktiv'}</span></li>
+                    <li>CSV-Ordner: <span className="font-mono">{watcher?.watchedDirectories?.map((d: any) => d.station).join(', ')}</span></li>
+                  </ul>
+                </div>
+                {/* 3. Systeminfos */}
+                <div>
+                  <div className="font-semibold mb-2 flex items-center gap-2"><TableIcon className="w-4 h-4 text-violet-500" />System</div>
+                  <ul className="text-xs space-y-1">
+                    <li>Datenbankgröße: <span className="font-mono">{health?.dbSize ? (health.dbSize / 1024 / 1024).toFixed(2) : '-'} MB</span></li>
+                    <li>Health-Status: <span className={health?.integrityProblem ? 'text-red-500 font-bold' : 'text-green-600 font-semibold'}>{health?.integrityProblem ? 'Fehlerhaft' : 'OK'}</span></li>
+                    {health?.integrityProblem && (
+                      <li className="text-xs text-red-500">Integritätsfehler: {health.integrityCount}</li>
+                    )}
+                  </ul>
+                </div>
               </div>
             </CardContent>
           </Card>

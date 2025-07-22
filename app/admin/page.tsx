@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Database, FileText, Activity, Eye, Upload, Download, UploadCloud, AlertTriangle, HardDrive, Cloud, Database as DbIcon, Pencil, Trash2, Terminal, BarChart3, Clock, Settings, Search, Sun, Moon, MapPin, Mail, KeyRound, Bell, Settings2, Palette, DatabaseZap, UploadCloud as UploadCloudIcon } from "lucide-react"
+import { AlertTriangle, HardDrive, Cloud, Database as DbIcon, Pencil, Trash2, Terminal, BarChart3, Clock, Settings, Search, Sun, Moon, MapPin, Mail, KeyRound, Bell, Settings2, Palette, DatabaseZap, Home, UploadCloud, Eye, Download, FileText } from "lucide-react"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from '@/components/ui/use-toast'
@@ -26,7 +26,7 @@ import { ErrorMessage } from "@/components/ErrorMessage"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { borderRadius, colors } from '@/lib/theme'
+import { useTheme } from "next-themes"
 
 interface CSVFile {
   name: string
@@ -47,6 +47,20 @@ interface WatcherStatus {
   watchedDirectories: WatchedDirectory[]
   totalFiles: number
   lastCheck: string
+}
+
+// Beispielhafte Typen für Settings und API-Responses
+interface ChartVisibleLinesConfig {
+  [station: string]: string[];
+}
+interface SettingsConfig {
+  chartVisibleLines: ChartVisibleLinesConfig;
+  // ... weitere Settings-Felder
+}
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: string;
 }
 
 export default function AdminDashboard() {
@@ -93,6 +107,7 @@ export default function AdminDashboard() {
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsError, setSettingsError] = useState<string|null>(null)
   const [settingsSuccess, setSettingsSuccess] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     if (segment === 'thresholds') {
@@ -617,7 +632,7 @@ export default function AdminDashboard() {
             <div className="flex h-24 items-center px-6">
               <div className="flex items-center space-x-3 whitespace-nowrap min-w-0 flex-nowrap">
                 <div className="w-10 h-10 bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Database className="w-5 h-5 text-white" />
+                  <DbIcon className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-lg font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent truncate block">
                   Wood-One Live
@@ -626,37 +641,66 @@ export default function AdminDashboard() {
               </div>
             </div>
             {/* Navigation */}
-            <nav className="flex-1 px-6 py-10 space-y-4">
-              <SidebarMenu>
-                <SidebarMenuButton isActive={segment==='overview'} onClick={()=>setSegment('overview')}
-                  className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
-                  <Database className="w-4 h-4" /> Übersicht
-                </SidebarMenuButton>
-                <SidebarMenuButton isActive={segment==='thresholds'} onClick={()=>setSegment('thresholds')}
-                  className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
-                  <Settings2 className="w-4 h-4" /> Schwellenwerte
-                </SidebarMenuButton>
-                <SidebarMenuButton isActive={segment==='system'} onClick={()=>setSegment('system')}
-                  className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
-                  <Activity className="w-4 h-4" /> System & Health
-                </SidebarMenuButton>
-                <SidebarMenuButton isActive={segment==='csv'} onClick={()=>setSegment('csv')}
-                  className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
-                  <FileText className="w-4 h-4" /> CSV & Import
-                </SidebarMenuButton>
-                <SidebarMenuButton isActive={segment==='backup'} onClick={()=>setSegment('backup')}
-                  className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
-                  <HardDrive className="w-4 h-4" /> Backup & Restore
-                </SidebarMenuButton>
-                <SidebarMenuButton isActive={segment==='correction'} onClick={()=>setSegment('correction')}
-                  className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
-                  <BarChart3 className="w-4 h-4" /> Datenkorrektur
-                </SidebarMenuButton>
-                <SidebarMenuButton isActive={segment==='settings'} onClick={()=>setSegment('settings')}
-                  className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
-                  <Settings className="w-4 h-4" /> Einstellungen
-                </SidebarMenuButton>
-              </SidebarMenu>
+            <nav className="flex-1 px-6 py-10 flex flex-col justify-between space-y-4">
+              <div>
+                <SidebarMenu>
+                  <SidebarMenuButton isActive={segment==='overview'} onClick={()=>setSegment('overview')}
+                    className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
+                    <DbIcon className="w-4 h-4" /> Übersicht
+                  </SidebarMenuButton>
+                  <SidebarMenuButton isActive={segment==='thresholds'} onClick={()=>setSegment('thresholds')}
+                    className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
+                    <Settings2 className="w-4 h-4" /> Schwellenwerte
+                  </SidebarMenuButton>
+                  <SidebarMenuButton isActive={segment==='system'} onClick={()=>setSegment('system')}
+                    className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
+                    <BarChart3 className="w-4 h-4" /> System & Health
+                  </SidebarMenuButton>
+                  <SidebarMenuButton isActive={segment==='csv'} onClick={()=>setSegment('csv')}
+                    className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
+                    <FileText className="w-4 h-4" /> CSV & Import
+                  </SidebarMenuButton>
+                  <SidebarMenuButton isActive={segment==='backup'} onClick={()=>setSegment('backup')}
+                    className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
+                    <HardDrive className="w-4 h-4" /> Backup & Restore
+                  </SidebarMenuButton>
+                  <SidebarMenuButton isActive={segment==='correction'} onClick={()=>setSegment('correction')}
+                    className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
+                    <BarChart3 className="w-4 h-4" /> Datenkorrektur
+                  </SidebarMenuButton>
+                  <SidebarMenuButton isActive={segment==='settings'} onClick={()=>setSegment('settings')}
+                    className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
+                    <Settings className="w-4 h-4" /> Einstellungen
+                  </SidebarMenuButton>
+                </SidebarMenu>
+              </div>
+              <div className="mt-10 mb-2 flex flex-col items-center gap-4">
+                <SidebarMenu>
+                  <SidebarMenuButton asChild>
+                    <a href="/dashboard/all" className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30">
+                      <Home className="w-4 h-4 mr-2" /> Zurück zum Dashboard
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenu>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                        className="p-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200"
+                        aria-label="Ansicht wechseln: Hell/Dunkel"
+                      >
+                        {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ansicht wechseln: Hell/Dunkel</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </nav>
           </div>
           {/* Main Content mit Margin */}
@@ -1160,34 +1204,41 @@ export default function AdminDashboard() {
                   <Card className="max-w-6xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Chart & Anzeige</CardTitle></CardHeader>
                     <CardContent>
+                      <p className="text-gray-500 text-xs mb-6">Hier kannst du globale Anzeige- und Chart-Optionen für das Dashboard festlegen. Änderungen wirken sich auf alle Nutzer aus.</p>
                       <form onSubmit={handleSettingsSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex flex-col gap-2">
                           <Label>Maximale Datenpunkte pro Chart</Label>
                           <Input type="number" value={settingsConfig.chartLimit ?? 200} min={10} max={2000} step={1} onChange={e => setField("chartLimit", Number(e.target.value))} />
+                          <span className="text-gray-500 text-xs mt-1">Standard: 200. Begrenzt die Anzahl der angezeigten Punkte in Diagrammen.</span>
                         </div>
                         <div className="flex flex-col gap-2">
                           <Label>Standard-Seitengröße (Tabellen)</Label>
                           <Input type="number" value={settingsConfig.pageSize ?? 20} min={5} max={200} step={1} onChange={e => setField("pageSize", Number(e.target.value))} />
+                          <span className="text-gray-500 text-xs mt-1">Standard: 20. Anzahl der Zeilen pro Seite in Tabellenansichten.</span>
                         </div>
                         <div className="flex flex-col gap-2">
                           <Label>Standard-Intervall</Label>
                           <select value={settingsConfig.defaultInterval ?? "24h"} onChange={e => setField("defaultInterval", e.target.value)} className="input">
                             {(settingsConfig.allowedIntervals || ["24h", "7d"]).map((v: string) => <option key={v} value={v}>{v}</option>)}
                           </select>
+                          <span className="text-gray-500 text-xs mt-1">Wird beim ersten Laden der Charts verwendet.</span>
                         </div>
                         <div className="flex flex-col gap-2">
                           <Label>Standard-Granularität</Label>
                           <select value={settingsConfig.defaultGranularity ?? "15min"} onChange={e => setField("defaultGranularity", e.target.value)} className="input">
                             {(settingsConfig.allowedGranularities || ["1h", "15min", "10min", "5min", "1min"]).map((v: string) => <option key={v} value={v}>{v}</option>)}
                           </select>
+                          <span className="text-gray-500 text-xs mt-1">Bestimmt die Standardauflösung der Diagramme.</span>
                         </div>
                         <div className="flex flex-col gap-2 md:col-span-2">
                           <Label>Erlaubte Intervalle (Komma-getrennt)</Label>
                           <Input type="text" value={(settingsConfig.allowedIntervals || ["24h", "7d"]).join(", ")} onChange={e => setField("allowedIntervals", e.target.value.split(",").map((s: string) => s.trim()))} />
+                          <span className="text-gray-500 text-xs mt-1">Beispiel: 24h, 7d. Diese Intervalle stehen im Dashboard zur Auswahl.</span>
                         </div>
                         <div className="flex flex-col gap-2 md:col-span-2">
                           <Label>Erlaubte Granularitäten (Komma-getrennt)</Label>
                           <Input type="text" value={(settingsConfig.allowedGranularities || ["1h", "15min", "10min", "5min", "1min"]).join(", ")} onChange={e => setField("allowedGranularities", e.target.value.split(",").map((s: string) => s.trim()))} />
+                          <span className="text-gray-500 text-xs mt-1">Beispiel: 1h, 15min, 10min, 5min, 1min. Diese Auflösungen stehen zur Auswahl.</span>
                         </div>
                       </form>
                     </CardContent>
@@ -1195,11 +1246,13 @@ export default function AdminDashboard() {
                   <Card className="max-w-6xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Chart-Farben</CardTitle></CardHeader>
                     <CardContent>
+                      <p className="text-gray-500 text-xs mb-6">Passe die Farben der Diagramme an dein Branding an. Erlaubt sind Hex- oder CSS-Farbnamen (z.B. #06b6d4, red, rgb(255,0,0)).</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {Object.entries(settingsConfig.chartColors || {}).filter(([k]) => k !== 'gradients').map(([key, value]) => (
                           <div key={key} className="flex flex-col gap-2">
                             <Label>Farbe für {key}</Label>
                             <Input type="text" value={value as string} onChange={e => setField("chartColors", { ...settingsConfig.chartColors, [key]: e.target.value })} />
+                            <span className="text-gray-500 text-xs mt-1">Aktuelle Farbe: {typeof value === 'string' ? value : JSON.stringify(value)}</span>
                           </div>
                         ))}
                       </div>

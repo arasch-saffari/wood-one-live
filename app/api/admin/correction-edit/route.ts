@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
       return Response.json({ success: false, message: 'Unbekannter Typ' })
     }
     return Response.json({ success: true })
-  } catch (e: any) {
-    return Response.json({ success: false, message: e?.message || 'Fehler beim Speichern', notify: true })
+  } catch (e: unknown) {
+    const error = e as Error
+    return Response.json({ success: false, message: error.message || 'Fehler beim Speichern', notify: true })
   }
 } 

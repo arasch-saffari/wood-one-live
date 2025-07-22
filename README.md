@@ -168,3 +168,15 @@ MIT License - siehe LICENSE-Datei für Details.
 - Tooltips werden mit TooltipProvider, Tooltip, TooltipTrigger, TooltipContent aus @/components/ui/tooltip implementiert.
 - Best Practice: TooltipTrigger immer mit asChild verwenden.
 - Tooltips sind barrierefrei und funktionieren mit Tastatur und Screenreader.
+
+## 🛠️ Zentrale Konfiguration
+
+Viele globale Einstellungen wie Chart-Limit, Pagination-Größe, Standard-Intervall, Granularität und Chart-Farben können jetzt direkt im Admin-Panel unter "Einstellungen" angepasst werden. Änderungen wirken sich sofort auf das gesamte Dashboard aus.
+
+- Chart-Limit: Maximale Datenpunkte pro Diagramm
+- Pagination: Anzahl Zeilen pro Seite in Tabellen
+- Standard-Intervall & Granularität: Voreinstellungen für Diagramme
+- Erlaubte Intervalle & Granularitäten: Auswahlmöglichkeiten für Nutzer
+- Chart-Farben: Branding und Farbschema für alle Diagramme
+
+Die Konfiguration ist unter `/admin` im Tab "Einstellungen" erreichbar.

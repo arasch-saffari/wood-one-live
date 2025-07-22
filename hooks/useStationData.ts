@@ -51,6 +51,7 @@ export function useStationData(
   page?: number,
   pageSize?: number
 ) {
+  console.log('useStationData HOOK called')
   const [data, setData] = useState<StationDataPoint[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
   const [loading, setLoading] = useState(false)
@@ -60,130 +61,53 @@ export function useStationData(
   const [config, setConfig] = useState<any>(null)
 
   useEffect(() => {
-    fetch('/api/admin/config').then(res => res.json()).then(setConfig)
-  }, [])
-
-  async function fetchAndProcess() {
-    setLoading(true)
-    setError(null)
-    try {
-      let url = `/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=${granularity}`
-      if (page && pageSize) {
-        url += `&page=${page}&pageSize=${pageSize}`
-      }
-      const response = await fetch(url)
-      let result: any = null
+    console.log('useStationData useEffect running (should be client)')
+    // Datenfetch nur im Client
+    async function fetchAndSetData() {
+      setLoading(true)
+      setError(null)
+      let url = `/api/station-data?station=${station}`
+      if (interval) url += `&interval=${interval}`
+      if (granularity) url += `&granularity=${granularity}`
+      if (page) url += `&page=${page}`
+      if (pageSize) url += `&pageSize=${pageSize}`
       try {
-        result = await response.json()
+        console.log('useStationData fetch URL:', url)
+        const response = await fetch(url)
+        console.log('useStationData after fetch, response.ok:', response.ok)
+        if (!response.ok) {
+          console.error('useStationData fetch failed:', response.status, response.statusText)
+          setError(`Fehler: ${response.status}`)
+          setLoading(false)
+          return
+        }
+        let result = await response.json()
+        console.log('useStationData raw result:', result)
+        if (result && Array.isArray(result.data)) {
+          setData(result.data)
+          setTotalCount(result.totalCount || result.data.length)
+          console.log('useStationData setData (result.data):', result.data)
+        } else if (Array.isArray(result)) {
+          setData(result)
+          setTotalCount(result.length)
+          console.log('useStationData setData (result):', result)
+        } else {
+          setData([])
+          setTotalCount(0)
+        }
       } catch (e) {
-        result = null
-      }
-      if (!response.ok) {
-        const errorMsg = result && result.error ? result.error : 'Fehler beim Laden der Stationsdaten.'
-        toast({
-          title: `Fehler für ${station}`,
-          description: errorMsg,
-          variant: "destructive"
-        })
+        setError(e instanceof Error ? e.message : String(e))
         setData([])
         setTotalCount(0)
-        setError(errorMsg)
+        console.error('useStationData fetch error:', e)
+      } finally {
         setLoading(false)
-        return
       }
-      if (result && Array.isArray(result.data)) {
-        setData(result.data)
-        setTotalCount(result.totalCount || result.data.length)
-        if (result.data.length === 0) {
-          toast({
-            title: `Keine CSV-Daten für ${station}`,
-            description: `Für die Station '${station}' wurden keine CSV-Daten gefunden. Bitte lade eine CSV-Datei hoch.`,
-            variant: "destructive"
-          })
-        }
-      } else if (Array.isArray(result)) {
-        setData(result)
-        setTotalCount(result.length)
-        if (result.length === 0) {
-          toast({
-            title: `Keine CSV-Daten für ${station}`,
-            description: `Für die Station '${station}' wurden keine CSV-Daten gefunden. Bitte lade eine CSV-Datei hoch.`,
-            variant: "destructive"
-          })
-        }
-      } else if (result && result.error) {
-        toast({
-          title: `Fehler für ${station}`,
-          description: result.error,
-          variant: "destructive"
-        })
-        setData([])
-        setTotalCount(0)
-        setError(result.error)
-      } else {
-        setData([])
-        setTotalCount(0)
-        setError('Die Daten konnten nicht geladen werden.')
-        toast({
-          title: `Unbekannter Fehler für ${station}`,
-          description: `Die Daten konnten nicht geladen werden.`,
-          variant: "destructive"
-        })
-      }
-      // enableNotifications aus Config prüfen
-      let enableNotifications = true
-      try {
-        const configRes = await fetch('/api/admin/config')
-        if (configRes.ok) {
-          const config = await configRes.json()
-          if (config.enableNotifications === false) enableNotifications = false
-        }
-      } catch {}
-      if (result && result.data && result.data.length > 0 && enableNotifications && config) {
-        const currentLevel = result.data[result.data.length - 1].las
-        const currentTime = result.data[result.data.length - 1].datetime?.slice(11,16)
-        const thresholds = getThresholdsForStationAndTime(config, station, currentTime || '00:00')
-        const now = Date.now()
-        // Check if we should show an alert (avoid spam - only alert once per 5 minutes per threshold)
-        if (currentLevel >= thresholds.alarm && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
-          const hasPermission = await requestNotificationPermission()
-          if (hasPermission) {
-            showNoiseAlert(station, currentLevel, thresholds.alarm)
-            lastAlertRef.current = { level: currentLevel, time: now }
-          }
-        } else if (currentLevel >= thresholds.warning && currentLevel < thresholds.alarm && (currentLevel !== lastAlertRef.current.level || now - lastAlertRef.current.time > 300000)) {
-          const hasPermission = await requestNotificationPermission()
-          if (hasPermission) {
-            showNoiseAlert(station, currentLevel, thresholds.warning)
-            lastAlertRef.current = { level: currentLevel, time: now }
-          }
-        }
-      }
-    } catch (e) {
-      const errMsg = e instanceof Error ? e.message : String(e)
-      toast({
-        title: `Fehler für ${station}`,
-        description: errMsg,
-        variant: "destructive"
-      })
-      setData([])
-      setTotalCount(0)
-      setError(errMsg)
-      console.error('Error fetching station data:', e)
-    } finally {
-      setLoading(false)
     }
-  }
+    fetchAndSetData()
+  }, [station, interval, granularity, page, pageSize])
 
-  useEffect(() => {
-    fetchAndProcess()
-    const intervalSec = (config?.pollingIntervalSeconds && !isNaN(Number(config.pollingIntervalSeconds))) ? Number(config.pollingIntervalSeconds) : 120;
-    intervalRef.current = setInterval(fetchAndProcess, intervalSec * 1000)
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [station, interval, granularity, page, pageSize, config?.pollingIntervalSeconds])
+  // Entferne alle fetchAndProcess-Intervall-Logik
 
   return { data, totalCount, loading, error }
 } 

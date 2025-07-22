@@ -23,7 +23,10 @@
   "defaultInterval": "24h",
   "defaultGranularity": "15min",
   "allowedIntervals": [
+    "12h",
     "24h",
+    "48h",
+    "5d",
     "7d"
   ],
   "allowedGranularities": [
@@ -125,6 +128,20 @@
         "las": 49,
         "laf": 51
       }
+    ]
+  },
+  "chartVisibleLines": {
+    "ort": [
+      "las"
+    ],
+    "techno": [
+      "las"
+    ],
+    "heuballern": [
+      "las"
+    ],
+    "band": [
+      "las"
     ]
   }
 }

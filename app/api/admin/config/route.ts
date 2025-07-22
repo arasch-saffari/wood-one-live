@@ -74,8 +74,9 @@ export async function GET() {
       fs.writeFileSync(configPath, JSON.stringify(merged, null, 2))
     }
     return NextResponse.json(merged)
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Fehler beim Laden der Konfiguration.' }, { status: 500 })
+  } catch (e: unknown) {
+    const error = e as Error
+    return NextResponse.json({ error: error.message || 'Fehler beim Laden der Konfiguration.' }, { status: 500 })
   }
 }
 
@@ -86,7 +87,8 @@ export async function PATCH(req: Request) {
     const allowed = { ...defaultConfig, ...data }
     fs.writeFileSync(configPath, JSON.stringify(allowed, null, 2))
     return NextResponse.json({ success: true })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Speichern.', notify: true }, { status: 500 })
+  } catch (e: unknown) {
+    const error = e as Error
+    return NextResponse.json({ success: false, message: error.message || 'Fehler beim Speichern.', notify: true }, { status: 500 })
   }
 } 
