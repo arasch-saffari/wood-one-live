@@ -41,7 +41,7 @@ interface ChartThreshold {
   yAxisId?: string;
 }
 interface ChartPlaygroundProps {
-  data: Array<Record<string, any>>;
+  data: Array<Record<string, unknown>>;
   lines: ChartLine[];
   axes: ChartAxis[];
   title?: string;
@@ -53,7 +53,7 @@ interface ChartPlaygroundProps {
   maxPoints?: number;
   onMaxPointsChange?: (val: number) => void;
   thresholds?: ChartThreshold[];
-  tooltipFormatter?: (value: any, name: string) => [string, string];
+  tooltipFormatter?: (value: unknown, name: string) => [string, string];
 }
 
 export function ChartPlayground({

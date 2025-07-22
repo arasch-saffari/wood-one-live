@@ -2,25 +2,25 @@ import fs from 'fs'
 import path from 'path'
 
 export class ValidationError extends Error {
-  constructor(message: string, public context?: any) {
+  constructor(message: string, public context?: unknown) {
     super(message)
     this.name = 'ValidationError'
   }
 }
 export class DatabaseError extends Error {
-  constructor(message: string, public context?: any) {
+  constructor(message: string, public context?: unknown) {
     super(message)
     this.name = 'DatabaseError'
   }
 }
 export class ImportError extends Error {
-  constructor(message: string, public context?: any) {
+  constructor(message: string, public context?: unknown) {
     super(message)
     this.name = 'ImportError'
   }
 }
 export class ExternalApiError extends Error {
-  constructor(message: string, public context?: any) {
+  constructor(message: string, public context?: unknown) {
     super(message)
     this.name = 'ExternalApiError'
   }

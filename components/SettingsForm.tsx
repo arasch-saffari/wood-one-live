@@ -8,8 +8,8 @@ export interface SettingsField {
   name: string
   label: string
   type: "text" | "number" | "password" | "email" | "select" | "checkbox-group"
-  value: any
-  onChange: (value: any) => void
+  value: unknown
+  onChange: (value: unknown) => void
   placeholder?: string
   min?: number
   max?: number

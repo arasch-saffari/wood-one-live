@@ -120,7 +120,7 @@ export function GenericChart({
   const [maxPoints, setMaxPoints] = useState<number>(maxPointsDefault)
   const [zoomRange, setZoomRange] = useState<{ start: number; end: number } | null>(null)
   const [hoveredLineKey, setHoveredLineKey] = useState<string | null>(null)
-  const chartRef = useRef<any>(null)
+  const chartRef = useRef<HTMLDivElement | null>(null)
   const filteredChartData = useMemo(() => {
     return maxPoints > 0 && data.length > maxPoints ? data.slice(-maxPoints) : data
   }, [data, maxPoints])

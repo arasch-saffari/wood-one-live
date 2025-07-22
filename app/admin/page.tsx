@@ -1,10 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import React, { useState, useEffect, useCallback } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, HardDrive, Cloud, Database as DbIcon, Pencil, Trash2, Terminal, BarChart3, Clock, Settings, Search, Sun, Moon, MapPin, Mail, KeyRound, Bell, Settings2, Palette, DatabaseZap, Home, UploadCloud, Eye, Download, FileText } from "lucide-react"
-import { motion } from "framer-motion"
+import { AlertTriangle, HardDrive, Database as DbIcon, Pencil, Trash2, BarChart3, Settings, Search, Sun, Moon, MapPin, Settings2, DatabaseZap, Home, UploadCloud, Eye, Download, FileText } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from '@/components/ui/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -15,16 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet'
-import { Sidebar, SidebarMenu, SidebarMenuButton, SidebarProvider } from '@/components/ui/sidebar'
-import Link from "next/link"
-import { SettingsForm, SettingsField } from "@/components/SettingsForm"
+import { SidebarMenu, SidebarMenuButton, SidebarProvider } from '@/components/ui/sidebar'
+import { SettingsForm } from "@/components/SettingsForm"
 import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
 import { useHealth } from "@/hooks/useHealth"
 import { useCron } from "@/hooks/useCron"
 import { useLogs } from "@/hooks/useLogs"
 import { ErrorMessage } from "@/components/ErrorMessage"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { useTheme } from "next-themes"
 
@@ -42,38 +39,61 @@ interface WatchedDirectory {
   fileCount: number
 }
 
-interface WatcherStatus {
-  watcherActive: boolean
-  watchedDirectories: WatchedDirectory[]
-  totalFiles: number
-  lastCheck: string
+export interface ThresholdBlock {
+  from: string;
+  to: string;
+  warning: number;
+  alarm: number;
+  las: number;
+  laf: number;
 }
 
-// Beispielhafte Typen für Settings und API-Responses
-interface ChartVisibleLinesConfig {
-  [station: string]: string[];
+export interface CorrectionData {
+  id: string | number;
+  datetime?: string;
+  value: string | number;
+  time?: string;
 }
-interface SettingsConfig {
-  chartVisibleLines: ChartVisibleLinesConfig;
+
+export interface CorrectionStats {
+  count: number;
+  lastModified?: string;
+}
+
+export interface UndoData {
+  id: string | number;
+  value: string | number;
+}
+
+export interface SettingsConfig {
+  chartVisibleLines: Record<string, string[]>;
+  pageSize?: number;
+  defaultInterval?: string;
+  defaultGranularity?: string;
+  allowedIntervals?: string[];
+  allowedGranularities?: string[];
+  chartColors?: Record<string, string>;
+  chartLimit?: number;
   // ... weitere Settings-Felder
 }
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  error?: string;
+
+export interface Config {
+  thresholdsByStationAndTime: Record<string, ThresholdBlock[]>;
+  apiCacheDuration?: number;
+  adminEmail?: string;
+  // ... weitere Felder
 }
 
 export default function AdminDashboard() {
   // Segment-Auswahl für die Sidebar
   const [segment, setSegment] = useState<'overview'|'thresholds'|'system'|'csv'|'backup'|'correction'|'settings'>('overview')
-  const [config, setConfig] = useState<any>(null)
+  const [config, setConfig] = useState<Config | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const { health, loading: healthLoading, error: healthError } = useHealth()
   const { cron, loading: cronLoading, error: cronError } = useCron()
   const { logs, loading: logsLoading, error: logsError } = useLogs()
-  const { watcherStatus: watcher, loading: watcherLoading, error: watcherError } = useCsvWatcherStatus()
-  const { watcherStatus: csvStatus, loading: csvStatusLoading, error: csvStatusError } = useCsvWatcherStatus()
+  const { watcherStatus: csvStatus } = useCsvWatcherStatus()
   const [backupUploading, setBackupUploading] = useState(false)
   const [restoreMessage, setRestoreMessage] = useState<string|null>(null)
   const [resetting, setResetting] = useState(false)
@@ -82,20 +102,20 @@ export default function AdminDashboard() {
   const [correctionQuery, setCorrectionQuery] = useState('')
   const [correctionStation, setCorrectionStation] = useState('ort')
   const [correctionType, setCorrectionType] = useState<'measurement'|'weather'>('measurement')
-  const [correctionData, setCorrectionData] = useState<any[]>([])
+  const [correctionData, setCorrectionData] = useState<CorrectionData[]>([])
   const [correctionLoading, setCorrectionLoading] = useState(false)
   const [correctionError, setCorrectionError] = useState<string|null>(null)
-  const [correctionStats, setCorrectionStats] = useState<any>(null)
-  const [editRow, setEditRow] = useState<any|null>(null)
+  const [correctionStats, setCorrectionStats] = useState<CorrectionStats | null>(null)
+  const [editRow, setEditRow] = useState<CorrectionData | null>(null)
   const [editValue, setEditValue] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const { toast } = useToast()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [rowToDelete, setRowToDelete] = useState<any|null>(null)
-  const [undoData, setUndoData] = useState<any|null>(null)
-  const [undoTimeout, setUndoTimeout] = useState<any>(null)
+  const [rowToDelete, setRowToDelete] = useState<CorrectionData | null>(null)
+  const [undoData, setUndoData] = useState<UndoData | null>(null)
+  const [undoTimeout, setUndoTimeout] = useState<NodeJS.Timeout | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [rowToEdit, setRowToEdit] = useState<any|null>(null)
+  const [rowToEdit, setRowToEdit] = useState<CorrectionData | null>(null)
   const [configError, setConfigError] = useState<string|null>(null)
   const [editTimeSheet, setEditTimeSheet] = useState(false)
   const [editTimeStation, setEditTimeStation] = useState<string|null>(null)
@@ -103,13 +123,36 @@ export default function AdminDashboard() {
   const [editTimeFrom, setEditTimeFrom] = useState('08:00')
   const [editTimeTo, setEditTimeTo] = useState('20:00')
   // Verschiebe die States und Hilfsfunktionen aus AdminSettings in den Hauptbereich:
-  const [settingsConfig, setSettingsConfig] = useState<any>(null)
+  const [settingsConfig, setSettingsConfig] = useState<SettingsConfig | null>(null)
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsError, setSettingsError] = useState<string|null>(null)
   const [settingsSuccess, setSettingsSuccess] = useState(false)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
+
+  // Verschiebe fetchCorrectionStats und fetchCorrectionData direkt vor die useEffect, die sie verwendet.
+  const fetchCorrectionStats = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/correction-stats?station=${correctionStation}&type=${correctionType}`)
+      setCorrectionStats(await res.json())
+    } catch (e) {
+      setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Laden der Statistiken')
+    }
+  }, [correctionStation, correctionType])
+
+  const fetchCorrectionData = useCallback(async () => {
+    setCorrectionLoading(true)
+    setCorrectionError(null)
+    try {
+      const res = await fetch(`/api/admin/correction-data?station=${correctionStation}&type=${correctionType}&q=${encodeURIComponent(correctionQuery)}`)
+      setCorrectionData(await res.json())
+    } catch (e) {
+      setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Laden der Daten')
+    } finally {
+      setCorrectionLoading(false)
+    }
+  }, [correctionStation, correctionType, correctionQuery])
 
   useEffect(() => {
     if (segment === 'thresholds') {
@@ -141,24 +184,25 @@ export default function AdminDashboard() {
     if (segment === 'settings') {
       fetch('/api/admin/config').then(res => res.json()).then(setSettingsConfig)
     }
-  }, [segment, health])
+  }, [segment, health, fetchCorrectionData, fetchCorrectionStats, toast])
 
   function handleThresholdChange(station: string, idx: number, key: string, value: number | string) {
-    setConfig((prev: any) => {
-      const updated = { ...prev }
-      updated.thresholdsByStationAndTime = { ...updated.thresholdsByStationAndTime }
+    setConfig((prev: Config | null) => {
+      if (!prev) return { thresholdsByStationAndTime: {} };
+      const updated = { ...prev };
+      updated.thresholdsByStationAndTime = { ...prev.thresholdsByStationAndTime };
       updated.thresholdsByStationAndTime[station] = updated.thresholdsByStationAndTime[station].map((block: any, i: number) =>
         i === idx ? { ...block, [key]: value } : block
-      )
-      return updated
-    })
+      );
+      return updated;
+    });
   }
 
   async function handleSave() {
     setSaving(true)
     setConfigError(null)
     // E-Mail-Validierung
-    if (config.adminEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(config.adminEmail)) {
+    if (config?.adminEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(config.adminEmail)) {
       setConfigError('Bitte eine gültige E-Mail-Adresse eingeben.')
       setSaving(false)
       return
@@ -321,26 +365,6 @@ export default function AdminDashboard() {
     }
   }
 
-  async function fetchCorrectionStats() {
-    try {
-      const res = await fetch(`/api/admin/correction-stats?station=${correctionStation}&type=${correctionType}`)
-      setCorrectionStats(await res.json())
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Laden der Statistiken')
-    }
-  }
-  async function fetchCorrectionData() {
-    setCorrectionLoading(true)
-    setCorrectionError(null)
-    try {
-      const res = await fetch(`/api/admin/correction-data?station=${correctionStation}&type=${correctionType}&q=${encodeURIComponent(correctionQuery)}`)
-      setCorrectionData(await res.json())
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Laden der Daten')
-    } finally {
-      setCorrectionLoading(false)
-    }
-  }
   async function handleEditSave() {
     if (!editRow) return
     setEditSaving(true)
@@ -361,7 +385,7 @@ export default function AdminDashboard() {
       setEditSaving(false)
     }
   }
-  async function handleDelete(row: any) {
+  async function handleDelete(row: CorrectionData) {
     setRowToDelete(row)
     setShowDeleteDialog(true)
   }
@@ -377,8 +401,8 @@ export default function AdminDashboard() {
         body: JSON.stringify({ id: deletedRow.id, type: correctionType })
       })
       setUndoData(deletedRow)
-      const timeout = setTimeout(() => setUndoData(null), 5000)
-      setUndoTimeout(timeout)
+      if (undoTimeout) clearTimeout(undoTimeout)
+      setUndoTimeout(null)
       toast({
         title: 'Gelöscht',
         description: 'Datensatz wurde gelöscht.',
@@ -393,7 +417,7 @@ export default function AdminDashboard() {
   }
   async function undoDelete() {
     if (!undoData) return
-    clearTimeout(undoTimeout)
+    if (undoTimeout) clearTimeout(undoTimeout)
     setUndoTimeout(null)
     try {
       await fetch('/api/admin/correction-edit', {
@@ -409,9 +433,9 @@ export default function AdminDashboard() {
       setCorrectionError(e?.message || 'Fehler beim Wiederherstellen')
     }
   }
-  function handleEdit(row: any) {
+  function handleEdit(row: CorrectionData) {
     setRowToEdit(row)
-    setEditValue(row.value)
+    setEditValue(String(row.value))
     setShowEditDialog(true)
   }
   async function confirmEdit() {
@@ -466,7 +490,7 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleDeleteCorrection(row: any) {
+  async function handleDeleteCorrection(row: CorrectionData) {
     setShowDeleteDialog(false)
     setCorrectionLoading(true)
     try {
@@ -520,14 +544,15 @@ export default function AdminDashboard() {
   }
   function handleEditTimeSave() {
     if (!editTimeStation || editTimeIdx === null) return
-    setConfig((prev: any) => {
-      const updated = { ...prev }
-      updated.thresholdsByStationAndTime = { ...updated.thresholdsByStationAndTime }
+    setConfig((prev: Config | null) => {
+      if (!prev) return { thresholdsByStationAndTime: {} };
+      const updated = { ...prev };
+      updated.thresholdsByStationAndTime = { ...prev.thresholdsByStationAndTime };
       updated.thresholdsByStationAndTime[editTimeStation] = updated.thresholdsByStationAndTime[editTimeStation].map((block: any, i: number) =>
         i === editTimeIdx ? { ...block, from: editTimeFrom, to: editTimeTo } : block
-      )
-      return updated
-    })
+      );
+      return updated;
+    });
     setEditTimeSheet(false)
     setTimeout(() => { handleSave(); toast({ title: 'Gespeichert', description: 'Zeitblock erfolgreich geändert.' }) }, 100)
   }
@@ -600,8 +625,11 @@ export default function AdminDashboard() {
     }
   }
 
-  function setField(name: string, value: any) {
-    setSettingsConfig((prev: any) => ({ ...prev, [name]: value }))
+  function setField(name: string, value: unknown) {
+    setSettingsConfig((prev: SettingsConfig | null) => {
+      if (!prev) return { chartVisibleLines: {} };
+      return { ...prev, [name]: value };
+    });
   }
 
   async function handleSettingsSave(e?: React.FormEvent) {
@@ -806,7 +834,7 @@ export default function AdminDashboard() {
                         <span className="capitalize">{station}</span>
                       </h2>
                       <div className="flex flex-col gap-8">
-                        {(blocks as any[]).map((block, idx) => {
+                        {(blocks as ThresholdBlock[]).map((block, idx) => {
                           const isDay = block.from < block.to
                           return (
                             <div
@@ -948,7 +976,11 @@ export default function AdminDashboard() {
                               label: "API-Cache-Dauer (Sekunden)",
                               type: "number",
                               value: config?.apiCacheDuration ?? 60,
-                              onChange: v => setConfig((prev: any) => ({ ...prev, apiCacheDuration: v })),
+                              onChange: v => setConfig((prev: Config | null) => {
+                                const num = typeof v === 'number' ? v : Number(v);
+                                if (!prev) return { thresholdsByStationAndTime: {}, apiCacheDuration: num };
+                                return { ...prev, apiCacheDuration: num };
+                              }),
                               min: 0,
                               max: 3600,
                               step: 1,
@@ -994,7 +1026,7 @@ export default function AdminDashboard() {
                     <CardContent className="space-y-6">
                       {csvError && <div className="text-xs text-red-500">{csvError}</div>}
                       <div className="grid grid-cols-1 gap-4">
-                        {csvStatus?.watchedDirectories?.map((dir: any) => (
+                        {csvStatus?.watchedDirectories?.map((dir: WatchedDirectory) => (
                           <div key={dir.station} className="border rounded-xl p-4 bg-white/80 dark:bg-slate-800/60">
                             <div className="flex items-center gap-2 mb-2">
                               <span className="font-semibold capitalize">{dir.station}</span>
@@ -1010,7 +1042,7 @@ export default function AdminDashboard() {
                               <input type="file" accept=".csv" className="hidden" onChange={e => { if (e.target.files?.[0]) handleCsvUpload(dir.station, e.target.files[0]) }} disabled={csvUploading[dir.station]} />
                             </div>
                             <div className="max-h-32 overflow-y-auto text-xs">
-                              {dir.files.length === 0 ? <div className="text-gray-400">Keine Dateien</div> : dir.files.map((file: any) => (
+                              {dir.files.length === 0 ? <div className="text-gray-400">Keine Dateien</div> : dir.files.map((file: CSVFile) => (
                                 <div key={file.name} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 py-1">
                                   <span>{file.name}</span>
                                   <span className="text-gray-400 ml-2">{new Date(file.modified).toLocaleString()}</span>

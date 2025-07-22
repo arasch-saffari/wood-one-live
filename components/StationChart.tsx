@@ -7,7 +7,7 @@ import { TooltipProvider, Tooltip as UITooltip, TooltipTrigger, TooltipContent }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface StationChartProps {
-  data: any[]
+  data: Record<string, unknown>[]
   thresholds: { warning: number; alarm: number }
   stationColors: { primary: string }
   chartColors: { wind: string; humidity: string; warning: string; alarm: string }
