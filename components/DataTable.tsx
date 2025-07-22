@@ -3,28 +3,55 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 import { StatusBadge } from "@/components/StatusBadge"
 import { ReactNode, useState } from "react"
 
-export interface DataTableColumn<T = unknown> {
+export interface DataTableColumn<T extends Record<string, unknown> = Record<string, unknown>> {
   label: string
-  key: string
-  render?: (row: T) => ReactNode
+  key: keyof T & string
+  render?: (row: T) => React.ReactNode
   sortable?: boolean
 }
 
-export interface DataTableProps<T = unknown> {
+export interface DataTableFilter {
+  search?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface DataTableProps<T extends Record<string, unknown> = Record<string, unknown>> {
   data: T[]
   columns: DataTableColumn<T>[]
   statusFn?: (row: T) => { label: string; color: string }
   page?: number
   pageCount?: number
   onPageChange?: (page: number) => void
-  filter?: ReactNode
+  filter?: DataTableFilter
+  onFilterChange?: (filter: DataTableFilter) => void
   loading?: boolean
-  onSort?: (key: string, direction: 'asc' | 'desc') => void
-  sortKey?: string
+  onSort?: (key: keyof T & string, direction: 'asc' | 'desc') => void
+  sortKey?: keyof T & string
   sortDirection?: 'asc' | 'desc'
+  enableExport?: boolean
+  exportFileName?: string
 }
 
-export function DataTable<T = unknown>({
+function exportToCSV<T extends Record<string, unknown>>(data: T[], columns: DataTableColumn<T>[], fileName: string) {
+  const header = columns.map(col => col.label).join(',')
+  const rows = data.map(row =>
+    columns.map(col => {
+      const val = col.render ? col.render(row) : row[col.key]
+      return typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val
+    }).join(',')
+  )
+  const csv = [header, ...rows].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.setAttribute('download', fileName)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+export function DataTable<T extends Record<string, unknown>>({
   data,
   columns,
   statusFn,
@@ -32,15 +59,21 @@ export function DataTable<T = unknown>({
   pageCount = 1,
   onPageChange,
   filter,
-  loading,
+  onFilterChange,
+  loading = false,
   onSort,
   sortKey,
   sortDirection,
+  enableExport = false,
+  exportFileName = 'export.csv',
 }: DataTableProps<T>) {
-  const [internalSortKey, setInternalSortKey] = useState<string | undefined>(sortKey)
+  const [internalSortKey, setInternalSortKey] = useState<keyof T & string | undefined>(sortKey)
   const [internalSortDir, setInternalSortDir] = useState<'asc' | 'desc'>(sortDirection || 'asc')
+  const [search, setSearch] = useState(filter?.search || '')
+  const [from, setFrom] = useState(filter?.from || '')
+  const [to, setTo] = useState(filter?.to || '')
 
-  function handleSort(key: string) {
+  function handleSort(key: keyof T & string) {
     let dir: 'asc' | 'desc' = 'asc'
     if (internalSortKey === key) {
       dir = internalSortDir === 'asc' ? 'desc' : 'asc'
@@ -50,9 +83,54 @@ export function DataTable<T = unknown>({
     if (onSort) onSort(key, dir)
   }
 
+  function handleFilterChange() {
+    if (onFilterChange) onFilterChange({ search, from, to })
+  }
+
   return (
     <div>
-      {filter && <div className="mb-4">{filter}</div>}
+      <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-2">
+        <div className="flex gap-2 flex-wrap items-center">
+          <input
+            type="text"
+            placeholder="Suche..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); if (onFilterChange) onFilterChange({ search: e.target.value, from, to }) }}
+            className="border rounded px-2 py-1 text-sm"
+            aria-label="Textsuche"
+          />
+          <input
+            type="date"
+            value={from}
+            onChange={e => { setFrom(e.target.value); if (onFilterChange) onFilterChange({ search, from: e.target.value, to }) }}
+            className="border rounded px-2 py-1 text-sm"
+            aria-label="Von-Datum"
+          />
+          <input
+            type="date"
+            value={to}
+            onChange={e => { setTo(e.target.value); if (onFilterChange) onFilterChange({ search, from, to: e.target.value }) }}
+            className="border rounded px-2 py-1 text-sm"
+            aria-label="Bis-Datum"
+          />
+          <button
+            className="px-2 py-1 rounded bg-slate-200 text-xs hover:bg-slate-300"
+            onClick={handleFilterChange}
+            type="button"
+          >
+            Filter anwenden
+          </button>
+        </div>
+        {enableExport && (
+          <button
+            className="px-3 py-1 rounded bg-emerald-500 text-white text-xs hover:bg-emerald-600"
+            onClick={() => exportToCSV(data, columns, exportFileName)}
+            disabled={loading || data.length === 0}
+          >
+            Export CSV
+          </button>
+        )}
+      </div>
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/60">
         <Table>
           <TableHeader>

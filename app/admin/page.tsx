@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, HardDrive, Database as DbIcon, Pencil, Trash2, BarChart3, Settings, Search, Sun, Moon, MapPin, Settings2, DatabaseZap, Home, UploadCloud, Eye, Download, FileText } from "lucide-react"
+import { AlertTriangle, HardDrive, Database as DbIcon, Pencil, Trash2, BarChart3, Settings, Search, Sun, Moon, MapPin, Settings2, DatabaseZap, Home, UploadCloud, Download } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from '@/components/ui/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -16,7 +16,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet'
 import { SidebarMenu, SidebarMenuButton, SidebarProvider } from '@/components/ui/sidebar'
 import { SettingsForm } from "@/components/SettingsForm"
-import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
 import { useHealth } from "@/hooks/useHealth"
 import { useCron } from "@/hooks/useCron"
 import { useLogs } from "@/hooks/useLogs"
@@ -24,20 +23,7 @@ import { ErrorMessage } from "@/components/ErrorMessage"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { cn } from '@/lib/utils'
 import { useTheme } from "next-themes"
-
-interface CSVFile {
-  name: string
-  size: number
-  modified: string
-  path: string
-}
-
-interface WatchedDirectory {
-  station: string
-  path: string
-  files: CSVFile[]
-  fileCount: number
-}
+import { useState as useStatsState, useEffect as useStatsEffect } from 'react';
 
 export interface ThresholdBlock {
   from: string;
@@ -86,19 +72,15 @@ export interface Config {
 
 export default function AdminDashboard() {
   // Segment-Auswahl für die Sidebar
-  const [segment, setSegment] = useState<'overview'|'thresholds'|'system'|'csv'|'backup'|'correction'|'settings'>('overview')
+  const [segment, setSegment] = useState<'overview'|'thresholds'|'system'|'backup'|'correction'|'settings'>('overview')
   const [config, setConfig] = useState<Config | null>(null)
-  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const { health, loading: healthLoading, error: healthError } = useHealth()
   const { cron, loading: cronLoading, error: cronError } = useCron()
   const { logs, loading: logsLoading, error: logsError } = useLogs()
-  const { watcherStatus: csvStatus } = useCsvWatcherStatus()
   const [backupUploading, setBackupUploading] = useState(false)
   const [restoreMessage, setRestoreMessage] = useState<string|null>(null)
   const [resetting, setResetting] = useState(false)
-  const [csvUploading, setCsvUploading] = useState<{[station: string]: boolean}>({})
-  const [csvError, setCsvError] = useState<string|null>(null)
   const [correctionQuery, setCorrectionQuery] = useState('')
   const [correctionStation, setCorrectionStation] = useState('ort')
   const [correctionType, setCorrectionType] = useState<'measurement'|'weather'>('measurement')
@@ -118,8 +100,6 @@ export default function AdminDashboard() {
   const [rowToEdit, setRowToEdit] = useState<CorrectionData | null>(null)
   const [configError, setConfigError] = useState<string|null>(null)
   const [editTimeSheet, setEditTimeSheet] = useState(false)
-  const [editTimeStation, setEditTimeStation] = useState<string|null>(null)
-  const [editTimeIdx, setEditTimeIdx] = useState<number|null>(null)
   const [editTimeFrom, setEditTimeFrom] = useState('08:00')
   const [editTimeTo, setEditTimeTo] = useState('20:00')
   // Verschiebe die States und Hilfsfunktionen aus AdminSettings in den Hauptbereich:
@@ -129,14 +109,40 @@ export default function AdminDashboard() {
   const [settingsSuccess, setSettingsSuccess] = useState(false)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const prevHealthRef = useRef<any>(null)
   useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const res = await fetch('/api/admin/health')
+      const newHealth = await res.json()
+      if (prevHealthRef.current) {
+        if (!prevHealthRef.current.integrityProblem && newHealth.integrityProblem) {
+          toast({
+            title: 'Integritätsproblem erkannt',
+            description: `Es wurden ${newHealth.integrityCount || 'einige'} fehlerhafte Messungen gefunden!`,
+            variant: 'destructive',
+          })
+        }
+        if (prevHealthRef.current.watcherActive && !newHealth.watcherActive) {
+          toast({
+            title: 'TXT-Watcher gestoppt',
+            description: 'Der TXT-Watcher ist nicht mehr aktiv!',
+            variant: 'destructive',
+          })
+        }
+      }
+      prevHealthRef.current = newHealth
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [toast])
 
   // Verschiebe fetchCorrectionStats und fetchCorrectionData direkt vor die useEffect, die sie verwendet.
   const fetchCorrectionStats = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/correction-stats?station=${correctionStation}&type=${correctionType}`)
       setCorrectionStats(await res.json())
-    } catch (e) {
+    } catch (e: unknown) {
       setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Laden der Statistiken')
     }
   }, [correctionStation, correctionType])
@@ -147,19 +153,23 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`/api/admin/correction-data?station=${correctionStation}&type=${correctionType}&q=${encodeURIComponent(correctionQuery)}`)
       setCorrectionData(await res.json())
-    } catch (e) {
+    } catch (e: unknown) {
       setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Laden der Daten')
     } finally {
       setCorrectionLoading(false)
     }
   }, [correctionStation, correctionType, correctionQuery])
 
+  // TXT-Statistiken
+  const [txtStats, setTxtStats] = useStatsState<{ txtCounts: Record<string, number> } | null>(null)
+  useStatsEffect(() => {
+    fetch('/api/admin/stats').then(res => res.json()).then(data => setTxtStats({ txtCounts: data.txtCounts }))
+  }, [])
+
   useEffect(() => {
     if (segment === 'thresholds') {
-      setLoading(true)
       fetch('/api/admin/config').then(res => res.json()).then(data => {
         setConfig(data)
-        setLoading(false)
       })
     }
     if (segment === 'overview' || segment === 'system') {
@@ -191,7 +201,7 @@ export default function AdminDashboard() {
       if (!prev) return { thresholdsByStationAndTime: {} };
       const updated = { ...prev };
       updated.thresholdsByStationAndTime = { ...prev.thresholdsByStationAndTime };
-      updated.thresholdsByStationAndTime[station] = updated.thresholdsByStationAndTime[station].map((block: any, i: number) =>
+      updated.thresholdsByStationAndTime[station] = updated.thresholdsByStationAndTime[station].map((block: ThresholdBlock, i: number) =>
         i === idx ? { ...block, [key]: value } : block
       );
       return updated;
@@ -228,16 +238,16 @@ export default function AdminDashboard() {
           })
         }
       }
-    } catch (e: any) {
-      setConfigError(e?.message || 'Fehler beim Speichern.')
+    } catch (e: unknown) {
+      setConfigError(e instanceof Error ? e.message : String(e) || 'Fehler beim Speichern.')
       toast({
         title: 'Fehler beim Speichern',
-        description: e?.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
+        description: e instanceof Error ? e.message : String(e) || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
         variant: 'destructive',
       })
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('Fehler beim Speichern', {
-          body: e?.message || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
+          body: e instanceof Error ? e.message : String(e) || 'Beim Speichern der Konfiguration ist ein Fehler aufgetreten.',
           icon: '/alert-icon.png',
         })
       }
@@ -266,15 +276,15 @@ export default function AdminDashboard() {
         return
       }
       window.open('/api/admin/backup-db', '_blank')
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({
         title: 'Fehler beim Backup',
-        description: e?.message || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+        description: e instanceof Error ? e.message : String(e) || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
         variant: 'destructive',
       })
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('Fehler beim Backup', {
-          body: e?.message || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
+          body: e instanceof Error ? e.message : String(e) || 'Beim Erstellen des Backups ist ein Fehler aufgetreten.',
           icon: '/alert-icon.png',
         })
       }
@@ -318,50 +328,20 @@ export default function AdminDashboard() {
         })
         setTimeout(() => window.location.reload(), 2000)
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({
         title: 'Fehler beim Factory-Reset',
-        description: e?.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+        description: e instanceof Error ? e.message : String(e) || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
         variant: 'destructive',
       })
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('Fehler beim Factory-Reset', {
-          body: e?.message || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
+          body: e instanceof Error ? e.message : String(e) || 'Beim Zurücksetzen der Datenbank ist ein Fehler aufgetreten.',
           icon: '/alert-icon.png',
         })
       }
     } finally {
       setResetting(false)
-    }
-  }
-
-  async function handleCsvUpload(station: string, file: File) {
-    setCsvUploading(prev => ({ ...prev, [station]: true }))
-    setCsvError(null)
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('station', station)
-    try {
-      const res = await fetch('/api/admin/upload-csv', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (!res.ok || !data.success) setCsvError(data.message || 'Fehler beim Upload')
-      // csvStatus will auto-refresh via hook polling
-    } catch (e: any) {
-      setCsvError(e?.message || 'Fehler beim Upload')
-    } finally {
-      setCsvUploading(prev => ({ ...prev, [station]: false }))
-    }
-  }
-
-  function handleDrop(station: string, e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault()
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0]
-      if (file.name.endsWith('.csv')) {
-        handleCsvUpload(station, file)
-      } else {
-        setCsvError('Nur CSV-Dateien erlaubt')
-      }
     }
   }
 
@@ -379,15 +359,11 @@ export default function AdminDashboard() {
       setEditRow(null)
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Speichern')
+    } catch (e: unknown) {
+      setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Speichern')
     } finally {
       setEditSaving(false)
     }
-  }
-  async function handleDelete(row: CorrectionData) {
-    setRowToDelete(row)
-    setShowDeleteDialog(true)
   }
   async function confirmDelete() {
     setShowDeleteDialog(false)
@@ -411,8 +387,8 @@ export default function AdminDashboard() {
       })
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Löschen')
+    } catch (e: unknown) {
+      setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Löschen')
     }
   }
   async function undoDelete() {
@@ -429,8 +405,8 @@ export default function AdminDashboard() {
       toast({ title: 'Wiederhergestellt', description: 'Löschung rückgängig gemacht.' })
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Wiederherstellen')
+    } catch (e: unknown) {
+      setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Wiederherstellen')
     }
   }
   function handleEdit(row: CorrectionData) {
@@ -472,16 +448,16 @@ export default function AdminDashboard() {
       setEditValue('')
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Speichern')
+    } catch (e: unknown) {
+      setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Speichern')
       toast({
         title: 'Fehler beim Speichern',
-        description: e?.message || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
+        description: e instanceof Error ? e.message : String(e) || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
         variant: 'destructive',
       })
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('Fehler beim Speichern', {
-          body: e?.message || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
+          body: e instanceof Error ? e.message : String(e) || 'Beim Speichern der Korrektur ist ein Fehler aufgetreten.',
           icon: '/alert-icon.png',
         })
       }
@@ -516,112 +492,21 @@ export default function AdminDashboard() {
       }
       fetchCorrectionData()
       fetchCorrectionStats()
-    } catch (e: any) {
-      setCorrectionError(e?.message || 'Fehler beim Löschen')
+    } catch (e: unknown) {
+      setCorrectionError(e instanceof Error ? e.message : String(e) || 'Fehler beim Löschen')
       toast({
         title: 'Fehler beim Löschen',
-        description: e?.message || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
+        description: e instanceof Error ? e.message : String(e) || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
         variant: 'destructive',
       })
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('Fehler beim Löschen', {
-          body: e?.message || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
+          body: e instanceof Error ? e.message : String(e) || 'Beim Löschen der Korrektur ist ein Fehler aufgetreten.',
           icon: '/alert-icon.png',
         })
       }
     } finally {
       setCorrectionLoading(false)
-    }
-  }
-
-  function handleEditTime(station: string, idx: number, from: string, to: string) {
-    console.log('handleEditTime aufgerufen:', { station, idx, from, to })
-    setEditTimeStation(station)
-    setEditTimeIdx(idx)
-    setEditTimeFrom(from)
-    setEditTimeTo(to)
-    setEditTimeSheet(true)
-  }
-  function handleEditTimeSave() {
-    if (!editTimeStation || editTimeIdx === null) return
-    setConfig((prev: Config | null) => {
-      if (!prev) return { thresholdsByStationAndTime: {} };
-      const updated = { ...prev };
-      updated.thresholdsByStationAndTime = { ...prev.thresholdsByStationAndTime };
-      updated.thresholdsByStationAndTime[editTimeStation] = updated.thresholdsByStationAndTime[editTimeStation].map((block: any, i: number) =>
-        i === editTimeIdx ? { ...block, from: editTimeFrom, to: editTimeTo } : block
-      );
-      return updated;
-    });
-    setEditTimeSheet(false)
-    setTimeout(() => { handleSave(); toast({ title: 'Gespeichert', description: 'Zeitblock erfolgreich geändert.' }) }, 100)
-  }
-
-  async function handleManualCsvImport() {
-    setCsvError(null)
-    setCsvUploading({})
-    try {
-      const res = await fetch('/api/process-csv', { method: 'POST' })
-      const data = await res.json()
-      if (!data.success) {
-        setCsvError(data.error || 'Fehler beim CSV-Import')
-        toast({
-          title: 'Fehler beim CSV-Import',
-          description: data.error || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
-          variant: 'destructive',
-        })
-        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification('Fehler beim CSV-Import', {
-            body: data.error || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
-            icon: '/alert-icon.png',
-          })
-        }
-      }
-    } catch (e: any) {
-      setCsvError(e?.message || 'Fehler beim CSV-Import')
-      toast({
-        title: 'Fehler beim CSV-Import',
-        description: e?.message || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
-        variant: 'destructive',
-      })
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Fehler beim CSV-Import', {
-          body: e?.message || 'Beim Importieren der CSV-Dateien ist ein Fehler aufgetreten.',
-          icon: '/alert-icon.png',
-        })
-      }
-    }
-  }
-
-  async function handleRebuildDb() {
-    try {
-      const res = await fetch('/api/admin/rebuild-db', { method: 'POST' })
-      const data = await res.json()
-      if (!data.success) {
-        toast({
-          title: 'Fehler beim Neuaufbau',
-          description: data.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
-          variant: 'destructive',
-        })
-        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification('Fehler beim Neuaufbau', {
-            body: data.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
-            icon: '/alert-icon.png',
-          })
-        }
-      }
-    } catch (e: any) {
-      toast({
-        title: 'Fehler beim Neuaufbau',
-        description: e?.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
-        variant: 'destructive',
-      })
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Fehler beim Neuaufbau', {
-          body: e?.message || 'Beim Neuaufbau der Datenbank ist ein Fehler aufgetreten.',
-          icon: '/alert-icon.png',
-        })
-      }
     }
   }
 
@@ -645,8 +530,8 @@ export default function AdminDashboard() {
       })
       if (!res.ok) throw new Error('Fehler beim Speichern')
       setSettingsSuccess(true)
-    } catch (e: any) {
-      setSettingsError(e.message || 'Unbekannter Fehler')
+    } catch (e: unknown) {
+      setSettingsError(e instanceof Error ? e.message : String(e) || 'Unbekannter Fehler')
     } finally {
       setSettingsSaving(false)
     }
@@ -685,10 +570,6 @@ export default function AdminDashboard() {
                   <SidebarMenuButton isActive={segment==='system'} onClick={()=>setSegment('system')}
                     className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
                     <BarChart3 className="w-4 h-4" /> System & Health
-                  </SidebarMenuButton>
-                  <SidebarMenuButton isActive={segment==='csv'} onClick={()=>setSegment('csv')}
-                    className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
-                    <FileText className="w-4 h-4" /> CSV & Import
                   </SidebarMenuButton>
                   <SidebarMenuButton isActive={segment==='backup'} onClick={()=>setSegment('backup')}
                     className="transition-all duration-200 group flex items-center rounded-2xl text-sm font-medium relative px-5 py-4 text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white data-[active=true]:bg-gradient-to-r data-[active=true]:from-violet-500 data-[active=true]:to-purple-600 data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-violet-500/25">
@@ -753,11 +634,10 @@ export default function AdminDashboard() {
                           </CardContent>
                         </Card>
                         <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                          <CardHeader><CardTitle>CSV-Watcher</CardTitle></CardHeader>
+                          <CardHeader><CardTitle>TXT-Watcher</CardTitle></CardHeader>
                           <CardContent>
                             <div className="text-sm">Status: <Badge className={health.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{health.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
                             <div className="text-sm">Letzter Heartbeat: <b>{health.watcherHeartbeat ? new Date(health.watcherHeartbeat).toLocaleString() : '-'}</b></div>
-                            <div className="text-sm">CSV-Dateien: <b>{health.totalFiles ?? '-'}</b></div>
                           </CardContent>
                         </Card>
                         <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
@@ -815,6 +695,23 @@ export default function AdminDashboard() {
                       </div>
                     </CardContent>
                   </Card>
+                  {txtStats && (
+                    <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <CardHeader><CardTitle>Importierte TXT-Dateien pro Station</CardTitle></CardHeader>
+                      <CardContent>
+                        <div className="text-sm">
+                          <table className="min-w-full text-sm">
+                            <thead><tr><th className="text-left">Station</th><th className="text-left">TXT-Dateien</th></tr></thead>
+                            <tbody>
+                              {Object.entries(txtStats.txtCounts).map(([station, count]) => (
+                                <tr key={station}><td className="capitalize pr-4">{station}</td><td>{count}</td></tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </section>
               )}
               {segment === 'thresholds' && config && config.thresholdsByStationAndTime && (
@@ -875,7 +772,7 @@ export default function AdminDashboard() {
                                   />
                                 </label>
                                 <label className="flex flex-col gap-1">
-                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">LAS</span>
+                                  <span className="font-medium text-gray-700 dark:text-gray-200">LAS</span>
                                   <input
                                     type="number"
                                     className="input input-lg focus:ring-2 focus:ring-emerald-400 rounded-lg border border-emerald-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
@@ -886,7 +783,7 @@ export default function AdminDashboard() {
                                   />
                                 </label>
                                 <label className="flex flex-col gap-1">
-                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">LAF</span>
+                                  <span className="font-medium text-gray-700 dark:text-gray-200">LAF</span>
                                   <input
                                     type="number"
                                     className="input input-lg focus:ring-2 focus:ring-cyan-400 rounded-lg border border-cyan-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
@@ -953,7 +850,7 @@ export default function AdminDashboard() {
                         </CardContent>
                       </Card>
                       <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                        <CardHeader><CardTitle>CSV-Watcher</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>TXT-Watcher</CardTitle></CardHeader>
                         <CardContent>
                           <div className="text-sm">Status: <Badge className={health.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{health.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
                           <div className="text-sm">Letzter Heartbeat: <b>{health.watcherHeartbeat ? new Date(health.watcherHeartbeat).toLocaleString() : '-'}</b></div>
@@ -993,132 +890,40 @@ export default function AdminDashboard() {
                           <span className="ml-2 text-sm text-gray-500">(0 = kein Caching, Standard: 60)</span>
                         </CardContent>
                       </Card>
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                        <CardHeader><CardTitle>TXT-Watcher manuell triggern</CardTitle></CardHeader>
+                        <CardContent>
+                          <Button onClick={async () => {
+                            try {
+                              const res = await fetch('/api/admin/trigger-txt-watcher', { method: 'POST' })
+                              const data = await res.json()
+                              toast({ title: data.success ? 'TXT-Watcher getriggert' : 'Fehler beim Triggern', description: data.message || data.error, variant: data.success ? 'default' : 'destructive' })
+                            } catch (e: unknown) {
+                              toast({ title: 'Fehler beim Triggern', description: e instanceof Error ? e.message : String(e) || 'Fehler beim Triggern', variant: 'destructive' })
+                            }
+                          }}>TXT-Watcher jetzt ausführen</Button>
+                          <div className="text-xs text-gray-500 mt-2">Führt den TXT-Watcher einmalig aus und importiert alle neuen/aktualisierten TXT-Dateien.</div>
+                        </CardContent>
+                      </Card>
                     </>
                   )}
-                </section>
-              )}
-              {segment === 'csv' && (
-                <section className="space-y-8">
-                  <h1 className="text-2xl font-bold mb-6">CSV & Import</h1>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                    <CardHeader><CardTitle>CSV-Watcher & Rebuild</CardTitle></CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <div className="text-sm">Status: <Badge className={csvStatus?.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{csvStatus?.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
-                        <Button onClick={async () => {
-                          setLoading(true)
-                          try {
-                            const res = await fetch('/api/process-csv', { method: 'POST' })
-                            const data = await res.json()
-                            toast({ title: data.success ? 'CSV-Import abgeschlossen' : 'Fehler beim Import', description: data.message || data.error, variant: data.success ? 'default' : 'destructive' })
-                          } catch (e: any) {
-                            toast({ title: 'Fehler beim Import', description: e?.message, variant: 'destructive' })
-                          } finally {
-                            setLoading(false)
-                          }
-                        }} disabled={loading} className="ml-4">Alle CSV-Dateien neu einlesen</Button>
-                      </div>
-                      <div className="text-xs text-gray-500">Der CSV-Watcher überwacht die Ordner und importiert neue Dateien automatisch. Mit diesem Button werden alle CSV-Dateien erneut eingelesen (Rebuild).</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                    <CardHeader><CardTitle>CSV-Dateien & Upload</CardTitle></CardHeader>
-                    <CardContent className="space-y-6">
-                      {csvError && <div className="text-xs text-red-500">{csvError}</div>}
-                      <div className="grid grid-cols-1 gap-4">
-                        {csvStatus?.watchedDirectories?.map((dir: WatchedDirectory) => (
-                          <div key={dir.station} className="border rounded-xl p-4 bg-white/80 dark:bg-slate-800/60">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-semibold capitalize">{dir.station}</span>
-                              <Badge className="bg-gray-100 text-gray-700 border-gray-300 ml-2">{dir.fileCount} Dateien</Badge>
-                            </div>
-                            <div
-                              className="border-2 border-dashed border-orange-300 rounded-lg p-3 mb-2 text-xs text-orange-600 bg-orange-50 dark:bg-orange-900/20 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-800/40"
-                              onDrop={e => handleDrop(dir.station, e)}
-                              onDragOver={e => e.preventDefault()}
-                            >
-                              <UploadCloud className="inline w-4 h-4 mr-1" />
-                              Datei hierher ziehen oder klicken
-                              <input type="file" accept=".csv" className="hidden" onChange={e => { if (e.target.files?.[0]) handleCsvUpload(dir.station, e.target.files[0]) }} disabled={csvUploading[dir.station]} />
-                            </div>
-                            <div className="max-h-32 overflow-y-auto text-xs">
-                              {dir.files.length === 0 ? <div className="text-gray-400">Keine Dateien</div> : dir.files.map((file: CSVFile) => (
-                                <div key={file.name} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 py-1">
-                                  <span>{file.name}</span>
-                                  <span className="text-gray-400 ml-2">{new Date(file.modified).toLocaleString()}</span>
-                                  <a href={`/csv/${dir.station}/${file.name}`} target="_blank" rel="noopener" className="ml-2 text-blue-500 hover:underline"><Eye className="w-3 h-3 inline" /></a>
-                                </div>
+                  {txtStats && (
+                    <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <CardHeader><CardTitle>Importierte TXT-Dateien pro Station</CardTitle></CardHeader>
+                      <CardContent>
+                        <div className="text-sm">
+                          <table className="min-w-full text-sm">
+                            <thead><tr><th className="text-left">Station</th><th className="text-left">TXT-Dateien</th></tr></thead>
+                            <tbody>
+                              {Object.entries(txtStats.txtCounts).map(([station, count]) => (
+                                <tr key={station}><td className="capitalize pr-4">{station}</td><td>{count}</td></tr>
                               ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                    <CardHeader><CardTitle>Watcher-Status</CardTitle></CardHeader>
-                    <CardContent>
-                      <div className="text-sm">Status: <Badge className={csvStatus?.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{csvStatus?.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
-                      <div className="text-sm">Letzter Heartbeat: <b>{csvStatus?.watcherHeartbeat ? new Date(csvStatus.watcherHeartbeat).toLocaleString() : '-'}</b></div>
-                      <div className="text-sm">CSV-Dateien: <b>{csvStatus?.totalFiles ?? '-'}</b></div>
-                    </CardContent>
-                  </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                    <CardHeader><CardTitle>Factory Reset</CardTitle></CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                      <Button onClick={handleFactoryReset} className="w-48 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold" size="lg" disabled={resetting}>
-                        <Trash2 className="w-4 h-4 mr-2" /> {resetting ? 'Zurücksetzen...' : 'System zurücksetzen'}
-                      </Button>
-                      <div className="text-xs text-gray-500">Löscht alle Messwerte, Wetterdaten und CSV-Dateien unwiderruflich.</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                    <CardHeader><CardTitle>Backup-Plan</CardTitle></CardHeader>
-                    <CardContent>
-                      <div className="text-sm">Tägliches automatisches Backup um 03:00 Uhr (siehe <code>backups/</code> Verzeichnis).</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                    <CardHeader><CardTitle>Datenbank zurücksetzen (Rebuild DB)</CardTitle></CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <Button variant="destructive" onClick={async () => {
-                          if (!window.confirm('Möchtest du wirklich alle Messwerte und Wetterdaten löschen und die Datenbank neu aufbauen?')) return;
-                          setLoading(true)
-                          try {
-                            const res = await fetch('/api/admin/rebuild-db', { method: 'POST' })
-                            const data = await res.json()
-                            toast({ title: data.success ? 'Datenbank neu aufgebaut' : 'Fehler beim Neuaufbau', description: data.message, variant: data.success ? 'default' : 'destructive' })
-                          } catch (e: any) {
-                            toast({ title: 'Fehler beim Neuaufbau', description: e?.message, variant: 'destructive' })
-                          } finally {
-                            setLoading(false)
-                          }
-                        }} disabled={loading}>Datenbank zurücksetzen</Button>
-                      </div>
-                      <div className="text-xs text-gray-500">Löscht alle Messwerte und Wetterdaten unwiderruflich und baut die Tabellenstruktur neu auf. Nutze danach "Alle CSV-Dateien neu einlesen" für einen vollständigen Reimport.</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                    <CardHeader><CardTitle>Wetterdaten manuell aktualisieren</CardTitle></CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <Button onClick={async () => {
-                          setLoading(true)
-                          try {
-                            const res = await fetch('/api/weather?station=global', { method: 'POST' })
-                            const data = await res.json()
-                            toast({ title: data.success ? 'Wetterdaten aktualisiert' : 'Fehler beim Wetter-Update', description: data.success ? JSON.stringify(data) : data.error, variant: data.success ? 'default' : 'destructive' })
-                          } catch (e: any) {
-                            toast({ title: 'Fehler beim Wetter-Update', description: e?.message, variant: 'destructive' })
-                          } finally {
-                            setLoading(false)
-                          }
-                        }} disabled={loading}>Wetter jetzt abrufen</Button>
-                      </div>
-                      <div className="text-xs text-gray-500">Ruft die aktuellen Wetterdaten manuell ab und speichert sie in der Datenbank. Automatische Updates erfolgen alle 10 Minuten.</div>
-                    </CardContent>
-                  </Card>
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </section>
               )}
               {segment === 'backup' && (
@@ -1182,7 +987,7 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <Label>Typ</Label>
-                        <Select value={correctionType} onValueChange={v => setCorrectionType(v as any)}>
+                        <Select value={correctionType} onValueChange={v => setCorrectionType(v as 'measurement' | 'weather')}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="measurement">Messwert</SelectItem>

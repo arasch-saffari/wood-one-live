@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import db from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
-import { processAllCSVFiles } from '@/lib/csv-processing'
 import { fetchWeather } from '@/lib/weather'
 
 export async function POST() {
@@ -27,10 +26,11 @@ export async function POST() {
     await fetchWeather()
 
     // 4. CSVs neu einlesen (es sind jetzt keine mehr da, aber falls neue hochgeladen werden)
-    processAllCSVFiles()
+    // processAllCSVFiles() // This line is removed as per the edit hint.
 
-    return NextResponse.json({ success: true, message: 'Alle Daten gelöscht, Wetterdaten neu abgefragt, CSVs neu eingelesen.' })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Zurücksetzen.', notify: true }, { status: 500 })
+    return NextResponse.json({ success: true })
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    return NextResponse.json({ success: false, message: error.message || 'Fehler beim Factory-Reset.' }, { status: 500 })
   }
 } 

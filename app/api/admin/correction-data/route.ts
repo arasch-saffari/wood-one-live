@@ -1,13 +1,21 @@
-import { NextRequest } from 'next/server'
 import db from '@/lib/db'
+import { NextResponse } from 'next/server'
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const station = searchParams.get('station') || 'ort'
-  const type = searchParams.get('type') || 'measurement'
-  const q = searchParams.get('q') || ''
-  let rows: any[] = []
+// Typdefinition für CorrectionData
+interface CorrectionData {
+  id: number;
+  datetime: string;
+  value: number;
+  time: string;
+}
+
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url)
+    const station = searchParams.get('station') || 'ort'
+    const type = searchParams.get('type') || 'measurement'
+    const q = searchParams.get('q') || ''
+    let rows: CorrectionData[] = []
     if (type === 'measurement') {
       let sql = 'SELECT id, datetime, las AS value, time FROM measurements WHERE station = ?'
       const params: any[] = [station]
@@ -16,7 +24,7 @@ export async function GET(req: NextRequest) {
         params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
       }
       sql += ' ORDER BY datetime DESC LIMIT 100'
-      rows = db.prepare(sql).all(...params)
+      rows = db.prepare(sql).all(...params) as CorrectionData[];
     } else if (type === 'weather') {
       let sql = 'SELECT id, datetime, value, time FROM weather WHERE station = ?'
       const params: any[] = [station]
@@ -25,13 +33,11 @@ export async function GET(req: NextRequest) {
         params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
       }
       sql += ' ORDER BY datetime DESC LIMIT 100'
-      rows = db.prepare(sql).all(...params)
+      rows = db.prepare(sql).all(...params) as CorrectionData[];
     }
-    return Response.json(rows)
+    return NextResponse.json(rows)
   } catch (e: unknown) {
-    if (e instanceof Error) {
-      return Response.json({ error: e.message }, { status: 500 })
-    }
-    return Response.json({ error: 'An unexpected error occurred' }, { status: 500 })
+    const error = e instanceof Error ? e : new Error(String(e));
+    return NextResponse.json({ error: error.message || 'Fehler beim Laden der Daten.' }, { status: 500 })
   }
 } 

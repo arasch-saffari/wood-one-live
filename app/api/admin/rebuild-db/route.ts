@@ -27,8 +27,9 @@ export async function POST() {
         UNIQUE(station, time)
       );
     `)
-    return NextResponse.json({ success: true, message: 'Alle Messwerte und Wetterdaten wurden gelöscht und die Tabellen neu aufgebaut.' })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Neuaufbau.', notify: true }, { status: 500 })
+    return NextResponse.json({ success: true })
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    return NextResponse.json({ success: false, message: error.message || 'Fehler beim Rebuild.' }, { status: 500 })
   }
 } 

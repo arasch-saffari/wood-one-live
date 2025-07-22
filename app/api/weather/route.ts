@@ -116,7 +116,7 @@ export async function GET(req: Request) {
       relHumidity: typeof weather.relHumidity === 'number' ? weather.relHumidity : 0,
       temperature: typeof weather.temperature === 'number' ? weather.temperature : null
     })
-  } catch (e) {
+  } catch (e: unknown) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 })
   }
 } 
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
       typeof weather.temperature === 'number' ? weather.temperature : undefined
     )
     return NextResponse.json({ success: true, ...weather })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: e?.message || 'Fehler beim Wetter-Update.' }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ success: false, error: (e as Error)?.message || 'Fehler beim Wetter-Update.' }, { status: 500 })
   }
 } 

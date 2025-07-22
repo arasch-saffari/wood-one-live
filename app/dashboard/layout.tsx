@@ -25,6 +25,7 @@ const navigation = [
     color: `text-${meta.kpiColor}`
   })),
   { name: "Daten Export", href: "/dashboard/export", icon: Download, color: "text-slate-500" },
+  { name: "Testseite", href: "/dashboard/test", icon: Settings, color: "text-slate-500" },
   // Chart Test entfernt
   // Admin nur unten, nicht hier
 ]
@@ -43,10 +44,10 @@ export default function DashboardLayout({
   const pathname = usePathname()
 
   // Letzte Aktualisierung: Hole Daten von allen Stationen und berechne das neueste Datum
-  const ortDataObj = useStationData("ort", "24h")
-  const heuballernDataObj = useStationData("heuballern", "24h")
-  const technoDataObj = useStationData("techno", "24h")
-  const bandDataObj = useStationData("band", "24h")
+  const ortDataObj = useStationData("ort", { pageSize: 100 })
+  const heuballernDataObj = useStationData("heuballern", { pageSize: 100 })
+  const technoDataObj = useStationData("techno", { pageSize: 100 })
+  const bandDataObj = useStationData("band", { pageSize: 100 })
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []
@@ -59,18 +60,17 @@ export default function DashboardLayout({
     ...bandData.map(d => d.time),
   ].filter(Boolean)
   // Hilfsfunktion: Uhrzeit formatieren
-  function formatTime(latest: string | undefined) {
-    if (!latest) return "-"
-    const date = new Date(latest)
-    return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " Uhr"
+  function formatTime(date: string | undefined, time: string | undefined) {
+    if (!date || !time) return "-"
+    return `${date} ${time}`
   }
 
   // Nach dem Laden der Daten für alle Stationen:
   const stationTimes = [
-    { name: 'Ort', color: STATION_COLORS.ort.menuColor, datetime: ortData.length > 0 ? ortData[ortData.length - 1].datetime : undefined },
-    { name: 'Techno Floor', color: STATION_COLORS.techno.menuColor, datetime: technoData.length > 0 ? technoData[technoData.length - 1].datetime : undefined },
-    { name: 'Band Bühne', color: STATION_COLORS.band.menuColor, datetime: bandData.length > 0 ? bandData[bandData.length - 1].datetime : undefined },
-    { name: 'Heuballern', color: STATION_COLORS.heuballern.menuColor, datetime: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].datetime : undefined },
+    { name: 'Ort', color: STATION_COLORS.ort.menuColor, last: ortData.length > 0 ? formatTime(ortData[ortData.length - 1].date, ortData[ortData.length - 1].time) : undefined },
+    { name: 'Techno Floor', color: STATION_COLORS.techno.menuColor, last: technoData.length > 0 ? formatTime(technoData[technoData.length - 1].date, technoData[technoData.length - 1].time) : undefined },
+    { name: 'Band Bühne', color: STATION_COLORS.band.menuColor, last: bandData.length > 0 ? formatTime(bandData[bandData.length - 1].date, bandData[bandData.length - 1].time) : undefined },
+    { name: 'Heuballern', color: STATION_COLORS.heuballern.menuColor, last: heuballernData.length > 0 ? formatTime(heuballernData[heuballernData.length - 1].date, heuballernData[heuballernData.length - 1].time) : undefined },
   ]
 
   function useWeatherLastUpdate() {
@@ -169,7 +169,7 @@ export default function DashboardLayout({
                     <li key={st.name} className="flex items-center gap-2">
                       <span className={cn('w-2 h-2 rounded-full', st.color)} />
                       <span className="w-28 inline-block font-medium">{st.name}:</span>
-                      <span>{formatTime(st.datetime)}</span>
+                      <span>{st.last}</span>
                     </li>
                   ))}
                 </ul>

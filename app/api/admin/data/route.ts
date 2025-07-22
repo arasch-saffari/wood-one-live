@@ -9,7 +9,6 @@ export async function GET(req: Request) {
     const type = searchParams.get('type') || 'measurements'
     const station = searchParams.get('station')
     const limit = parseInt(searchParams.get('limit') || '50', 10)
-    const search = searchParams.get('search')
     let rows: unknown[] = []
     if (type === 'measurements') {
       let sql = 'SELECT * FROM measurements'
@@ -26,7 +25,7 @@ export async function GET(req: Request) {
     }
     return NextResponse.json({ rows })
   } catch (e: unknown) {
-    const error = e as Error
+    const error = e instanceof Error ? e : new Error(String(e));
     return NextResponse.json({ rows: [], error: error.message || 'Fehler bei der Suche.' }, { status: 500 })
   }
 }
@@ -44,7 +43,7 @@ export async function DELETE(req: Request) {
     db.prepare(sql).run(id)
     return NextResponse.json({ success: true })
   } catch (e: unknown) {
-    const error = e as Error
+    const error = e instanceof Error ? e : new Error(String(e));
     return NextResponse.json({ success: false, message: error.message || 'Fehler beim Löschen.' }, { status: 500 })
   }
 }
@@ -68,7 +67,7 @@ export async function PATCH(req: Request) {
     db.prepare(sql).run(...params)
     return NextResponse.json({ success: true })
   } catch (e: unknown) {
-    const error = e as Error
+    const error = e instanceof Error ? e : new Error(String(e));
     return NextResponse.json({ success: false, message: error.message || 'Fehler beim Bearbeiten.' }, { status: 500 })
   }
 } 

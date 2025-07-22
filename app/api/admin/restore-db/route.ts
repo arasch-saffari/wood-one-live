@@ -4,7 +4,7 @@ import fs from 'fs'
 
 export const runtime = 'nodejs'
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
@@ -14,8 +14,9 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer()
     const dbPath = path.join(process.cwd(), 'data.sqlite')
     fs.writeFileSync(dbPath, Buffer.from(arrayBuffer))
-    return NextResponse.json({ success: true, message: 'Backup erfolgreich wiederhergestellt.' })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Restore.', notify: true }, { status: 500 })
+    return NextResponse.json({ success: true })
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    return NextResponse.json({ success: false, message: error.message || 'Fehler beim Restore.' }, { status: 500 })
   }
 } 

@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Download, FileText, Database, Wind, Volume2, MapPin, Music } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { StationMeasurement } from '@/hooks/useStationData'
 
 const locations = [
   { id: "ort", name: "Ort", icon: MapPin, color: "text-emerald-400" },
@@ -27,7 +28,7 @@ const dataTypes = [
 
 async function fetchExportData(station: string, interval: string) {
   const res = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=15min`)
-  if (!res.ok) return []
+  if (!res.ok) return { data: [] }
   return await res.json()
 }
 
@@ -77,27 +78,16 @@ export default function ExportPage() {
     setIsExporting(true)
 
     // Echte Daten laden
-    let allData: Record<string, any>[] = []
+    const allData: StationMeasurement[] = []
     for (const locationId of selectedLocations) {
-      const stationData = await fetchExportData(locationId, dateRange)
+      const stationDataRaw = await fetchExportData(locationId, dateRange)
+      const stationData = stationDataRaw.data || []
       for (const row of stationData) {
-        const exportRow: Record<string, any> = {
+        const exportRow: StationMeasurement = {
           station: locationId,
+          date: row.date,
           time: row.time,
-          datetime: row.datetime,
-          las: row.las,
-          ws: row.ws,
-          wd: row.wd,
-          rh: row.rh,
-          temp: row.temp,
-          warningThreshold: row.warningThreshold,
-          alarmThreshold: row.alarmThreshold,
-          lasThreshold: row.lasThreshold,
-          lafThreshold: row.lafThreshold,
-        }
-        if (selectedDataTypes.includes("violations")) {
-          exportRow.warning_threshold_exceeded = row.las >= row.warningThreshold
-          exportRow.alarm_threshold_exceeded = row.las >= row.alarmThreshold
+          maxSPLAFast: row.maxSPLAFast,
         }
         allData.push(exportRow)
       }
