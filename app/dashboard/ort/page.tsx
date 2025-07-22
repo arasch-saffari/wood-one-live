@@ -140,6 +140,27 @@ export default function OrtPage() {
     setZoomRange({ start: Math.min(filteredChartData.length - size, zoomRange.start + size/2), end: Math.min(filteredChartData.length, zoomRange.end + size/2) })
   }
 
+  // 1. State für Sichtbarkeit der Datenreihen
+  const [visibleLines, setVisibleLines] = useState({
+    las: true,
+    ws: true,
+    rh: true,
+    warning: true,
+    alarm: true,
+  })
+
+  // 2. Handler für Toggle
+  function toggleLine(key: keyof typeof visibleLines) {
+    setVisibleLines(v => ({ ...v, [key]: !v[key] }))
+  }
+
+  // Dynamische Domain/Ticks für Wind-Achse berechnen
+  const windValues = visibleData.map(d => typeof d.ws === 'number' ? d.ws : Number(d.ws)).filter(v => !isNaN(v))
+  const minWind = windValues.length ? Math.floor(Math.min(...windValues, 0) / 5) * 5 : 0
+  const maxWind = windValues.length ? Math.ceil(Math.max(...windValues, 25) / 5) * 5 : 25
+  const windTicks = []
+  for (let t = minWind; t <= maxWind; t += 5) windTicks.push(t)
+
   return (
     <TooltipProvider>
       <div className="space-y-4 lg:space-y-6">
@@ -299,52 +320,42 @@ export default function OrtPage() {
             </Link>
           </Button>
         </div>
-        <div className="flex gap-2 items-center justify-end mb-2">
+        {/* 1. Buttons zentriert über dem Chart */}
+        <div className="flex justify-center gap-2 items-center my-4 flex-wrap">
           <UITooltip>
             <TooltipTrigger asChild>
-              <Button size="icon" variant="outline" onClick={handlePanLeft} disabled={!zoomRange || zoomRange.start === 0} title="Links schieben">
-                <span>&larr;</span>
+              <Button size="sm" variant="outline" onClick={handlePanLeft} disabled={!zoomRange || zoomRange.start === 0} className="transition hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95">
+                <span className="flex items-center gap-1">← <span className="hidden sm:inline">Links</span></span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Chart nach links schieben</p>
-              <span className="text-xs text-muted-foreground">Vorherigen Zeitraum anzeigen</span>
-            </TooltipContent>
+            <TooltipContent>Chart nach links schieben</TooltipContent>
           </UITooltip>
           <UITooltip>
             <TooltipTrigger asChild>
-              <Button size="icon" variant="outline" onClick={handleZoomIn} disabled={visibleData.length <= 10} title="Hineinzoomen">
-                <span>+</span>
+              <Button size="sm" variant="outline" onClick={handleZoomIn} disabled={visibleData.length <= 10} className="transition hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95">
+                <span className="flex items-center gap-1">＋ <span className="hidden sm:inline">Hineinzoomen</span></span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>In das Chart hineinzoomen</p>
-              <span className="text-xs text-muted-foreground">Weniger Datenpunkte, mehr Details</span>
-            </TooltipContent>
+            <TooltipContent>In das Chart hineinzoomen</TooltipContent>
           </UITooltip>
           <UITooltip>
             <TooltipTrigger asChild>
-              <Button size="icon" variant="outline" onClick={handleZoomOut} disabled={!zoomRange} title="Zoom zurücksetzen">
-                <span>&#128470;</span>
+              <Button size="sm" variant="outline" onClick={handleZoomOut} disabled={!zoomRange} className="transition hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95">
+                <span className="flex items-center gap-1">🗖 <span className="hidden sm:inline">Zoom zurücksetzen</span></span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Zoom zurücksetzen</p>
-              <span className="text-xs text-muted-foreground">Gesamten Zeitraum anzeigen</span>
-            </TooltipContent>
+            <TooltipContent>Zoom zurücksetzen</TooltipContent>
           </UITooltip>
           <UITooltip>
             <TooltipTrigger asChild>
-              <Button size="icon" variant="outline" onClick={handlePanRight} disabled={!zoomRange || zoomRange.end === filteredChartData.length} title="Rechts schieben">
-                <span>&rarr;</span>
+              <Button size="sm" variant="outline" onClick={handlePanRight} disabled={!zoomRange || zoomRange.end === filteredChartData.length} className="transition hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95">
+                <span className="flex items-center gap-1">→ <span className="hidden sm:inline">Rechts</span></span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Chart nach rechts schieben</p>
-              <span className="text-xs text-muted-foreground">Nächsten Zeitraum anzeigen</span>
-            </TooltipContent>
+            <TooltipContent>Chart nach rechts schieben</TooltipContent>
           </UITooltip>
         </div>
+
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
             <CardHeader>
@@ -452,91 +463,139 @@ export default function OrtPage() {
                     />
                     <YAxis
                       yAxisId="noise"
-                      domain={[30, 85]}
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
+                      domain={[30, 95]}
+                      ticks={[30, 40, 50, 60, 70, 80, 90]}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                       axisLine={{ stroke: "hsl(var(--border))" }}
                       tickLine={{ stroke: "hsl(var(--border))" }}
+                      label={{ value: 'Lärmpegel (dB)', angle: -90, position: 'insideLeft', offset: 0, style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))', fontSize: 12 } }}
+                      allowDecimals={false}
+                      type="number"
+                      interval={0}
                     />
                     <YAxis
                       yAxisId="wind"
                       orientation="right"
-                      domain={[0, 25]}
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} // Dynamische Farbe
+                      domain={[minWind, maxWind]}
+                      ticks={windTicks}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                       axisLine={{ stroke: "hsl(var(--border))" }}
                       tickLine={{ stroke: "hsl(var(--border))" }}
+                      label={{ value: 'Windgeschwindigkeit (km/h)', angle: 90, position: 'insideRight', offset: 0, style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))', fontSize: 12 } }}
+                      allowDecimals={false}
+                      type="number"
+                      interval={0}
                     />
                     <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload || !payload.length) return null
-                        const d = payload[0].payload
-                        return (
-                          <div className="rounded-md border bg-white dark:bg-gray-900 p-2 shadow-md text-xs min-w-[180px]">
-                            <div className="font-semibold mb-1">{label}</div>
-                            <div>Lärmpegel: <b>{d.las?.toFixed(1)} dB</b></div>
-                            <div>Wind: <b>{d.ws ?? "-"} km/h</b></div>
-                            <div>Windrichtung: <b>{d.wd ?? "-"}</b></div>
-                            <div>Luftfeuchte: <b>{d.rh ?? "-"} %</b></div>
-                            <div>Warnung: <b>{thresholds.warning} dB</b></div>
-                            <div>Alarm: <b>{thresholds.alarm} dB</b></div>
-                            {d.temp !== undefined && <div>Temperatur: <b>{d.temp}°C</b></div>}
-                          </div>
-                        )
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "12px",
+                        boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+                        color: "hsl(var(--card-foreground))",
+                      }}
+                      formatter={(value, name) => {
+                        if (name === "ws") return [`${value} km/h`, "Windgeschwindigkeit"]
+                        if (name === "rh") return [`${value} %`, "Luftfeuchte"]
+                        if (name === "las") return [`${value} dB`, "Lärmpegel"]
+                        if (name === "temp") return [`${value}°C`, "Temperatur"]
+                        if (Number(value) === thresholds.warning) return [`${value} dB`, "Warnung (Grenzwert)"]
+                        if (Number(value) === thresholds.alarm) return [`${value} dB`, "Alarm (Grenzwert)"]
+                        if (!name) return [String(value), "Wert"]
+                        return [String(value), name]
                       }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="las"
-                      stroke={STATION_COLORS.ort.primary}
-                      strokeWidth={3}
-                      dot={false}
-                      activeDot={{ r: 6, fill: STATION_COLORS.ort.primary }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="ws"
-                      stroke={CHART_COLORS.wind}
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={false}
-                      activeDot={{ r: 4, fill: CHART_COLORS.wind }}
-                      yAxisId="right"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="rh"
-                      stroke={CHART_COLORS.humidity}
-                      strokeWidth={2}
-                      strokeDasharray="2 2"
-                      dot={false}
-                      activeDot={{ r: 4, fill: CHART_COLORS.humidity }}
-                      yAxisId="right"
-                    />
+                    {visibleLines.las && (
+                      <Line
+                        type="monotone"
+                        dataKey="las"
+                        stroke={STATION_COLORS.ort.primary}
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 6, fill: STATION_COLORS.ort.primary }}
+                        yAxisId="noise"
+                      />
+                    )}
+                    {visibleLines.ws && (
+                      <Line
+                        type="monotone"
+                        dataKey="ws"
+                        stroke={CHART_COLORS.wind}
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={false}
+                        activeDot={{ r: 4, fill: CHART_COLORS.wind }}
+                        yAxisId="wind"
+                      />
+                    )}
+                    {visibleLines.rh && (
+                      <Line
+                        type="monotone"
+                        dataKey="rh"
+                        stroke={CHART_COLORS.humidity}
+                        strokeWidth={2}
+                        strokeDasharray="2 2"
+                        dot={false}
+                        activeDot={{ r: 4, fill: CHART_COLORS.humidity }}
+                        yAxisId="noise"
+                      />
+                    )}
                     {/* Grenzwertlinien */}
-                    <Line
-                      type="monotone"
-                      dataKey={() => thresholds.warning}
-                      stroke={CHART_COLORS.warning}
-                      strokeWidth={1}
-                      strokeDasharray="3 3"
-                      dot={false}
-                      activeDot={{ r: 3, fill: CHART_COLORS.warning }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey={() => thresholds.alarm}
-                      stroke={CHART_COLORS.alarm}
-                      strokeWidth={1}
-                      strokeDasharray="3 3"
-                      dot={false}
-                      activeDot={{ r: 3, fill: CHART_COLORS.alarm }}
-                      name="Alarm"
-                    />
+                    {visibleLines.warning && (
+                      <Line
+                        type="monotone"
+                        dataKey={() => thresholds.warning}
+                        stroke={CHART_COLORS.warning}
+                        strokeWidth={1}
+                        strokeDasharray="3 3"
+                        dot={false}
+                        activeDot={{ r: 3, fill: CHART_COLORS.warning }}
+                        yAxisId="noise"
+                      />
+                    )}
+                    {visibleLines.alarm && (
+                      <Line
+                        type="monotone"
+                        dataKey={() => thresholds.alarm}
+                        stroke={CHART_COLORS.alarm}
+                        strokeWidth={1}
+                        strokeDasharray="3 3"
+                        dot={false}
+                        activeDot={{ r: 3, fill: CHART_COLORS.alarm }}
+                        name="Alarm"
+                        yAxisId="noise"
+                      />
+                    )}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* 2. Interaktive Legende direkt unter dem Chart */}
+        <div className="flex flex-wrap gap-4 mt-4 text-xs items-center justify-center">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" checked={visibleLines.las} onChange={() => toggleLine('las')} className="accent-emerald-500" />
+            <span className="w-3 h-3 rounded-full" style={{background: STATION_COLORS.ort.primary}}></span> Lärmpegel
+          </label>
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" checked={visibleLines.ws} onChange={() => toggleLine('ws')} className="accent-cyan-500" />
+            <span className="w-3 h-3 rounded-full" style={{background: CHART_COLORS.wind}}></span> Wind
+          </label>
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" checked={visibleLines.rh} onChange={() => toggleLine('rh')} className="accent-blue-500" />
+            <span className="w-3 h-3 rounded-full" style={{background: CHART_COLORS.humidity}}></span> Luftfeuchte
+          </label>
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" checked={visibleLines.warning} onChange={() => toggleLine('warning')} className="accent-yellow-500" />
+            <span className="w-3 h-3 rounded-full" style={{background: CHART_COLORS.warning}}></span> Warnung
+          </label>
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" checked={visibleLines.alarm} onChange={() => toggleLine('alarm')} className="accent-red-500" />
+            <span className="w-3 h-3 rounded-full" style={{background: CHART_COLORS.alarm}}></span> Alarm
+          </label>
+        </div>
       </div>
     </TooltipProvider>
   )
