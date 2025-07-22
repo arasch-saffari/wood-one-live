@@ -217,7 +217,7 @@ export function getMeasurementsForStation(station: string, interval: "24h" | "7d
     SELECT m.time, m.las, m.datetime,
       w.windSpeed as ws, w.windDir as wd, w.relHumidity as rh
     FROM measurements m
-    LEFT JOIN weather w ON w.station = 'global' AND w.time = m.time
+    LEFT JOIN weather w ON w.station = m.station AND w.time = m.time
     WHERE m.station = ?
     ORDER BY m.rowid DESC
     LIMIT ?
