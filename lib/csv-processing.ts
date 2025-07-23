@@ -152,11 +152,13 @@ export async function processCSVFile(station: string, csvPath: string) {
           const allCsvFields = JSON.stringify(row)
           console.log(`💾 Speichere Messwert: Station=${station}, Zeit=${sysTime}, LAS=${las}`)
           
+          // time eindeutig machen: time = datetime
+          const time = datetime
           // Retry-Logik für Insert in measurements
           let insertResult = null
           for (let attempt = 1; attempt <= 5; attempt++) {
             try {
-              insertResult = insertStmt.run(station, sysTime, las, path.basename(csvPath), datetime, allCsvFields)
+              insertResult = insertStmt.run(station, time, las, path.basename(csvPath), datetime, allCsvFields)
               break
             } catch (err: unknown) {
               if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'SQLITE_BUSY') {

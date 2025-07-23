@@ -19,7 +19,7 @@ db.exec(`
     source_file TEXT,
     datetime DATETIME,
     all_csv_fields TEXT, -- JSON field for all CSV data
-    UNIQUE(station, time)
+    UNIQUE(station, datetime)
   );
   CREATE TABLE IF NOT EXISTS weather (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,6 +107,37 @@ if (typeof db.pragma === 'function') {
     }
   }
 })();
+
+// Migration: Passe UNIQUE-Constraint auf (station, datetime) an
+(function migrateUniqueConstraint() {
+  try {
+    // Prüfe, ob alter UNIQUE-Constraint existiert
+    const pragma = db.prepare("PRAGMA index_list('measurements')").all() as Array<{ name: string, unique: number }>
+    const uniqueIdx = pragma.find(idx => idx.unique && idx.name.includes('station') && idx.name.includes('time'))
+    if (uniqueIdx) {
+      // SQLite erlaubt kein direktes Entfernen von Constraints, daher: Tabelle umbenennen, neu anlegen, Daten kopieren
+      db.exec('BEGIN TRANSACTION')
+      db.exec('ALTER TABLE measurements RENAME TO measurements_old')
+      db.exec(`CREATE TABLE measurements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        station TEXT NOT NULL,
+        time TEXT NOT NULL,
+        las REAL NOT NULL,
+        source_file TEXT,
+        datetime DATETIME,
+        all_csv_fields TEXT,
+        UNIQUE(station, datetime)
+      )`)
+      db.exec('INSERT INTO measurements (id, station, time, las, source_file, datetime, all_csv_fields) SELECT id, station, time, las, source_file, datetime, all_csv_fields FROM measurements_old')
+      db.exec('DROP TABLE measurements_old')
+      db.exec('COMMIT')
+      console.log('UNIQUE-Constraint auf (station, datetime) migriert.')
+    }
+  } catch (e) {
+    console.error('Fehler bei Migration UNIQUE-Constraint:', e)
+    db.exec('ROLLBACK')
+  }
+})() // <- Semikolon ergänzt
 
 // Entferne automatische Migrationen und Initialisierungen aus dem Importfluss
 // Exportiere stattdessen Setup-Funktionen
@@ -238,10 +269,12 @@ db.exec(`
 `)
 
 export function insertMeasurement(station: string, time: string, las: number) {
+  // time und datetime identisch setzen
+  const datetime = time
   const stmt = db.prepare(
-    'INSERT OR IGNORE INTO measurements (station, time, las) VALUES (?, ?, ?)' 
+    'INSERT OR IGNORE INTO measurements (station, time, las, datetime) VALUES (?, ?, ?, ?)' 
   )
-  return stmt.run(station, time, las)
+  return stmt.run(station, time, las, datetime)
 }
 
 // Fast database queries with optimized indexing
@@ -277,13 +310,32 @@ export function getMinuteAveragesForStation(station: string, interval: "24h" | "
     since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ')
   }
   const stmt = db.prepare(`
-    SELECT substr(datetime, 1, 16) as minute, AVG(las) as avgLas
+    SELECT strftime('%Y-%m-%d %H:%M:00', datetime) as bucket, AVG(las) as avgLas
     FROM measurements
     WHERE station = ? AND datetime >= ?
-    GROUP BY minute
-    ORDER BY minute ASC
+    GROUP BY bucket
+    ORDER BY bucket ASC
   `)
-  return stmt.all(station, since) as Array<{ minute: string, avgLas: number }>
+  return stmt.all(station, since) as Array<{ bucket: string, avgLas: number }>
+}
+
+export function get15MinAveragesForStation(station: string, interval: "24h" | "7d" = "24h") {
+  // Zeitraum bestimmen
+  let since = ''
+  if (interval === "24h") {
+    since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ')
+  } else if (interval === "7d") {
+    since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ')
+  }
+  // 15-Minuten-Bucket: strftime('%Y-%m-%d %H:%M:00', datetime, '-(CAST(strftime(\'%M\', datetime) AS INTEGER) % 15) minutes')
+  const stmt = db.prepare(`
+    SELECT strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes') as bucket, AVG(las) as avgLas
+    FROM measurements
+    WHERE station = ? AND datetime >= ?
+    GROUP BY bucket
+    ORDER BY bucket ASC
+  `)
+  return stmt.all(station, since) as Array<{ bucket: string, avgLas: number }>
 }
 
 // Utility function to check database health

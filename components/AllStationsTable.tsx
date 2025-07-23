@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Table as TableIcon, Wind, AlertTriangle, MapPin, Volume2, Droplets, Info, Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react"
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { Tooltip as UITooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { DataTableColumn } from "@/components/DataTable"
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination"
@@ -51,6 +51,60 @@ type AllStationsTableProps = {
   granularity?: string;
 }
 
+// Hilfsfunktion: Hole den passenden Alarm-Schwellenwert für eine Tabellenzeile
+function getAlarmThresholdForRow(row: TableRowType, config: any): number | undefined {
+  if (!config?.thresholdsByStationAndTime || !row.station || !row.time) return undefined;
+  // Station-Key normalisieren
+  let stationKey = row.station.toLowerCase();
+  if (stationKey === "techno floor") stationKey = "techno";
+  if (stationKey === "band bühne") stationKey = "band";
+  // Zeit im Format HH:MM extrahieren
+  const time = row.time.slice(0, 5);
+  const blocks = config.thresholdsByStationAndTime[stationKey];
+  if (!blocks) return undefined;
+  // Zeit als Minuten seit Mitternacht
+  const [h, m] = time.split(":").map(Number);
+  const minutes = h * 60 + m;
+  for (const block of blocks) {
+    const [fromH, fromM] = block.from.split(":").map(Number);
+    const [toH, toM] = block.to.split(":").map(Number);
+    const fromMin = fromH * 60 + fromM;
+    const toMin = toH * 60 + toM;
+    if (fromMin < toMin) {
+      if (minutes >= fromMin && minutes < toMin) return block.alarm;
+    } else {
+      if (minutes >= fromMin || minutes < toMin) return block.alarm;
+    }
+  }
+  // Fallback: erster Block
+  return blocks[0]?.alarm;
+}
+
+// Hilfsfunktion: Hole den passenden Warn-Schwellenwert für eine Tabellenzeile
+function getWarningThresholdForRow(row: TableRowType, config: any): number | undefined {
+  if (!config?.thresholdsByStationAndTime || !row.station || !row.time) return undefined;
+  let stationKey = row.station.toLowerCase();
+  if (stationKey === "techno floor") stationKey = "techno";
+  if (stationKey === "band bühne") stationKey = "band";
+  const time = row.time.slice(0, 5);
+  const blocks = config.thresholdsByStationAndTime[stationKey];
+  if (!blocks) return undefined;
+  const [h, m] = time.split(":").map(Number);
+  const minutes = h * 60 + m;
+  for (const block of blocks) {
+    const [fromH, fromM] = block.from.split(":").map(Number);
+    const [toH, toM] = block.to.split(":").map(Number);
+    const fromMin = fromH * 60 + fromM;
+    const toMin = toH * 60 + toM;
+    if (fromMin < toMin) {
+      if (minutes >= fromMin && minutes < toMin) return block.warning;
+    } else {
+      if (minutes >= fromMin || minutes < toMin) return block.warning;
+    }
+  }
+  return blocks[0]?.warning;
+}
+
 export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity }: AllStationsTableProps) {
   const [showWeather, setShowWeather] = useState(false)
   const [search, setSearch] = useState("")
@@ -81,7 +135,44 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
       const match = row.time.match(/^(\d{2}:\d{2})/)
       return match ? match[1] : row.time.slice(0, 5)
     } },
-    { label: "dB", key: "las", sortable: true, render: (row: TableRowType) => row.las !== undefined ? row.las.toFixed(1) : "-" },
+    { label: "dB", key: "las", sortable: true, render: (row: TableRowType) => {
+      if (row.las === undefined) return "-";
+      const alarm = getAlarmThresholdForRow(row, config);
+      const warning = getWarningThresholdForRow(row, config);
+      let bg = "";
+      let badgeColor = "bg-emerald-200 dark:bg-emerald-900/30";
+      let badgeLabel = "Normalbereich";
+      if (typeof alarm === 'number' && row.las >= alarm) {
+        bg = "bg-red-100 dark:bg-red-900/30";
+        badgeColor = "bg-red-400 dark:bg-red-700";
+        badgeLabel = "Alarm";
+      } else if (typeof warning === 'number' && row.las >= warning) {
+        bg = "bg-yellow-100 dark:bg-yellow-900/30";
+        badgeColor = "bg-yellow-300 dark:bg-yellow-700";
+        badgeLabel = "Warnung";
+      }
+      return (
+        <UITooltip>
+          <TooltipTrigger asChild>
+            <span className={`px-2 py-1 rounded inline-flex items-center gap-1 ${bg}`}
+              tabIndex={0}
+              aria-label={`Lärmpegel: ${row.las.toFixed(1)} dB, Status: ${badgeLabel}, Warnung ab ${typeof warning === 'number' ? warning : '-'} dB, Alarm ab ${typeof alarm === 'number' ? alarm : '-'} dB`}
+            >
+              <span className={`inline-block w-2 h-2 rounded-full mr-1 ${badgeColor}`} aria-label={badgeLabel} />
+              {row.las.toFixed(1)}
+              <Info className="w-3 h-3 text-gray-400 ml-1" aria-hidden="true" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-xs">
+              <div><b>Status:</b> {badgeLabel}</div>
+              <div><b>Warnung ab:</b> {typeof warning === 'number' ? warning.toFixed(1) : '-'} dB</div>
+              <div><b>Alarm ab:</b> {typeof alarm === 'number' ? alarm.toFixed(1) : '-'} dB</div>
+            </div>
+          </TooltipContent>
+        </UITooltip>
+      );
+    } },
     ...(showWeather ? [
       { label: "Wind", key: "ws", sortable: true, render: (row: TableRowType) => (row.ws !== undefined && row.ws !== null) ? row.ws.toFixed(1) : "-" },
       { label: "Richtung", key: "wd", render: (row: TableRowType) => (row.wd !== undefined && row.wd !== null && row.wd !== '') ? windDirectionText(row.wd) : "-" },
@@ -148,10 +239,10 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
         return Object.values(row).some(val => (val ? String(val).toLowerCase().includes(s) : false))
       }
       if (showOnlyAlarms && config?.thresholdsByStationAndTime) {
-        const blocks = config.thresholdsByStationAndTime as Array<{ alarm: number }>
-        if (!blocks || !blocks[0] || typeof blocks[0].alarm !== 'number') return false
         if (typeof row.las !== 'number') return false
-        return row.las >= blocks[0].alarm
+        const alarm = getAlarmThresholdForRow(row, config)
+        if (typeof alarm !== 'number') return false
+        return row.las >= alarm
       }
       return true
     })
@@ -229,7 +320,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
           <div className="flex-1" />
           <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto min-w-[320px] h-10 mt-2 md:mt-0">
             <div className="flex items-center gap-2 flex-1 px-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-              <Tooltip>
+              <UITooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-2">
                     <Wind className="w-5 h-5 text-cyan-700 dark:text-cyan-300" />
@@ -238,10 +329,10 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>Wetterspalten anzeigen</TooltipContent>
-              </Tooltip>
+              </UITooltip>
             </div>
             <div className="flex items-center gap-2 flex-1 px-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-              <Tooltip>
+              <UITooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-2">
                     <AlertTriangle className={"w-5 h-5 " + (showOnlyAlarms ? "text-red-600 dark:text-red-400" : "text-gray-400 dark:text-gray-600")} />
@@ -250,7 +341,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>Nur Einträge mit Alarm anzeigen</TooltipContent>
-              </Tooltip>
+              </UITooltip>
             </div>
           </div>
         </div>
@@ -267,13 +358,13 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
                   >
                     <div className="flex items-center gap-1 w-full">
                       <span className="flex items-center gap-1">
-                        {col.key === 'datetime' && <Tooltip><TooltipTrigger asChild><Calendar className="w-4 h-4 text-blue-400" /></TooltipTrigger><TooltipContent>Datum</TooltipContent></Tooltip>}
-                        {col.key === 'ws' && <Tooltip><TooltipTrigger asChild><Wind className="w-4 h-4 text-cyan-500" /></TooltipTrigger><TooltipContent>Wind</TooltipContent></Tooltip>}
-                        {col.key === 'wd' && <Tooltip><TooltipTrigger asChild><Info className="w-4 h-4 text-purple-400" /></TooltipTrigger><TooltipContent>Windrichtung</TooltipContent></Tooltip>}
-                        {col.key === 'rh' && <Tooltip><TooltipTrigger asChild><Droplets className="w-4 h-4 text-blue-400" /></TooltipTrigger><TooltipContent>Luftfeuchte</TooltipContent></Tooltip>}
-                        {col.key === 'station' && <Tooltip><TooltipTrigger asChild><MapPin className="w-4 h-4 text-emerald-500" /></TooltipTrigger><TooltipContent>Ort</TooltipContent></Tooltip>}
-                        {col.key === 'las' && <Tooltip><TooltipTrigger asChild><Volume2 className="w-4 h-4 text-pink-500" /></TooltipTrigger><TooltipContent>dB</TooltipContent></Tooltip>}
-                        {col.key === 'time' && <Tooltip><TooltipTrigger asChild><Clock className="w-4 h-4 text-gray-400" /></TooltipTrigger><TooltipContent>Zeit</TooltipContent></Tooltip>}
+                        {col.key === 'datetime' && <UITooltip><TooltipTrigger asChild><Calendar className="w-4 h-4 text-blue-400" /></TooltipTrigger><TooltipContent>Datum</TooltipContent></UITooltip>}
+                        {col.key === 'ws' && <UITooltip><TooltipTrigger asChild><Wind className="w-4 h-4 text-cyan-500" /></TooltipTrigger><TooltipContent>Wind</TooltipContent></UITooltip>}
+                        {col.key === 'wd' && <UITooltip><TooltipTrigger asChild><Info className="w-4 h-4 text-purple-400" /></TooltipTrigger><TooltipContent>Windrichtung</TooltipContent></UITooltip>}
+                        {col.key === 'rh' && <UITooltip><TooltipTrigger asChild><Droplets className="w-4 h-4 text-blue-400" /></TooltipTrigger><TooltipContent>Luftfeuchte</TooltipContent></UITooltip>}
+                        {col.key === 'station' && <UITooltip><TooltipTrigger asChild><MapPin className="w-4 h-4 text-emerald-500" /></TooltipTrigger><TooltipContent>Ort</TooltipContent></UITooltip>}
+                        {col.key === 'las' && <UITooltip><TooltipTrigger asChild><Volume2 className="w-4 h-4 text-pink-500" /></TooltipTrigger><TooltipContent>dB</TooltipContent></UITooltip>}
+                        {col.key === 'time' && <UITooltip><TooltipTrigger asChild><Clock className="w-4 h-4 text-gray-400" /></TooltipTrigger><TooltipContent>Zeit</TooltipContent></UITooltip>}
                       </span>
                       {col.sortable && getSortIcon(col.key)}
                     </div>

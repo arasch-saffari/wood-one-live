@@ -383,3 +383,29 @@ ExternalApiError: Failed to fetch weather after retries
     at async requestHandlerImpl (/Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/next@15.2.4_react-dom@19.1.0_react@19.1.0__react@19.1.0/node_modules/next/dist/server/lib/router-server.js:450:13)
     at async Server.requestListener (/Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/next@15.2.4_react-dom@19.1.0_react@19.1.0__react@19.1.0/node_modules/next/dist/server/lib/start-server.js:158:13)
 
+[2025-07-23T14:38:40.145Z] ExternalApiError: Failed to fetch weather after retries
+ExternalApiError: Failed to fetch weather after retries
+    at Module.fetchWeather (/Users/araschsaffari/code/cursor/wood-one-live/lib/weather.ts:32:18)
+    at /Users/araschsaffari/code/cursor/wood-one-live/lib/weather.test.ts:35:5
+    at runTest (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
+
+[2025-07-23T14:38:43.153Z] ExternalApiError: Failed to fetch weather after retries
+ExternalApiError: Failed to fetch weather after retries
+    at Module.fetchWeather (/Users/araschsaffari/code/cursor/wood-one-live/lib/weather.ts:32:18)
+    at /Users/araschsaffari/code/cursor/wood-one-live/lib/weather.test.ts:40:5
+    at runTest (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:781:11)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runSuite (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/@vitest+runner@1.6.1/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+    at withEnv (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:83:5)
+    at run (file:///Users/araschsaffari/code/cursor/wood-one-live/node_modules/.pnpm/vitest@1.6.1_@types+node@22.16.5_jsdom@26.1.0/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:105:3)
+

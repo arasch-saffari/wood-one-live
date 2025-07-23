@@ -7,9 +7,12 @@ import { useStationData } from "@/hooks/useStationData"
 import { useConfig } from "@/hooks/useConfig"
 
 export default function OrtPage() {
-  const ortDataRaw = useStationData("ort", "24h", 60000, 1, 100000, "15min").data ?? [];
+  const ortDataObj = useStationData("ort", "24h", 60000, 1, 200, "15min")
   const { config } = useConfig();
-  const ortData = ortDataRaw.map(row => ({ ...row, station: "Ort" }));
+  const ortData = ortDataObj.data?.map(row => ({ ...row, station: "Ort" })) ?? [];
+  if (ortDataObj.loading) {
+    return <div className="flex justify-center items-center h-40"><span className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></span> Daten werden geladen ...</div>;
+  }
   return (
     <>
       <StationDashboardPage station="ort" />

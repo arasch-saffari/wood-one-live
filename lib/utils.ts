@@ -63,6 +63,17 @@ export function checkRateLimit(ip: string, route: string, limit: number = 30, wi
   return true
 }
 
+/**
+ * Berechnet den Bucket-Key (Epoch-Millis) für einen Zeitstempel und eine Bucket-Größe.
+ * @param ts Zeitstempel (ms oder Date)
+ * @param bucketMs Bucket-Größe in Millisekunden (z.B. 15*60*1000 für 15min)
+ * @returns number (Epoch-Millis des Bucket-Starts)
+ */
+export function getBucketKey(ts: number | Date, bucketMs: number): number {
+  const ms = ts instanceof Date ? ts.getTime() : ts;
+  return Math.floor(ms / bucketMs) * bucketMs;
+}
+
 export function windDirToLabel(dir: string | number | null | undefined): string {
   if (dir == null) return '-';
   let deg = 0;

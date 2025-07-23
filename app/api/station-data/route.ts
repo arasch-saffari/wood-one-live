@@ -8,7 +8,7 @@ import path from "path";
 import { getThresholdsForStationAndTime, checkRateLimit } from '@/lib/utils'
 import db from '@/lib/database'
 import os from 'os'
-import { getMinuteAveragesForStation } from '@/lib/db'
+import { getMinuteAveragesForStation, get15MinAveragesForStation } from '@/lib/db'
 
 const configPath = path.join(process.cwd(), 'config.json')
 function getConfig() {
@@ -117,7 +117,19 @@ export async function GET(req: Request) {
     const start = (page - 1) * pageSize
     const end = start + pageSize
     const paged = minuteAverages.slice(start, end)
-    console.log(`[API station-data] Station: ${station}, Aggregation: minutely, Count: ${totalCount}`)
+    // Rückgabe: bucket statt minute
+    return NextResponse.json({ data: paged, totalCount, page, pageSize })
+  }
+  if (aggregate === "15min") {
+    const min15Averages = get15MinAveragesForStation(station, interval)
+    const totalCount = min15Averages.length
+    const start = (page - 1) * pageSize
+    const end = start + pageSize
+    const paged = min15Averages.slice(start, end).map(b => ({
+      time: b.bucket.slice(11, 16),
+      las: b.avgLas,
+      datetime: b.bucket
+    }))
     return NextResponse.json({ data: paged, totalCount, page, pageSize })
   }
   // File-Cache-Logik wieder aktivieren
