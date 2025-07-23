@@ -4,11 +4,10 @@ import React from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3, Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer, Calendar, Database as DbIcon } from "lucide-react"
+import { Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer, Calendar, Database as DbIcon } from "lucide-react"
 import { useStationData } from "@/hooks/useStationData"
 import { useEffect, useState } from "react"
-import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { Progress } from "@/components/ui/progress"
+import { GlobalLoader } from "@/components/GlobalLoader"
 import Link from "next/link"
 import { STATION_META } from "@/lib/stationMeta"
 import {
@@ -24,6 +23,13 @@ import { ChartPlayground } from '@/components/ChartPlayground'
 import { useHealth } from "@/hooks/useHealth"
 import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
 import { AllStationsTable } from "@/components/AllStationsTable"
+// ChartAxis inline definieren
+type ChartAxis = {
+  id: string;
+  orientation: 'left' | 'right';
+  domain: [number, number];
+  label: string;
+}
 
 // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
 function windDirectionText(dir: number | string | null | undefined): string {
@@ -100,18 +106,11 @@ export default function AllLocationsPage() {
 
   if (!config || showLoader) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="flex flex-col items-center gap-4 mb-8">
-          <div className="rounded-2xl bg-gradient-to-br from-violet-600 via-purple-700 to-pink-600 p-5 shadow-2xl border border-violet-300 dark:border-violet-900">
-            <DbIcon className="w-10 h-10 text-white drop-shadow-lg" />
-          </div>
-          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-pink-600 bg-clip-text text-transparent tracking-tight drop-shadow-lg text-center">Wood One Audio</h1>
-        </div>
-        <div className="w-full max-w-xs px-6">
-          <LoadingSpinner text="Dashboard wird geladen ..." />
-          <Progress value={80} className="mt-4" />
-        </div>
-      </div>
+      <GlobalLoader 
+        text="Dashboard wird geladen ..." 
+        progress={80}
+        icon={<DbIcon className="w-10 h-10 text-white drop-shadow-lg" />}
+      />
     )
   }
   console.log("ConfigContext in AllLocationsPage:", config);
@@ -187,8 +186,6 @@ export default function AllLocationsPage() {
   }
 
   // Daten für das Chart filtern
-  const filteredChartData = chartData
-
   const WIND_COLOR = config?.chartColors?.wind || "#06b6d4" // cyan-500
 
   // Fallback für Backup-Info
@@ -202,9 +199,9 @@ export default function AllLocationsPage() {
     { key: 'band', label: STATION_META.band.name, color: STATION_META.band.chartColor },
     { key: 'windSpeed', label: 'Windgeschwindigkeit', color: WIND_COLOR, yAxisId: 'wind', strokeDasharray: '5 5' },
   ]
-  const axes = [
-    { id: 'left', orientation: 'left', domain: [30, 85], label: 'dB' },
-    { id: 'wind', orientation: 'right', domain: [0, 25], label: 'km/h' },
+  const axes: ChartAxis[] = [
+    { id: 'left', orientation: 'left', domain: [30, 85] as [number, number], label: 'dB' },
+    { id: 'wind', orientation: 'right', domain: [0, 25] as [number, number], label: 'km/h' },
   ]
 
   return (
@@ -330,7 +327,7 @@ export default function AllLocationsPage() {
             <CardContent className="pt-0 pb-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {config && Object.entries(config.thresholdsByStationAndTime).map(([station, blocks]) => {
-                  let showBlocks = blocks as any[];
+                  let showBlocks = blocks as Array<{ from: string; to: string; warning: number; alarm: number }>;
                   if (station === "ort" && Array.isArray(blocks) && blocks.length > 2) {
                     showBlocks = blocks.slice(0, 2);
                   }
@@ -342,7 +339,7 @@ export default function AllLocationsPage() {
                         </span>
                       </CardHeader>
                       <CardContent className="space-y-2 pt-0">
-                        {showBlocks.map((block, i) => (
+                        {showBlocks.map((block: { from: string; to: string; warning: number; alarm: number }, i: number) => (
                           <div
                             key={i}
                             className="flex flex-col gap-1 p-2 rounded-lg mb-2 last:mb-0 transition-all hover:shadow-lg hover:ring-2 hover:ring-yellow-300/40 dark:hover:ring-yellow-500/30"

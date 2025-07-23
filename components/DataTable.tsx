@@ -1,7 +1,9 @@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination"
 import { StatusBadge } from "@/components/StatusBadge"
+import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { ReactNode, useState } from "react"
+import React from "react"
 
 export interface DataTableColumn<T = unknown> {
   label: string
@@ -76,7 +78,11 @@ export function DataTable<T = unknown>({
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={columns.length + (statusFn ? 1 : 0)}>Lade Daten...</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={columns.length + (statusFn ? 1 : 0)}>
+                  <LoadingSpinner text="Daten werden geladen..." />
+                </TableCell>
+              </TableRow>
             ) : data.length === 0 ? (
               <TableRow><TableCell colSpan={columns.length + (statusFn ? 1 : 0)}>Keine Daten</TableCell></TableRow>
             ) : data.map((row, i) => {

@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server"
-import csvWatcher from "@/lib/csv-watcher"
+import { processAllCSVFiles } from "@/lib/csv-processing"
 
 export async function POST() {
   try {
-    await csvWatcher.processAllFiles()
+    console.log('🔄 Starte direkte CSV-Verarbeitung...')
+    const result = await processAllCSVFiles()
+    console.log('✅ CSV-Verarbeitung abgeschlossen')
     
     return NextResponse.json({ 
       success: true, 
-      message: `CSV processing completed successfully`
+      message: `CSV processing completed successfully`,
+      processedFiles: result
     })
   } catch (e) {
+    console.error('❌ Fehler bei CSV-Verarbeitung:', e)
     return NextResponse.json({ 
       success: false, 
       error: (e as Error).message,
@@ -20,13 +24,17 @@ export async function POST() {
 
 export async function GET() {
   try {
-    await csvWatcher.processAllFiles()
+    console.log('🔄 Starte direkte CSV-Verarbeitung (GET)...')
+    const result = await processAllCSVFiles()
+    console.log('✅ CSV-Verarbeitung abgeschlossen')
     
     return NextResponse.json({ 
       success: true, 
-      message: `CSV processing completed successfully`
+      message: `CSV processing completed successfully`,
+      processedFiles: result
     })
   } catch (e) {
+    console.error('❌ Fehler bei CSV-Verarbeitung:', e)
     return NextResponse.json({ 
       success: false, 
       error: (e as Error).message 

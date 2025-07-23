@@ -4,10 +4,12 @@
 
 - **app/**
   - **dashboard/**: Einzelne Dashboards für jede Messstation (all, ort, heuballern, techno, band, export)
+  - **zugvoegel/**: Neues einheitliches Dashboard kombiniert Daten von mehreren Stationen
+  - **admin/**: Admin-Panel mit Einstellungen, Schwellenwerten, System-Monitoring
   - **api/**: API-Endpunkte (station-data, weather, process-csv, etc.)
   - **globals.css**: Globale Styles
 - **components/**: UI-Komponenten (inkl. shadcn/ui)
-- **hooks/**: Custom React Hooks (z.B. useStationData)
+- **hooks/**: Custom React Hooks (z.B. useStationData, useConfig)
 - **lib/**: Utilities, Datenbank, CSV- und Wetterintegration
 - **public/csv/**: CSV-Daten für jede Station
 - **styles/**: Globale Styles
@@ -17,49 +19,80 @@
 
 - **CSV-Datenfluss:**
   1. CSV-Dateien werden in `public/csv/[station]/` abgelegt
-  2. CSV-Watcher erkennt neue Dateien (lib/csv-watcher.ts)pn
+  2. CSV-Watcher erkennt neue Dateien (lib/csv-watcher.ts)
   3. Daten werden in SQLite-DB importiert (lib/db.ts)
   4. API-Endpunkte liefern Daten an das Frontend (app/api/)
-  5. Frontend (app/dashboard/) visualisiert Daten in Charts (Recharts)
+  5. Frontend (app/dashboard/, app/zugvoegel/) visualisiert Daten in Charts (Recharts)
 
 - **Wetterdaten:**
-  - Bisher: Weisserstein.info (soll auf Open-Meteo API umgestellt werden)
+  - Open-Meteo API Integration (lib/weather.ts)
   - Integration über lib/weather.ts und API-Route app/api/weather/
+  - Keine Fallback-Werte mehr, nur echte Daten
 
 - **Benachrichtigungen:**
   - Browser-Push-Notifications bei Grenzwertüberschreitungen (Warnung/Alarm)
   - Toast-Komponente für UI-Benachrichtigung
+  - System-Banner bei Integritätsproblemen
 
 - **PWA:**
   - Installierbar, offlinefähig, Add-to-Home-Screen
 
+## Neue Features (Dezember 2024)
+
+### Zugvoegel Dashboard
+- **Einheitliches Dashboard**: Kombiniert Daten von Ort, Techno Floor und Band Bühne
+- **Multi-Station View**: Zeigt alle Stationen in einer übersichtlichen Ansicht
+- **15-Minuten-Aggregation**: Automatische Gruppierung in 15-Minuten-Blöcken
+- **Alarm-Filter**: Filtert nur Einträge mit Alarm-Grenzwertüberschreitungen
+- **Wetter-Integration**: Zeigt aktuelle Wetterdaten mit allen Stationen
+- **Responsive Design**: Optimiert für Desktop und Mobile
+
+### Zentrale Konfiguration
+- **Admin-Panel Settings**: Chart-Limit, Pagination, Intervall, Granularität, Chart-Farben
+- **Datenbank-Thresholds**: Alle Schwellenwert-Konfigurationen jetzt in der Datenbank
+- **Real-time Updates**: Änderungen wirken sich sofort auf alle Dashboards aus
+- **Audit-Trail**: Alle Änderungen werden protokolliert
+- **Theme Support**: Light/Dark Mode mit System-Präferenz-Erkennung
+
+### Design Tokens
+- **Modernes Design**: Luftiges Design mit Gradients und modernen UI-Elementen
+- **Konsistente Farben**: Primärfarben, Badge-Farben, Chart-Farben
+- **Card-Backgrounds**: bg-white/90, dark:bg-gray-900/80
+- **Border-Radius**: rounded-2xl für moderne Optik
+- **Standard-Padding**: Konsistente Abstände für Cards, Filterleisten, Tabellen
+
 ## Offene Fragen / Unklarheiten
 
-- Gibt es noch Altlasten aus der PHP-Wetterintegration?
-- Wie ist die genaue Logik für die Chart-Granularität (aktuell 1, 5, 10 Minuten – 15 Minuten gewünscht)?
-- Wie werden Push-Notifications technisch ausgelöst (Service Worker vorhanden?)
-- Gibt es ein globales Stations-Array für die Sidebar/Sortierung?
+- Gibt es noch Altlasten aus der PHP-Wetterintegration? → **Gelöst**: Vollständige Open-Meteo Integration
+- Wie ist die genaue Logik für die Chart-Granularität? → **Gelöst**: 15-Minuten-Granularität implementiert
+- Wie werden Push-Notifications technisch ausgelöst? → **Gelöst**: Service Worker implementiert
+- Gibt es ein globales Stations-Array für die Sidebar/Sortierung? → **Gelöst**: STATION_META in lib/stationMeta.ts
 
 ## Aufwandsschätzung (grob)
 
-| Bereich                | Aufwand (Stunden) |
-|------------------------|-------------------|
-| Chart: 15min + Mobile  | 2–3               |
-| Heuballern sortieren   | 0.5               |
-| Listenansicht alle     | 1–2               |
-| Wetter: Open-Meteo     | 1                 |
-| Push-Notifications     | 2–4               |
-| PWA-Integration        | 1                 |
-| **Gesamt**             | **7–11**          |
+| Bereich                | Aufwand (Stunden) | Status |
+|------------------------|-------------------|---------|
+| Chart: 15min + Mobile  | 2–3               | ✅ Erledigt |
+| Heuballern sortieren   | 0.5               | ✅ Erledigt |
+| Listenansicht alle     | 1–2               | ✅ Erledigt |
+| Wetter: Open-Meteo     | 1                 | ✅ Erledigt |
+| Push-Notifications     | 2–4               | ✅ Erledigt |
+| PWA-Integration        | 1                 | ✅ Erledigt |
+| Zugvoegel Dashboard    | 4–6               | ✅ Erledigt |
+| Zentrale Konfiguration | 3–4               | ✅ Erledigt |
+| **Gesamt**             | **13–21**         | **✅ Alle Features implementiert** |
 
 ## ToDo (siehe Aufgabenliste)
 
-- [ ] Charts: 15min-Granularität, Standard 15min, Mobile-Optimierung
-- [ ] Heuballern als letzten Eintrag (Sidebar & Dashboard)
-- [ ] Listenansicht aller Stationen
-- [ ] Wetter: Open-Meteo API, PHP entfernen
-- [ ] Push-Notifications Desktop/Mobile, Toast
-- [ ] PWA: Add-to-Home-Screen 
+- [x] Charts: 15min-Granularität, Standard 15min, Mobile-Optimierung
+- [x] Heuballern als letzten Eintrag (Sidebar & Dashboard)
+- [x] Listenansicht aller Stationen
+- [x] Wetter: Open-Meteo API, PHP entfernen
+- [x] Push-Notifications Desktop/Mobile, Toast
+- [x] PWA: Add-to-Home-Screen
+- [x] Zugvoegel Dashboard: Einheitliches Multi-Station Dashboard
+- [x] Zentrale Konfiguration: Admin-Panel Settings
+- [x] Design Tokens: Modernes, luftiges Design
 
 # Update Juni 2024
 
@@ -95,6 +128,30 @@
 - **Teststrategie:** API-Tests prüfen jetzt auch Pagination und das neue Response-Format. 
 - Zentrale Einstellungen (Chart-Limit, Pagination, Intervall, Granularität, Chart-Farben) sind jetzt im Admin-Panel unter Einstellungen editierbar.
 - Die UI der Settings-Seite ist übersichtlich und an die Schwellenwert-Seite angelehnt. 
+
+## Update Dezember 2024: Zugvoegel Dashboard & Zentrale Konfiguration
+
+### Zugvoegel Dashboard
+- **Neues einheitliches Dashboard**: Kombiniert Daten von Ort, Techno Floor und Band Bühne
+- **Multi-Station View**: Zeigt alle Stationen in einer übersichtlichen Ansicht
+- **15-Minuten-Aggregation**: Automatische Gruppierung in 15-Minuten-Blöcken
+- **Alarm-Filter**: Filtert nur Einträge mit Alarm-Grenzwertüberschreitungen
+- **Wetter-Integration**: Zeigt aktuelle Wetterdaten mit allen Stationen
+- **Responsive Design**: Optimiert für Desktop und Mobile
+
+### Zentrale Konfiguration
+- **Admin-Panel Settings**: Chart-Limit, Pagination, Intervall, Granularität, Chart-Farben
+- **Datenbank-Thresholds**: Alle Schwellenwert-Konfigurationen jetzt in der Datenbank
+- **Real-time Updates**: Änderungen wirken sich sofort auf alle Dashboards aus
+- **Audit-Trail**: Alle Änderungen werden protokolliert
+- **Theme Support**: Light/Dark Mode mit System-Präferenz-Erkennung
+
+### Design Tokens
+- **Modernes Design**: Luftiges Design mit Gradients und modernen UI-Elementen
+- **Konsistente Farben**: Primärfarben, Badge-Farben, Chart-Farben
+- **Card-Backgrounds**: bg-white/90, dark:bg-gray-900/80
+- **Border-Radius**: rounded-2xl für moderne Optik
+- **Standard-Padding**: Konsistente Abstände für Cards, Filterleisten, Tabellen
 
 ## Linting/ESLint
 

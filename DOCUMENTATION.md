@@ -76,7 +76,15 @@ The **Noise Monitoring Dashboard** is a real-time web platform for environmental
 - **Wide Card Layout**: All admin and dashboard subpages use a wide, centered card style for clarity
 
 ### 🧩 **Modular Dashboard Components**
-- Centralized, reusable components for all station dashboards (see codebase for details)
+- Centralized, reusable components for all station dashboards
+- **Zugvoegel Dashboard**: New unified dashboard combining data from multiple stations
+- **Design Tokens**: Modern, airy design with gradients, primary colors, badge colors, card backgrounds, border radius, standard padding and spacing
+
+### ⚙️ **Central Configuration System**
+- **Admin Panel Settings**: Chart limit, pagination, intervals, granularities, chart colors
+- **Database-Stored Thresholds**: All threshold configurations now stored in database
+- **Real-time Updates**: Configuration changes apply immediately across all dashboards
+- **Theme Support**: Light/dark mode with system preference detection
 
 ---
 
@@ -139,6 +147,8 @@ noise-monitoring-dashboard/
 │   │   ├── techno/           # Techno Floor station
 │   │   ├── band/             # Band Bühne station
 │   │   └── export/           # Data export
+│   ├── zugvoegel/            # New unified dashboard
+│   ├── admin/                # Admin panel with settings
 │   ├── api/
 │   │   ├── station-data/     # Station data API
 │   │   ├── weather/          # Weather API
@@ -181,18 +191,36 @@ noise-monitoring-dashboard/
 
 ## 7. Configuration
 
-- All global settings (chart limit, pagination, default interval/granularity, chart colors) are configurable in the Admin Panel under "Einstellungen".
-- Thresholds are fully configurable per station and time block.
-- CSV watcher and notification system can be enabled/disabled via config.
+### Central Configuration System
+- **Chart Settings**: Chart limit, pagination size, default intervals and granularities
+- **Chart Colors**: Customizable color scheme for all charts and visualizations
+- **Allowed Options**: Configurable intervals and granularities available to users
+- **Database Storage**: All threshold configurations now stored in database with audit trail
+- **Real-time Updates**: Changes apply immediately across all dashboards
+
+### Admin Panel Features
+- **Settings Tab**: Global system and chart options
+- **Threshold Management**: Per-station and time-block threshold configuration
+- **System Monitoring**: Health checks, integrity monitoring, backup management
+- **Data Correction**: Edit and delete measurement and weather data
+- **CSV Management**: Upload and process CSV files
 
 ---
 
 ## 8. Usage Guide
 
-- All error and status notifications are shown as toast and (optionally) push notifications.
-- Weather data is always shown in Europe/Berlin timezone.
-- If no weather data is available, the UI shows 'keine daten' instead of numeric 0.
-- All charts and tables are paginated for performance.
+### Dashboard Navigation
+- **Individual Stations**: `/dashboard/[station]` for station-specific views
+- **All Stations**: `/dashboard/all` for combined overview
+- **Zugvoegel Dashboard**: `/zugvoegel` for unified multi-station view
+- **Admin Panel**: `/admin` for system configuration and management
+
+### Key Features
+- All error and status notifications are shown as toast and (optionally) push notifications
+- Weather data is always shown in Europe/Berlin timezone
+- If no weather data is available, the UI shows 'keine daten' instead of numeric 0
+- All charts and tables are paginated for performance
+- Tooltips provide contextual help throughout the interface
 
 ---
 
@@ -216,6 +244,9 @@ noise-monitoring-dashboard/
 ## 10. Database Schema
 
 - See codebase for up-to-date schema. All migrations are handled automatically. Integrity checks run daily.
+- **Thresholds Table**: Stores all threshold configurations with audit trail
+- **Measurements Table**: Noise level data with weather correlation
+- **Audit Tables**: Track changes to thresholds and data corrections
 
 ---
 
@@ -279,6 +310,8 @@ noise-monitoring-dashboard/
 ### New Terms
 - **Open-Meteo**: External weather API used for all live weather data
 - **Toast**: UI notification shown in-app
+- **Zugvoegel**: Unified dashboard combining multiple station data
+- **Design Tokens**: Centralized design system with consistent colors, spacing, and components
 
 ---
 
@@ -361,6 +394,6 @@ noise-monitoring-dashboard/
 
 ---
 
-**Documentation Version**: 2.1
-**Last Updated**: July 2024
+**Documentation Version**: 2.2
+**Last Updated**: December 2024
 **Maintained By**: Development Team 

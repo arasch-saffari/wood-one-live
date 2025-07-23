@@ -15,6 +15,7 @@ import { KpiCard } from "@/components/KpiCard"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { DataTable } from "@/components/DataTable"
 import { StationTable } from "@/components/StationTable"
+import { GlobalLoader } from "@/components/GlobalLoader"
 
 const STATION_META = {
   ort: {
@@ -99,9 +100,18 @@ function windDirectionText(dir: number | string | null | undefined): string {
 
 export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const meta = STATION_META[station]
-  const { data: chartData } = useStationData(station, "24h", 60000)
+  const { data: chartData, loading: dataLoading } = useStationData(station, "24h", 60000)
   const { config: globalConfig } = useConfig();
-  if (!globalConfig) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
+  
+  // Show loading state while config or data is loading
+  if (!globalConfig || dataLoading) {
+    return (
+      <GlobalLoader 
+        text="Dashboard wird geladen ..." 
+        icon={meta.icon}
+      />
+    )
+  }
   // KPIs
   const current = typeof chartData[chartData.length - 1]?.las === 'number' ? chartData[chartData.length - 1].las : 0
   const avg24h = chartData.length > 0 ? (chartData.reduce((a, b) => a + (typeof b.las === 'number' ? b.las : 0), 0) / chartData.length).toFixed(1) : '–'

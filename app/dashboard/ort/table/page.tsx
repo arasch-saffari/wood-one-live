@@ -69,7 +69,7 @@ export default function OrtTablePage() {
 
   return (
     <>
-      {loading && <LoadingSpinner />}
+      {loading && <LoadingSpinner text="Daten werden geladen..." />}
       {error && <ErrorMessage message={error} />}
       <DataTable
         data={filtered}

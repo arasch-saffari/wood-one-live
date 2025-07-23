@@ -231,6 +231,14 @@ export default function AdminDashboard() {
   const [settingsSuccess, setSettingsSuccess] = useState(false)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [importRunning, setImportRunning] = useState(false)
+
+  // Optional: Import-Status aus dem LocalStorage oder API holen, falls mehrere Admins
+  useEffect(() => {
+    // Reset beim Laden
+    setImportRunning(false)
+  }, [])
+
   useEffect(() => { setMounted(true) }, [])
 
   // Verschiebe fetchCorrectionStats und fetchCorrectionData direkt vor die useEffect, die sie verwendet.
@@ -903,7 +911,7 @@ export default function AdminDashboard() {
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">Admin Übersicht</h1>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                    {healthLoading && <LoadingSpinner text="Systemdaten werden geladen..." />}
+                    {healthLoading && <LoadingSpinner text="Systemdaten werden geladen..." className="col-span-full" />}
                     {healthError && <ErrorMessage message={healthError} />}
                     {health && !healthLoading && !healthError && (
                       <>
@@ -1179,12 +1187,40 @@ export default function AdminDashboard() {
                             const res = await fetch('/api/process-csv', { method: 'POST' })
                             const data = await res.json()
                             toast({ title: data.success ? 'CSV-Import abgeschlossen' : 'Fehler beim Import', description: data.message || data.error, variant: data.success ? 'default' : 'destructive' })
-                          } catch (e: any) {
-                            toast({ title: 'Fehler beim Import', description: e?.message, variant: 'destructive' })
+                          } catch (e: unknown) {
+                            toast({ title: 'Fehler beim Import', description: e instanceof Error ? e.message : 'Unbekannter Fehler', variant: 'destructive' })
                           } finally {
                             setLoading(false)
                           }
-                        }} disabled={loading} className="ml-4">Alle CSV-Dateien neu einlesen</Button>
+                        }} disabled={loading || importRunning} className="ml-4">
+                          {loading ? <span className="animate-spin mr-2">⏳</span> : null}
+                          CSV-Dateien neu einlesen
+                        </Button>
+                        <Button onClick={async () => {
+                          setImportRunning(true)
+                          setLoading(true)
+                          try {
+                            const res = await fetch('/api/admin/import-csv-data', { method: 'POST' })
+                            const data = await res.json()
+                            if (data.success) {
+                              toast({ 
+                                title: 'Vollständiger Import abgeschlossen', 
+                                description: `${data.stats.newMeasurements} Messwerte, ${data.stats.weatherFetched} Wetterdaten importiert`, 
+                                variant: 'default' 
+                              })
+                            } else {
+                              toast({ title: 'Fehler beim Import', description: data.message, variant: 'destructive' })
+                            }
+                          } catch (e: unknown) {
+                            toast({ title: 'Fehler beim Import', description: e instanceof Error ? e.message : 'Unbekannter Fehler', variant: 'destructive' })
+                          } finally {
+                            setLoading(false)
+                            setImportRunning(false)
+                          }
+                        }} disabled={loading || importRunning} variant="destructive">
+                          {importRunning ? <span className="animate-spin mr-2">⏳</span> : null}
+                          DB leeren & Vollimport
+                        </Button>
                       </div>
                       <div className="text-xs text-gray-500">Der CSV-Watcher überwacht die Ordner und importiert neue Dateien automatisch. Mit diesem Button werden alle CSV-Dateien erneut eingelesen (Rebuild).</div>
                     </CardContent>
@@ -1523,6 +1559,12 @@ export default function AdminDashboard() {
           </div>
         </div>
       </SidebarProvider>
+      {/* Import läuft Banner */}
+      {importRunning && (
+        <div className="w-full bg-yellow-200 text-yellow-900 text-center py-2 font-semibold shadow-md z-50">
+          <span className="animate-pulse">CSV-Import läuft – bitte warten, keine weiteren Aktionen durchführen!</span>
+        </div>
+      )}
     </div>
   )
 } 

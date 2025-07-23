@@ -31,8 +31,7 @@ import { Input } from "@/components/ui/input"
 import { useMemo } from "react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { Progress } from "@/components/ui/progress"
+import { GlobalLoader } from "@/components/GlobalLoader"
 
 function windDirectionText(dir: number | string | null | undefined): string {
   if (dir === null || dir === undefined) return '–';
@@ -251,18 +250,11 @@ export default function ZugvoegelDashboard() {
   // Loader nur im JSX-Return bedingt anzeigen
   if (showLoader) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="flex flex-col items-center gap-4 mb-8">
-          <div className="rounded-2xl bg-gradient-to-br from-violet-600 via-purple-700 to-pink-600 p-5 shadow-2xl border border-violet-300 dark:border-violet-900">
-            <Speaker className="w-10 h-10 text-white drop-shadow-lg" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-pink-600 bg-clip-text text-transparent tracking-tight drop-shadow-lg text-center">Wood One Audio</h1>
-        </div>
-        <div className="w-full max-w-xs px-6">
-          <LoadingSpinner text="Dashboard wird geladen ..." />
-          <Progress value={progress} className="mt-4" />
-        </div>
-      </div>
+      <GlobalLoader 
+        text="Dashboard wird geladen ..." 
+        progress={progress}
+        icon={<Speaker className="w-10 h-10 text-white drop-shadow-lg" />}
+      />
     )
   }
 

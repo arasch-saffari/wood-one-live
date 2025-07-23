@@ -54,7 +54,7 @@ export default function HeuballernTablePage() {
 
   return (
     <>
-      {loading && <LoadingSpinner />}
+      {loading && <LoadingSpinner text="Daten werden geladen..." />}
       {error && <ErrorMessage message={error} />}
       <DataTable
         data={filtered}

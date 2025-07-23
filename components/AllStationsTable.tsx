@@ -1,14 +1,13 @@
 import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Table as TableIcon, Wind, AlertTriangle, MapPin, Volume2, Music, Droplets, Thermometer, Activity, Info, Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react"
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { Table as TableIcon, Wind, AlertTriangle, MapPin, Volume2, Droplets, Info, Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react"
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { DataTableColumn } from "@/components/DataTable"
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { cn } from '@/lib/utils'
 
 function windDirectionText(dir: number | string | null | undefined): string {
   if (dir === null || dir === undefined) return '–';
@@ -44,11 +43,11 @@ type TableRowType = {
 }
 
 type AllStationsTableProps = {
-  ortData: any[];
-  heuballernData: any[];
-  technoData: any[];
-  bandData: any[];
-  config: any;
+  ortData: TableRowType[];
+  heuballernData: TableRowType[];
+  technoData: TableRowType[];
+  bandData: TableRowType[];
+  config: Record<string, unknown>;
 }
 
 export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config }: AllStationsTableProps) {
@@ -117,8 +116,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
         return Object.values(row).some(val => (val ? String(val).toLowerCase().includes(s) : false))
       }
       if (showOnlyAlarms && config?.thresholdsByStationAndTime) {
-        const stationKey = (row.station || '').toLowerCase().replace(/ /g, '')
-        const blocks = config.thresholdsByStationAndTime[stationKey]
+        const blocks = config.thresholdsByStationAndTime as Array<{ alarm: number }>
         if (!blocks || !blocks[0] || typeof blocks[0].alarm !== 'number') return false
         if (typeof row.las !== 'number') return false
         return row.las >= blocks[0].alarm

@@ -17,6 +17,8 @@ db.exec(`
     time TEXT NOT NULL,
     las REAL NOT NULL,
     source_file TEXT,
+    datetime DATETIME,
+    all_csv_fields TEXT, -- JSON field for all CSV data
     UNIQUE(station, time)
   );
   CREATE TABLE IF NOT EXISTS weather (
@@ -60,6 +62,16 @@ db.exec(`
     changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     action TEXT NOT NULL CHECK(action IN ('insert','update','delete'))
   );
+  CREATE TABLE IF NOT EXISTS csv_raw_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    station TEXT NOT NULL,
+    time TEXT NOT NULL,
+    datetime DATETIME,
+    source_file TEXT,
+    csv_row_data TEXT, -- Complete JSON of CSV row
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(station, time, source_file)
+  );
 `)
 
 if (typeof db.pragma === 'function') {
@@ -78,8 +90,9 @@ if (typeof db.pragma === 'function') {
         const now = new Date()
         const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
         db.prepare("UPDATE measurements SET datetime = ? || ' ' || time WHERE datetime IS NULL").run(today)
-      } catch (e: any) {
-        if (e.message && e.message.includes('duplicate column name')) {
+      } catch (e: unknown) {
+        const error = e as Error
+        if (error.message && error.message.includes('duplicate column name')) {
           console.log('Spalte datetime existiert bereits, Migration wird übersprungen.')
         } else {
           throw e
@@ -188,6 +201,27 @@ export function runMigrations() {
   } catch (e) {
     console.error('❌ Migration check failed:', e)
   }
+  // Migration 5: Add all_csv_fields column to measurements table
+  try {
+    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+    console.log('Spalten in measurements:', columns.map(c => c.name))
+    const hasAllCsvFields = columns.some(col => col.name === 'all_csv_fields')
+    if (!hasAllCsvFields) {
+      db.exec('BEGIN TRANSACTION')
+      try {
+        db.exec('ALTER TABLE measurements ADD COLUMN all_csv_fields TEXT')
+        db.exec('COMMIT')
+      } catch (migrationError) {
+        db.exec('ROLLBACK')
+        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
+        throw migrationError
+      }
+    } else {
+      console.log('Spalte all_csv_fields existiert bereits, Migration wird übersprungen.')
+    }
+  } catch (e) {
+    console.error('❌ Migration check failed:', e)
+  }
 }
 
 export function startCsvWatcher() {
@@ -213,16 +247,24 @@ export function insertMeasurement(station: string, time: string, las: number) {
 // Fast database queries with optimized indexing
 export function getMeasurementsForStation(station: string, interval: "24h" | "7d" = "24h") {
   const limit = interval === "7d" ? 5000 : 1000;
+  // Zeit auf 10-Minuten-Block runden (z.B. 19:25:24 -> 19:20:00)
+  // SQLite: substr(m.time,1,2) gibt Stunde, substr(m.time,4,2) gibt Minute
+  // (CAST(substr(m.time,4,2) AS INTEGER) / 10) * 10 gibt den 10er-Block
+  // weather.time ist dann z.B. 19:20:00
   const stmt = db.prepare(`
     SELECT m.time, m.las, m.datetime,
-      w.windSpeed as ws, w.windDir as wd, w.relHumidity as rh
+      w.windSpeed as ws, w.windDir as wd, w.relHumidity as rh, w.temperature as temp
     FROM measurements m
-    LEFT JOIN weather w ON w.station = m.station AND w.time = m.time
+    LEFT JOIN weather w
+      ON w.station = m.station
+      AND w.time = (
+        substr(m.time,1,3) || printf('%02d', (CAST(substr(m.time,4,2) AS INTEGER) / 10) * 10) || ':00'
+      )
     WHERE m.station = ?
     ORDER BY m.rowid DESC
     LIMIT ?
   `)
-  const results = stmt.all(station, limit) as Array<{ time: string; las: number; datetime: string; ws?: number; wd?: string; rh?: number }>;
+  const results = stmt.all(station, limit) as Array<{ time: string; las: number; datetime: string; ws?: number; wd?: string; rh?: number; temp?: number }>;
   return results.reverse(); // Chronologische Reihenfolge
 }
 

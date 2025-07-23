@@ -23,10 +23,11 @@ export async function POST(req: Request) {
     // Datei speichern
     const arrayBuffer = await file.arrayBuffer()
     fs.writeFileSync(filePath, Buffer.from(arrayBuffer))
-    // Sofort verarbeiten
-    const imported = processCSVFile(station, filePath)
+    // Sofort verarbeiten (async/await!)
+    const imported = await processCSVFile(station, filePath)
     return NextResponse.json({ success: true, message: `${file.name} erfolgreich hochgeladen und verarbeitet. (${imported} Messwerte importiert)` })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Upload.' }, { status: 500 })
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e.message : 'Fehler beim Upload.'
+    return NextResponse.json({ success: false, message: error }, { status: 500 })
   }
 } 
