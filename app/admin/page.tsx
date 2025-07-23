@@ -907,14 +907,14 @@ export default function AdminDashboard() {
                     {healthError && <ErrorMessage message={healthError} />}
                     {health && !healthLoading && !healthError && (
                       <>
-                        <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                        <Card className="w-full p-6 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                           <CardHeader><CardTitle>Datenbank</CardTitle></CardHeader>
                           <CardContent>
                             <div className="text-sm">Größe: <b>{health.dbSize ? (health.dbSize/1024/1024).toFixed(2) : '-'} MB</b></div>
                             <div className="text-sm">Letztes Backup: <b>{health.lastBackup ? new Date(health.lastBackup).toLocaleString() : '-'}</b></div>
                           </CardContent>
                         </Card>
-                        <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                        <Card className="w-full p-6 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                           <CardHeader><CardTitle>CSV-Watcher</CardTitle></CardHeader>
                           <CardContent>
                             <div className="text-sm">Status: <Badge className={health.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{health.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
@@ -922,7 +922,7 @@ export default function AdminDashboard() {
                             <div className="text-sm">CSV-Dateien: <b>{health.totalFiles ?? '-'}</b></div>
                           </CardContent>
                         </Card>
-                        <Card className="w-full p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                        <Card className="w-full p-6 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                           <CardHeader><CardTitle>System</CardTitle></CardHeader>
                           <CardContent>
                             <div className="text-sm">Zeit: <b>{health.time ? new Date(health.time).toLocaleString() : '-'}</b></div>
@@ -933,7 +933,7 @@ export default function AdminDashboard() {
                       </>
                     )}
                   </div>
-                  <Card className="w-full mb-8 p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full mb-8 p-6 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Geplante Aufgaben (Cron)</CardTitle></CardHeader>
                     <CardContent>
                       <Table>
@@ -967,7 +967,7 @@ export default function AdminDashboard() {
                       </Table>
                     </CardContent>
                   </Card>
-                  <Card className="max-w-6xl mx-auto w-full mb-8 p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="max-w-6xl mx-auto w-full mb-8 p-6 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Letzte System-Logs</CardTitle></CardHeader>
                     <CardContent>
                       <div className="max-h-64 overflow-y-auto font-mono text-xs bg-gray-50 dark:bg-gray-900/40 rounded p-2 border border-gray-200 dark:border-gray-700">
@@ -1001,7 +1001,7 @@ export default function AdminDashboard() {
                           return (
                             <div
                               key={idx}
-                              className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl flex flex-col gap-6"
+                              className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl flex flex-col gap-6"
                               aria-label={`Zeitblock ${block.from} - ${block.to} (${isDay ? 'Tag' : 'Nacht'})`}
                             >
                               <h3 className="flex items-center gap-3 text-xl font-semibold mb-2">
@@ -1107,21 +1107,21 @@ export default function AdminDashboard() {
                   {health?.error && <div className="text-sm text-red-500">{health.error}</div>}
                   {health && !health.error && (
                     <>
-                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                         <CardHeader><CardTitle>Datenbank</CardTitle></CardHeader>
                         <CardContent>
                           <div className="text-sm">Größe: <b>{health.dbSize ? (health.dbSize/1024/1024).toFixed(2) : '-'} MB</b></div>
                           <div className="text-sm">Letztes Backup: <b>{health.lastBackup ? new Date(health.lastBackup).toLocaleString() : '-'}</b></div>
                         </CardContent>
                       </Card>
-                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                         <CardHeader><CardTitle>CSV-Watcher</CardTitle></CardHeader>
                         <CardContent>
                           <div className="text-sm">Status: <Badge className={health.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{health.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
                           <div className="text-sm">Letzter Heartbeat: <b>{health.watcherHeartbeat ? new Date(health.watcherHeartbeat).toLocaleString() : '-'}</b></div>
                         </CardContent>
                       </Card>
-                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                         <CardHeader><CardTitle>System</CardTitle></CardHeader>
                         <CardContent>
                           <div className="text-sm">Zeit: <b>{health.time ? new Date(health.time).toLocaleString() : '-'}</b></div>
@@ -1129,7 +1129,7 @@ export default function AdminDashboard() {
                           <div className="text-sm">Speicher gesamt: <b>{health.diskTotal ? (health.diskTotal/1024/1024/1024).toFixed(2) : '-'} GB</b></div>
                         </CardContent>
                       </Card>
-                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                         <CardHeader><CardTitle>API-Cache-Dauer</CardTitle></CardHeader>
                         <CardContent>
                           <SettingsForm
@@ -1155,7 +1155,7 @@ export default function AdminDashboard() {
                           <span className="ml-2 text-sm text-gray-500">(0 = kein Caching, Standard: 60)</span>
                         </CardContent>
                       </Card>
-                      <Card className="w-full max-w-6xl mx-auto mb-8 p-6 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                      <Card className="w-full max-w-6xl mx-auto mb-8 p-6 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                         <CardHeader><CardTitle>Schwellenwert-Änderungen (Audit-Log)</CardTitle></CardHeader>
                         <CardContent>
                           <ThresholdsAuditTable />
@@ -1168,7 +1168,7 @@ export default function AdminDashboard() {
               {segment === 'csv' && (
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">CSV & Import</h1>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>CSV-Watcher & Rebuild</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
                       <div className="flex items-center gap-4">
@@ -1189,13 +1189,13 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Der CSV-Watcher überwacht die Ordner und importiert neue Dateien automatisch. Mit diesem Button werden alle CSV-Dateien erneut eingelesen (Rebuild).</div>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>CSV-Dateien & Upload</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
                       {csvError && <div className="text-xs text-red-500">{csvError}</div>}
                       <div className="grid grid-cols-1 gap-4">
                         {csvStatus?.watchedDirectories?.map((dir: WatchedDirectory) => (
-                          <div key={dir.station} className="border rounded-xl p-4 bg-white/80 dark:bg-slate-800/60">
+                          <div key={dir.station} className="border rounded-xl p-4 bg-white/90 dark:bg-gray-900/80">
                             <div className="flex items-center gap-2 mb-2">
                               <span className="font-semibold capitalize">{dir.station}</span>
                               <Badge className="bg-gray-100 text-gray-700 border-gray-300 ml-2">{dir.fileCount} Dateien</Badge>
@@ -1223,7 +1223,7 @@ export default function AdminDashboard() {
                       </div>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Watcher-Status</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-sm">Status: <Badge className={csvStatus?.watcherActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{csvStatus?.watcherActive ? 'Aktiv' : 'Inaktiv'}</Badge></div>
@@ -1231,7 +1231,7 @@ export default function AdminDashboard() {
                       <div className="text-sm">CSV-Dateien: <b>{csvStatus?.totalFiles ?? '-'}</b></div>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Factory Reset</CardTitle></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       <Button onClick={handleFactoryReset} className="w-48 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold" size="lg" disabled={resetting}>
@@ -1240,13 +1240,13 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Löscht alle Messwerte, Wetterdaten und CSV-Dateien unwiderruflich.</div>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Backup-Plan</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-sm">Tägliches automatisches Backup um 03:00 Uhr (siehe <code>backups/</code> Verzeichnis).</div>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Datenbank zurücksetzen (Rebuild DB)</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
                       <div className="flex items-center gap-4">
@@ -1267,7 +1267,7 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Löscht alle Messwerte und Wetterdaten unwiderruflich und baut die Tabellenstruktur neu auf. Nutze danach "Alle CSV-Dateien neu einlesen" für einen vollständigen Reimport.</div>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Wetterdaten manuell aktualisieren</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
                       <div className="flex items-center gap-4">
@@ -1292,7 +1292,7 @@ export default function AdminDashboard() {
               {segment === 'backup' && (
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">Backup & Restore</h1>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Datenbank-Backup</CardTitle></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       <Button onClick={handleBackupDownload} className="w-48 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold" size="lg">
@@ -1301,7 +1301,7 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Das Backup enthält alle Messwerte, Wetterdaten und Konfigurationen.</div>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Restore (Wiederherstellen)</CardTitle></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -1313,7 +1313,7 @@ export default function AdminDashboard() {
                       {restoreMessage && <div className="text-xs text-emerald-600">{restoreMessage}</div>}
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Factory Reset</CardTitle></CardHeader>
                     <CardContent className="flex flex-col gap-4">
                       <Button onClick={handleFactoryReset} className="w-48 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold" size="lg" disabled={resetting}>
@@ -1322,7 +1322,7 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">Löscht alle Messwerte, Wetterdaten und CSV-Dateien unwiderruflich.</div>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Backup-Plan</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-sm">Tägliches automatisches Backup um 03:00 Uhr (siehe <code>backups/</code> Verzeichnis).</div>
@@ -1333,7 +1333,7 @@ export default function AdminDashboard() {
               {segment === 'correction' && (
                 <section className="space-y-8">
                   <h1 className="text-2xl font-bold mb-6">Datenkorrektur</h1>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Suche & Filter</CardTitle></CardHeader>
                     <CardContent className="flex flex-wrap gap-4 items-end">
                       <div>
@@ -1365,7 +1365,7 @@ export default function AdminDashboard() {
                       <Button variant="outline" onClick={fetchCorrectionData}><Search className="w-4 h-4 mr-1" />Suchen</Button>
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Statistiken</CardTitle></CardHeader>
                     <CardContent>
                       {correctionStats ? (
@@ -1376,7 +1376,7 @@ export default function AdminDashboard() {
                       ) : <div className="text-gray-400">Keine Daten</div>}
                     </CardContent>
                   </Card>
-                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Daten</CardTitle></CardHeader>
                     <CardContent>
                       {correctionError && <div className="text-xs text-red-500 mb-2">{correctionError}</div>}
@@ -1477,7 +1477,7 @@ export default function AdminDashboard() {
                     Einstellungen
                     <span className="text-base font-normal text-gray-400 ml-4">Globale System- und Chart-Optionen</span>
                   </h1>
-                  <Card className="max-w-6xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="max-w-6xl mx-auto w-full p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Chart & Anzeige</CardTitle></CardHeader>
                     <CardContent>
                       <p className="text-gray-500 text-xs mb-6">Hier kannst du globale Anzeige- und Chart-Optionen für das Dashboard festlegen. Änderungen wirken sich auf alle Nutzer aus.</p>
@@ -1495,7 +1495,7 @@ export default function AdminDashboard() {
                       </form>
                     </CardContent>
                   </Card>
-                  <Card className="max-w-6xl mx-auto w-full p-8 bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                  <Card className="max-w-6xl mx-auto w-full p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
                     <CardHeader><CardTitle>Chart-Farben</CardTitle></CardHeader>
                     <CardContent>
                       <p className="text-gray-500 text-xs mb-6">Passe die Farben der Diagramme an dein Branding an. Erlaubt sind Hex- oder CSS-Farbnamen (z.B. #06b6d4, red, rgb(255,0,0)).</p>

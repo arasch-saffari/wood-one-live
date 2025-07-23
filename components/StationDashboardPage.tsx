@@ -2,7 +2,7 @@
 import { useStationData, StationDataPoint } from "@/hooks/useStationData"
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Music, Volume2 } from "lucide-react"
+import { MapPin, Music, Volume2, BarChart3 } from "lucide-react"
 import { STATION_COLORS, CHART_COLORS, getStationColor } from "@/lib/colors"
 import { toast } from "@/components/ui/use-toast"
 import { StationHeader } from "@/components/StationHeader"
@@ -11,6 +11,10 @@ import { StationAlert } from "@/components/StationAlert"
 import { StationTableLink } from "@/components/StationTableLink"
 import { ChartPlayground } from "@/components/ChartPlayground"
 import { useConfig } from "@/hooks/useConfig"
+import { KpiCard } from "@/components/KpiCard"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { DataTable } from "@/components/DataTable"
+import { StationTable } from "@/components/StationTable"
 
 const STATION_META = {
   ort: {
@@ -95,157 +99,170 @@ function windDirectionText(dir: number | string | null | undefined): string {
 
 export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const meta = STATION_META[station]
-  const [chartInterval, setChartInterval] = useState<"24h" | "7d">("24h")
-  const [granularity, setGranularity] = useState<"15min" | "10min" | "5min" | "1min" | "1h">("15min")
-  const { data: chartData } = useStationData(station, chartInterval, granularity)
-  const [config, setConfig] = useState<any>(null)
+  const { data: chartData } = useStationData(station, "24h", 60000)
   const { config: globalConfig } = useConfig();
-  const visibleLines = globalConfig?.chartVisibleLines?.[station] || ["las"];
-  useEffect(() => {
-    fetch('/api/admin/config')
-      .then(res => {
-        if (!res.ok) throw new Error('Fehler beim Laden der Konfiguration')
-        return res.json()
-      })
-      .then(setConfig)
-      .catch(() => {
-        toast({
-          title: 'Fehler',
-          description: 'Konfiguration konnte nicht geladen werden.',
-          variant: 'destructive',
-        })
-      })
-  }, [])
-  useEffect(() => {
-  }, [chartData])
   if (!globalConfig) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
-  console.log("ConfigContext in StationDashboardPage:", globalConfig);
   // KPIs
-  const current = chartData.length > 0 ? chartData[chartData.length - 1].las : 0
-  const avg24h = chartData.length > 0 ? (chartData.reduce((a, b) => a + b.las, 0) / chartData.length).toFixed(1) : 0
-  const max24h = chartData.length > 0 ? Math.max(...chartData.map(d => d.las)) : 0
-  const trend = chartData.length > 1 ? ((chartData[chartData.length - 1].las - chartData[chartData.length - 2].las) / chartData[chartData.length - 2].las * 100).toFixed(1) : 0
-  const currentWind = chartData.length > 0 ? chartData[chartData.length - 1].ws : 0
-  const windDirection = chartData.length > 0 ? chartData[chartData.length - 1].wd : "N/A"
-  // Dynamische Schwellenwerte aus config bestimmen
-  function getDynamicThresholds(
-    config: any,
-    station: string,
-    chartData: any[]
-  ): ThresholdBlock {
+  const current = typeof chartData[chartData.length - 1]?.las === 'number' ? chartData[chartData.length - 1].las : 0
+  const avg24h = chartData.length > 0 ? (chartData.reduce((a, b) => a + (typeof b.las === 'number' ? b.las : 0), 0) / chartData.length).toFixed(1) : '–'
+  const max24h = chartData.length > 0 ? Math.max(...chartData.map(d => typeof d.las === 'number' ? d.las : 0)) : '–'
+  const trend = chartData.length > 1 && typeof chartData[chartData.length - 2]?.las === 'number'
+    ? (((current - chartData[chartData.length - 2].las) / chartData[chartData.length - 2].las) * 100).toFixed(1)
+    : '–'
+  const maxData = chartData.length > 0 ? chartData.reduce((max, d) => (typeof d.las === 'number' && d.las > max.las ? d : max), chartData[0]) : undefined
+  const maxTime = maxData && maxData.datetime ? new Date(maxData.datetime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'
+  const currentWind = typeof chartData[chartData.length - 1]?.ws === 'number' ? chartData[chartData.length - 1].ws : 'keine daten'
+  const windDirectionRaw = chartData[chartData.length - 1]?.wd
+  const windDirection = windDirectionRaw === null || windDirectionRaw === undefined || windDirectionRaw === '' ? '–' : windDirectionText(windDirectionRaw)
+  // Schwellenwerte
+  function getDynamicThresholds(config: any, station: string, chartData: any[]): ThresholdBlock {
     if (!config || !config.thresholdsByStationAndTime || !chartData.length) return { warning: 55, alarm: 60, las: 50, laf: 52, from: "00:00", to: "23:59" }
     const now = chartData[chartData.length - 1]?.datetime?.slice(11, 16)
     const blocks: ThresholdBlock[] = config.thresholdsByStationAndTime[station]
     if (!blocks) return { warning: 55, alarm: 60, las: 50, laf: 52, from: "00:00", to: "23:59" }
-    // Finde das Zeitfenster, das jetzt passt
     const currentBlock = blocks.find((b: ThresholdBlock) => {
       if (!b.from || !b.to || !now) return false
       if (b.from < b.to) {
-        // Tagzeit (z.B. 06:00-22:00)
         return now >= b.from && now < b.to
       } else {
-        // Nachtzeit (z.B. 22:00-06:00, über Mitternacht)
         return now >= b.from || now < b.to
       }
     })
     return currentBlock || { warning: 55, alarm: 60, las: 50, laf: 52, from: "00:00", to: "23:59" }
   }
-  const thresholds = getDynamicThresholds(config, station, chartData)
-  let alertStatus: 'normal' | 'warn' | 'alarm' = 'normal'
-  if (current >= thresholds.alarm) alertStatus = 'alarm'
-  else if (current >= thresholds.warning) alertStatus = 'warn'
-  const alertConfig = {
+  const thresholds = getDynamicThresholds(globalConfig, station, chartData)
+  // Status-/Alarm-Box
+  let status: 'normal' | 'warn' | 'alarm' = 'normal'
+  if (current >= thresholds.alarm) status = 'alarm'
+  else if (current >= thresholds.warning) status = 'warn'
+  const statusBox = {
     normal: {
-      bg: `from-${meta.color}-500/10 to-${meta.color}-600/10 border-${meta.color}-500/20`,
-      icon: meta.icon,
       title: 'Lärmpegel im Normalbereich',
-      text: `Aktueller Pegel: ${current.toFixed(1)} dB. Keine Grenzwertüberschreitung.`,
-      textColor: `text-${meta.kpiColor}`,
+      text: `Aktueller Pegel: ${current.toFixed(1)} dB. Keine Grenzwertüberschreitung.`
     },
     warn: {
-      bg: 'from-yellow-500/20 to-yellow-600/20 border-yellow-500/30',
-      icon: meta.icon,
       title: 'Warnung: Lärmpegel erhöht',
-      text: `Pegel liegt im Warnbereich (${current.toFixed(1)} dB). Windrichtung: ${windDirectionText(windDirection)} bei ${currentWind ? currentWind : "N/A"} km/h`,
-      textColor: 'text-yellow-400',
+      text: `Pegel liegt im Warnbereich (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind} km/h.`
     },
     alarm: {
-      bg: 'from-red-500/20 to-red-600/20 border-red-500/30',
-      icon: meta.icon,
       title: 'Alarm: Hoher Lärmpegel',
-      text: `Pegel überschreitet Alarmgrenzwert (${current.toFixed(1)} dB). Windrichtung: ${windDirectionText(windDirection)} bei ${currentWind ? currentWind : "N/A"} km/h`,
-      textColor: 'text-red-400',
-    },
-  }[alertStatus]
+      text: `Pegel überschreitet Alarmgrenzwert (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind} km/h.`
+    }
+  }[status]
   const getStatusBadge = (level: number) => {
     if (level >= thresholds.alarm) return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Alarm</Badge>
     if (level >= thresholds.warning) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warnung</Badge>
-    return <Badge className={`bg-${meta.color}-500/20 text-${meta.kpiColor} border-${meta.color}-500/30`}>Normal</Badge>
-  }
-  // Mappe las: immer laf bevorzugen, sonst las
-  // Typ-Erweiterung für Mapping
-  type StationDataPointWithLaf = StationDataPoint & { laf?: number };
-  const chartDataMapped = Array.isArray(chartData)
-    ? (chartData as StationDataPointWithLaf[]).map(d => ({ ...d, las: d.laf ?? d.las }))
-    : chartData;
-  if (Array.isArray(chartDataMapped)) {
+    return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Normal</Badge>
   }
   return (
-    <div className="space-y-4 lg:space-y-6">
-      <StationHeader
-        icon={meta.icon}
-        name={meta.name}
-        color={meta.color}
-        gradient={meta.gradient}
-        statusBadge={getStatusBadge(current)}
-        subtitle={`${meta.name} mit Wetter-Einfluss-Analyse`}
-      />
-      <StationAlert
-        bg={alertConfig.bg}
-        icon={alertConfig.icon}
-        title={alertConfig.title}
-        text={alertConfig.text}
-        textColor={alertConfig.textColor}
-      />
-      <StationKPIs
-        current={current}
-        avg24h={avg24h}
-        max24h={max24h}
-        trend={trend}
-        currentWind={currentWind ?? 0}
-        windDirection={windDirectionText(windDirection)}
-        kpiColor={meta.kpiColor}
-      />
-      <StationTableLink station={station} />
-      <ChartPlayground
-        data={chartDataMapped}
-        lines={[
-          { key: 'las', label: 'Lärmpegel', color: getStationColor(station, 'primary'), yAxisId: 'left', visible: visibleLines.includes('las') },
-          { key: 'ws', label: 'Wind', color: CHART_COLORS.wind, yAxisId: 'wind', strokeDasharray: '5 5', visible: visibleLines.includes('ws') },
-          { key: 'rh', label: 'Luftfeuchte', color: CHART_COLORS.humidity, yAxisId: 'left', strokeDasharray: '2 2', visible: visibleLines.includes('rh') },
-          { key: 'temp', label: 'Temperatur', color: CHART_COLORS.temperature, yAxisId: 'left', strokeDasharray: '3 3', visible: visibleLines.includes('temp') },
-        ]}
-        axes={[
-          { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] },
-          { id: 'wind', orientation: 'right', domain: [0, 25], label: 'Windgeschwindigkeit (km/h)', ticks: [0, 5, 10, 15, 20, 25] },
-        ]}
-        thresholds={[
-          { value: thresholds.warning, label: 'Warnung', color: CHART_COLORS.warning, yAxisId: 'noise' },
-          { value: thresholds.alarm, label: 'Alarm', color: CHART_COLORS.alarm, yAxisId: 'noise' },
-        ]}
-        title={meta.name}
-        icon={meta.icon}
-        tooltipFormatter={(value, name) => {
-          if (name === 'ws') return [`${value} km/h`, 'Windgeschwindigkeit']
-          if (name === 'rh') return [`${value} %`, 'Luftfeuchte']
-          if (name === 'las') return [`${value} dB`, 'Lärmpegel']
-          if (name === 'temp') return [`${value}°C`, 'Temperatur']
-          if (Number(value) === thresholds.warning) return [`${value} dB`, 'Warnung (Grenzwert)']
-          if (Number(value) === thresholds.alarm) return [`${value} dB`, 'Alarm (Grenzwert)']
-          if (!name) return [String(value), 'Wert']
-          return [String(value), name]
-        }}
-      />
+    <div className="space-y-10 p-4 md:p-8">
+      {/* Header & KPI Card */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+            {meta.icon}
+          </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{meta.name}</h1>
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Echtzeit-Messdaten</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-1 md:items-end">
+          {getStatusBadge(current)}
+        </div>
+      </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 md:mb-10">
+        <KpiCard
+          icon={<BarChart3 className="w-5 h-5 text-blue-500" />}
+          value={typeof current === 'number' ? current.toFixed(1) : '–'}
+          unit="dB"
+          label="Aktueller Pegel"
+          color="text-blue-500"
+        />
+        <KpiCard
+          icon={<BarChart3 className="w-5 h-5 text-cyan-500" />}
+          value={avg24h}
+          unit="dB"
+          label="24h Durchschnitt"
+          color="text-cyan-500"
+        >
+          <div className="flex items-center mt-1">
+            <span className="text-xs text-cyan-500">{trend !== '–' && !isNaN(Number(trend)) && Number(trend) > 0 ? '+' : ''}{trend !== '–' ? trend : '–'}% vs gestern</span>
+          </div>
+        </KpiCard>
+        <KpiCard
+          icon={<BarChart3 className="w-5 h-5 text-red-400" />}
+          value={typeof max24h === 'number' ? max24h.toFixed(1) : '–'}
+          unit="dB"
+          label="24h Spitze"
+          color="text-red-400"
+        >
+          <div className="text-xs text-gray-500 mt-1">um {maxTime} Uhr</div>
+        </KpiCard>
+        <KpiCard
+          icon={<BarChart3 className="w-5 h-5 text-purple-500" />}
+          value={typeof currentWind === 'number' ? currentWind : 'keine daten'}
+          unit="km/h"
+          label="Windgeschwindigkeit"
+          color="text-purple-500"
+        >
+          <div className="text-xs text-gray-500 mt-1">Windrichtung: {windDirection}</div>
+        </KpiCard>
+      </div>
+      {/* Status-/Alarm-Box */}
+      <div className="mb-8">
+        <Card className="rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800">
+          <CardHeader className="pb-2">
+            <CardTitle className={
+              `text-base font-bold ` +
+              (status === 'alarm' ? 'text-red-500' : status === 'warn' ? 'text-yellow-500' : 'text-emerald-500')
+            }>{statusBox.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={
+              `text-sm ` +
+              (status === 'alarm' ? 'text-red-500' : status === 'warn' ? 'text-yellow-500' : 'text-emerald-500')
+            }>{statusBox.text}</div>
+          </CardContent>
+        </Card>
+      </div>
+      {/* Chart */}
+      <div className="mb-10 w-full">
+        <ChartPlayground
+          data={chartData}
+          lines={[
+            { key: 'las', label: 'Lärmpegel', color: meta.chartColor, yAxisId: 'left', visible: true },
+            { key: 'ws', label: 'Wind', color: '#06b6d4', yAxisId: 'wind', strokeDasharray: '5 5', visible: true },
+            { key: 'rh', label: 'Luftfeuchte', color: '#0ea5e9', yAxisId: 'left', strokeDasharray: '2 2', visible: true },
+            { key: 'temp', label: 'Temperatur', color: '#f59e42', yAxisId: 'left', strokeDasharray: '3 3', visible: true },
+          ]}
+          axes={[
+            { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] },
+            { id: 'wind', orientation: 'right', domain: [0, 25], label: 'Windgeschwindigkeit (km/h)', ticks: [0, 5, 10, 15, 20, 25] },
+          ]}
+          thresholds={[
+            { value: thresholds.warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+            { value: thresholds.alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+          ]}
+          title=""
+          icon={null}
+          tooltipFormatter={(value, name) => {
+            if (name === 'ws') return [`${value} km/h`, 'Windgeschwindigkeit']
+            if (name === 'rh') return [`${value} %`, 'Luftfeuchte']
+            if (name === 'las') return [`${value} dB`, 'Lärmpegel']
+            if (name === 'temp') return [`${value}°C`, 'Temperatur']
+            if (Number(value) === thresholds.warning) return [`${value} dB`, 'Warnung (Grenzwert)']
+            if (Number(value) === thresholds.alarm) return [`${value} dB`, 'Alarm (Grenzwert)']
+            if (!name) return [String(value), 'Wert']
+            return [String(value), name]
+          }}
+        />
+      </div>
+      {/* Tabellenansicht */}
+      <div className="mb-10">
+        <StationTable data={chartData} config={globalConfig} station={station} />
+      </div>
     </div>
   )
 } 

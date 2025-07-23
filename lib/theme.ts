@@ -1,3 +1,19 @@
+// Design Tokens & Utility-Klassen für Zugvoegel-Style
+//
+// Farbverläufe (Gradients):
+//   - from-white/90 via-blue-50/60 to-blue-100/40
+//   - dark:from-gray-900/80 dark:via-gray-800/80 dark:to-blue-900/30
+// Primärfarben: Blau, Cyan, Violett, Pink (siehe Zugvoegel-Header)
+// Badge-Farben: bg-yellow-400/20, bg-red-400/20, text-yellow-700, text-red-700
+// Card-Backgrounds: bg-white/90, dark:bg-gray-900/80, bg-gradient-to-br ...
+// Border-Radius: rounded-2xl, rounded-xl
+// Standard-Padding/Spacing: p-4, p-6, gap-4, gap-6, md:p-8
+// Icon-Größen/Farben: Lucide, w-6 h-6, text-blue-500, text-cyan-700, etc.
+// Table: Header sticky, Zebra-Striping, kompakte Pagination, text-xs/md:text-sm
+// Filterleiste: sticky, backdrop-blur, bg-gradient, Dropdowns mit Placeholder
+// KPI-Card: Icon-Box, Badge, Titel, alles zentriert, Padding
+// Diese Tokens/Patterns dienen als Referenz für alle weiteren UI-Refactorings.
+
 // Zentrale Design-Tokens für das Dashboard
 
 export const colors = {

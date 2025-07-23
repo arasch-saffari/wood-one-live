@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,7 +25,7 @@ const dataTypes = [
   { id: "aggregated", name: "Stündliche Aggregate", icon: Database, description: "Min, Max, Durchschnittswerte" },
 ]
 
-async function fetchExportData(station: string, interval: string) {
+async function fetchExportData(station: string, interval: string): Promise<Array<Record<string, string | number | boolean | null | undefined>>> {
   const res = await fetch(`/api/station-data?station=${encodeURIComponent(station)}&interval=${interval}&granularity=15min`)
   if (!res.ok) return []
   return await res.json()
@@ -77,11 +77,11 @@ export default function ExportPage() {
     setIsExporting(true)
 
     // Echte Daten laden
-    const allData: Record<string, any>[] = []
+    const allData: Array<Record<string, string | number | boolean | null | undefined>> = []
     for (const locationId of selectedLocations) {
-      const stationData = await fetchExportData(locationId, dateRange)
+      const stationData: Array<Record<string, string | number | boolean | null | undefined>> = await fetchExportData(locationId, dateRange)
       for (const row of stationData) {
-        const exportRow: Record<string, any> = {
+        const exportRow: Record<string, string | number | boolean | null | undefined> = {
           station: locationId,
           time: row.time,
           datetime: row.datetime,
@@ -96,8 +96,8 @@ export default function ExportPage() {
           lafThreshold: row.lafThreshold,
         }
         if (selectedDataTypes.includes("violations")) {
-          exportRow.warning_threshold_exceeded = row.las >= row.warningThreshold
-          exportRow.alarm_threshold_exceeded = row.las >= row.alarmThreshold
+          exportRow.warning_threshold_exceeded = (row as Record<string, unknown>).las >= (row as Record<string, unknown>).warningThreshold
+          exportRow.alarm_threshold_exceeded = (row as Record<string, unknown>).las >= (row as Record<string, unknown>).alarmThreshold
         }
         allData.push(exportRow)
       }
@@ -105,9 +105,7 @@ export default function ExportPage() {
 
     if (format === "csv") {
       const headers = Object.keys(allData[0] || {})
-      const csvContent = [headers.join(","), ...allData.map((row) => headers.map((header) => row[header]).join(","))].join(
-        "\n",
-      )
+      const csvContent = [headers.join(","), ...allData.map((row: Record<string, string | number | boolean | null | undefined>) => headers.map((header) => String(row[header] ?? "")).join(","))].join("\n")
 
       const blob = new Blob([csvContent], { type: "text/csv" })
       const url = URL.createObjectURL(blob)
@@ -117,8 +115,8 @@ export default function ExportPage() {
       a.click()
       URL.revokeObjectURL(url)
     } else {
-      const jsonContent = JSON.stringify(allData, null, 2)
-      const blob = new Blob([jsonContent], { type: "application/json" })
+      const jsonExportContent = JSON.stringify(allData, null, 2)
+      const blob = new Blob([jsonExportContent], { type: "application/json" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
@@ -160,7 +158,7 @@ export default function ExportPage() {
         <div className="xl:col-span-2 space-y-4 lg:space-y-6">
           {/* Standortauswahl */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+            <Card className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                   <MapPin className="w-4 lg:w-5 h-4 lg:h-5 text-pink-400" />
@@ -200,7 +198,7 @@ export default function ExportPage() {
 
           {/* Datentyp-Auswahl */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+            <Card className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                   <Database className="w-4 lg:w-5 h-4 lg:h-5 text-purple-400" />
@@ -244,7 +242,7 @@ export default function ExportPage() {
 
           {/* Export-Optionen */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+            <Card className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
                   <FileText className="w-4 lg:w-5 h-4 lg:h-5 text-cyan-400" />
@@ -258,10 +256,10 @@ export default function ExportPage() {
                       Zeitbereich
                     </Label>
                     <Select value={dateRange} onValueChange={setDateRange}>
-                      <SelectTrigger className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
+                      <SelectTrigger className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 dark:focus:ring-purple-500 focus:border-transparent dark:focus:border-transparent">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 rounded-lg">
                         <SelectItem value="1h">Letzte Stunde</SelectItem>
                         <SelectItem value="6h">Letzte 6 Stunden</SelectItem>
                         <SelectItem value="24h">Letzte 24 Stunden</SelectItem>
@@ -275,10 +273,10 @@ export default function ExportPage() {
                       Dateiformat
                     </Label>
                     <Select value={format} onValueChange={setFormat}>
-                      <SelectTrigger className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
+                      <SelectTrigger className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 dark:focus:ring-purple-500 focus:border-transparent dark:focus:border-transparent">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 rounded-lg">
                         <SelectItem value="csv">CSV (Komma-getrennt)</SelectItem>
                         <SelectItem value="json">JSON</SelectItem>
                       </SelectContent>
@@ -294,7 +292,7 @@ export default function ExportPage() {
         <div className="space-y-4 lg:space-y-6">
           {/* Export-Zusammenfassung */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+            <Card className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-base lg:text-lg text-purple-600 dark:text-white">
                   Export-Zusammenfassung
@@ -309,7 +307,7 @@ export default function ExportPage() {
                       return location ? (
                         <Badge
                           key={locationId}
-                          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 text-xs"
+                          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 text-xs rounded-full"
                         >
                           {location.name}
                         </Badge>
@@ -325,7 +323,7 @@ export default function ExportPage() {
                       return dataType ? (
                         <Badge
                           key={dataTypeId}
-                          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 text-xs"
+                          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 text-xs rounded-full"
                         >
                           {dataType.name}
                         </Badge>
@@ -347,12 +345,12 @@ export default function ExportPage() {
 
           {/* Export Button */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-            <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+            <Card className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
               <CardContent className="pt-6">
                 <Button
                   onClick={handleExport}
                   disabled={isExporting || selectedLocations.length === 0 || selectedDataTypes.length === 0}
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white rounded-lg focus:ring-2 focus:ring-pink-500 dark:focus:ring-purple-500 focus:border-transparent dark:focus:border-transparent"
                   size="lg"
                 >
                   {isExporting ? (
@@ -377,40 +375,40 @@ export default function ExportPage() {
 
           {/* Letzte Exporte */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-            <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
+            <Card className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-base lg:text-lg text-pink-600 dark:text-white">Letzte Exporte</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <div>
                       <p className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">
                         Alle Standorte - 24h
                       </p>
                       <p className="text-xs text-gray-500">vor 2 Stunden</p>
                     </div>
-                    <Badge className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 text-xs">
+                    <Badge className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 text-xs rounded-full">
                       CSV
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-between p-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <div>
                       <p className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">
                         Techno Floor - 7d
                       </p>
                       <p className="text-xs text-gray-500">vor 1 Tag</p>
                     </div>
-                    <Badge className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 text-xs">
+                    <Badge className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 text-xs rounded-full">
                       JSON
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-between p-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <div>
                       <p className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">Winddaten - 30d</p>
                       <p className="text-xs text-gray-500">vor 3 Tagen</p>
                     </div>
-                    <Badge className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 text-xs">
+                    <Badge className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 text-xs rounded-full">
                       CSV
                     </Badge>
                   </div>

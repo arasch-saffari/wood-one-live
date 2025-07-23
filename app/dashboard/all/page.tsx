@@ -1,11 +1,14 @@
 "use client"
 
+import React from "react"
 import { motion } from "framer-motion"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3, Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer } from "lucide-react"
+import { BarChart3, Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer, Calendar, Database as DbIcon } from "lucide-react"
 import { useStationData } from "@/hooks/useStationData"
 import { useEffect, useState } from "react"
+import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
 import { STATION_META } from "@/lib/stationMeta"
 import {
@@ -20,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { ChartPlayground } from '@/components/ChartPlayground'
 import { useHealth } from "@/hooks/useHealth"
 import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
+import { AllStationsTable } from "@/components/AllStationsTable"
 
 // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
 function windDirectionText(dir: number | string | null | undefined): string {
@@ -58,39 +62,17 @@ function useWeatherLastUpdate() {
   return weatherLastUpdate
 }
 
-// Typen für Schwellenwerte und Daten
-interface ThresholdBlock {
-  from: string;
-  to: string;
-  warning: number;
-  alarm: number;
-  las?: number;
-  laf?: number;
-}
-
-interface StationDataObj {
-  data: Array<{ time: string; las: number; ws?: number; rh?: number; temp?: number; datetime?: string }>
-  totalCount?: number
-  loading?: boolean
-  error?: string | null
-}
-
-interface Config {
-  defaultInterval?: string
-  defaultGranularity?: string
-  chartLimit?: number
-  chartColors?: { wind?: string }
-  thresholdsByStationAndTime?: Record<string, ThresholdBlock[]>
-}
-
 // Definiere formatTime lokal:
 function formatTime(latest: string | undefined) {
   if (!latest) return "-"
   const date = new Date(latest)
-  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " Uhr"
+  if (isNaN(date.getTime())) return latest
+  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function AllLocationsPage() {
+  // Ladezustand für alle Daten
+  const [showLoader, setShowLoader] = useState(true)
   // 1. Context und State
   const { config } = useConfig();
   // Keine Granularität, Zeit oder maxPoints mehr
@@ -109,8 +91,29 @@ export default function AllLocationsPage() {
   const { health } = useHealth();
   const { watcherStatus: watcher } = useCsvWatcherStatus();
 
-  // 3. Early-Return für Config
-  if (!config) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
+  // 3. Lade-Status prüfen: Wenn Config oder Daten noch nicht geladen, Loader anzeigen
+  useEffect(() => {
+    if (config && ortData.length && technoData.length && bandData.length && heuballernData.length) {
+      setShowLoader(false)
+    }
+  }, [config, ortData, technoData, bandData, heuballernData])
+
+  if (!config || showLoader) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="flex flex-col items-center gap-4 mb-8">
+          <div className="rounded-2xl bg-gradient-to-br from-violet-600 via-purple-700 to-pink-600 p-5 shadow-2xl border border-violet-300 dark:border-violet-900">
+            <DbIcon className="w-10 h-10 text-white drop-shadow-lg" />
+          </div>
+          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-violet-700 via-fuchsia-600 to-pink-600 bg-clip-text text-transparent tracking-tight drop-shadow-lg text-center">Wood One Audio</h1>
+        </div>
+        <div className="w-full max-w-xs px-6">
+          <LoadingSpinner text="Dashboard wird geladen ..." />
+          <Progress value={80} className="mt-4" />
+        </div>
+      </div>
+    )
+  }
   console.log("ConfigContext in AllLocationsPage:", config);
 
   // Chart-Daten für alle Standorte und Windgeschwindigkeit zusammenführen
@@ -148,12 +151,12 @@ export default function AllLocationsPage() {
   }
 
   // Für jede Station aktuelle Zeit und Schwellenwerte bestimmen
-  const getThresholds = (station: string, data: Array<{ datetime?: string }>): ThresholdBlock | undefined => {
+  const getThresholds = (station: string, data: Array<{ datetime?: string }>): any | undefined => {
     const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
     if (!config || !now) return undefined;
     const blocks = config.thresholdsByStationAndTime?.[station];
     if (!blocks) return undefined;
-    const currentBlock = blocks.find((block: ThresholdBlock) => {
+    const currentBlock = blocks.find((block: any) => {
       // Annahme: block.from und block.to im Format HH:MM
       if (!block.from || !block.to) return false;
       if (block.from < block.to) {
@@ -227,7 +230,7 @@ export default function AllLocationsPage() {
         </motion.div>
 
         {/* Standort-Übersicht Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 md:mb-10">
           {Object.entries(currentLevels).map(([location, level]) => {
             const meta = STATION_META[location as keyof typeof STATION_META]
             return (
@@ -236,34 +239,19 @@ export default function AllLocationsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                {/* Link zu spezifischem Standort Dashboard */}
                 <Link href={`/dashboard/${location}`}>
-                  <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-200 cursor-pointer hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400">
-                          {meta.name}
-                        </CardTitle>
-                        <UITooltip>
-                          <TooltipTrigger asChild>
-                            <div>{getStatusBadge(level, location, ortData)}</div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Status: {level.toFixed(1)} dB</p>
-                            <p className="text-xs text-muted-foreground">Klicken für Details</p>
-                          </TooltipContent>
-                        </UITooltip>
-                      </div>
+                  <Card className="rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800 hover:scale-[1.025] transition-transform cursor-pointer">
+                    <CardHeader className="flex flex-col items-center gap-2 p-6 md:p-8">
+                      <span className="text-lg font-bold text-gray-900 dark:text-white mb-1">{meta.name}</span>
+                      <UITooltip>
+                        <TooltipTrigger asChild>
+                          {getStatusBadge(level, location, ortData)}
+                        </TooltipTrigger>
+                        <TooltipContent>Status: {level.toFixed(1)} dB</TooltipContent>
+                      </UITooltip>
+                      <span className={`text-2xl font-bold mt-2 mb-1 ${getStatusColor(level, location, ortData)}`}>{level.toFixed(1)} <span className="text-base font-normal text-gray-500">dB</span></span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">Klicken für Details →</span>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center space-x-2">
-                        <meta.icon className={`w-4 h-4 text-${meta.kpiColor}`} />
-                        <span className={`text-xl lg:text-2xl font-bold ${getStatusColor(level, location, ortData)}`}>{level.toFixed(1)}</span>
-                        <span className="text-xs lg:text-sm text-gray-500">dB</span>
-                      </div>
-                      {/* Klick-Hinweis */}
-                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Klicken für Details →</div>
-                    </CardContent>
                   </Card>
                 </Link>
               </motion.div>
@@ -272,54 +260,36 @@ export default function AllLocationsPage() {
 
         {/* Wetter-Übersicht Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
-                <Wind className="w-4 lg:w-5 h-4 lg:h-5 text-blue-400" />
-                <span className="text-gray-900 dark:text-white">Wetter – aktuellster Wert</span>
-              </CardTitle>
+          <Card className="rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800 mb-10">
+            <CardHeader className="flex flex-row items-center gap-4 p-6 pb-2">
+              <Wind className="w-7 h-7 text-blue-500" />
+              <span className="text-xl font-extrabold text-gray-900 dark:text-white">Wetter</span>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
-                <div className="text-center">
-                  <div className="flex items-center justify-center space-x-2 mb-2">
-                    <Wind className="w-4 h-4 text-blue-400" />
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Windgeschwindigkeit</span>
-                  </div>
-                  <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                    {latestWeather?.windSpeed !== undefined ? latestWeather.windSpeed.toFixed(1) : '–'}
-                  </div>
-                  <div className="text-xs lg:text-sm text-gray-500">km/h</div>
+            <CardContent className="pt-0 pb-8 px-2 md:px-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Wind className="w-4 h-4 text-blue-500" />Wind</span>
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {latestWeather?.windSpeed !== undefined ? latestWeather.windSpeed.toFixed(1) : '–'} <span className="text-xs">km/h</span>
+                  </span>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center space-x-2 mb-2">
-                    <Activity className="w-4 h-4 text-purple-400" />
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Windrichtung</span>
-                  </div>
-                  <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Activity className="w-4 h-4 text-purple-500" />Windrichtung</span>
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
                     {windDirectionText(latestWeather?.windDir)}
-                  </div>
-                  <div className="text-xs lg:text-sm text-gray-500">aktuell</div>
+                  </span>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center space-x-2 mb-2">
-                    <Droplets className="w-4 h-4 text-cyan-400" />
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Luftfeuchtigkeit</span>
-                  </div>
-                  <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                    {latestWeather?.relHumidity !== undefined ? latestWeather.relHumidity.toFixed(0) : '–'}%
-                  </div>
-                  <div className="text-xs lg:text-sm text-gray-500">aktuell</div>
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Droplets className="w-4 h-4 text-cyan-500" />Luftfeuchte</span>
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {latestWeather?.relHumidity !== undefined ? latestWeather.relHumidity.toFixed(0) : '–'}<span className="text-xs">%</span>
+                  </span>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center space-x-2 mb-2">
-                    <Thermometer className="w-4 h-4 text-orange-400" />
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Temperatur</span>
-                  </div>
-                  <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-300">
-                    {typeof latestWeather?.temperature === 'number' ? Math.round(latestWeather.temperature) : '–'}°C
-                  </div>
-                  <div className="text-xs lg:text-sm text-gray-500">aktuell</div>
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Thermometer className="w-4 h-4 text-orange-500" />Temperatur</span>
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {typeof latestWeather?.temperature === 'number' ? Math.round(latestWeather.temperature) : '–'}<span className="text-xs">°C</span>
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -328,131 +298,139 @@ export default function AllLocationsPage() {
 
         {/* Nach System Status Card, vor Grenzwert-Referenz: */}
         {(ortData.length > 0 || heuballernData.length > 0 || technoData.length > 0 || bandData.length > 0) ? (
-          <ChartPlayground
-            data={chartData}
-            lines={[
-              { key: 'ort', label: STATION_META.ort.name, color: STATION_META.ort.chartColor },
-              { key: 'heuballern', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor },
-              { key: 'techno', label: STATION_META.techno.name, color: STATION_META.techno.chartColor },
-              { key: 'band', label: STATION_META.band.name, color: STATION_META.band.chartColor },
-              { key: 'windSpeed', label: 'Windgeschwindigkeit', color: WIND_COLOR, yAxisId: 'wind', strokeDasharray: '5 5' },
-            ]}
-            axes={[
-              { id: 'left', orientation: 'left', domain: [30, 85], label: 'dB' },
-              { id: 'wind', orientation: 'right', domain: [0, 25], label: 'km/h' },
-            ]}
-            title="Alle Standorte"
-            icon={<BarChart3 className="w-5 h-5 text-blue-500" />}
-          />
+          <div className="w-full mb-10">
+            <ChartPlayground
+              data={chartData}
+              lines={lines}
+              axes={axes}
+              title=""
+              icon={null}
+            />
+          </div>
         ) : (
           <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Daten ...</div>
         )}
 
-        {/* Grenzwert-Referenz */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <Card className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-sm lg:text-base">
-                <AlertTriangle className="w-4 lg:w-5 h-4 lg:h-5 text-yellow-400" />
-                <span className="text-gray-900 dark:text-white">Grenzwert-Referenz</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                {config && Object.entries(config.thresholdsByStationAndTime).map(([station, blocks]) => (
-                  <Card key={station} className="bg-white/80 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 shadow-md">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-sm lg:text-base">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">{station.charAt(0).toUpperCase() + station.slice(1)}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {(blocks as ThresholdBlock[]).map((block: ThresholdBlock, i: number) => (
-                        <div key={i} className="border-b border-gray-100 dark:border-gray-800 pb-2 mb-2 last:mb-0 last:pb-0 last:border-b-0">
-                          <div className="text-xs text-gray-500 mb-1">
-                            {block.from} - {block.to}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                            <span className="text-gray-600 dark:text-gray-400 text-xs lg:text-sm">
-                              Warnung: ≥ {block.warning} dB
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                            <span className="text-gray-600 dark:text-gray-400 text-xs lg:text-sm">
-                              Alarm: ≥ {block.alarm} dB
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Tabellenansicht (aus Zugvoegel, erweitert um Heuballern) */}
+        <AllStationsTable
+          ortData={ortData}
+          heuballernData={heuballernData}
+          technoData={technoData}
+          bandData={bandData}
+          config={config}
+        />
 
-        {/* 1. Systemstatus-Block ans Ende verschieben und erweitern */}
-        <motion.div>
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-blue-500" />
-                Systemstatus
-              </CardTitle>
-              <CardDescription>Übersicht: Messstationen, Wetter, Backups & System</CardDescription>
+        {/* Grenzwert-Referenz */}
+        <div className="mb-10">
+          <Card className="rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800">
+            <CardHeader className="flex flex-row items-center gap-4 p-6 pb-2">
+              <AlertTriangle className="w-6 h-6 text-yellow-400" />
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Grenzwert-Referenz</span>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* 1. Stationen-Status */}
-                <div>
-                  <div className="font-semibold mb-2 flex items-center gap-2"><Droplets className="w-4 h-4 text-emerald-500" />Letzte Aktualisierung</div>
-                  <ul className="text-xs space-y-1">
-                    {([
-                      { key: 'ort', data: ortData },
-                      { key: 'heuballern', data: heuballernData },
-                      { key: 'techno', data: technoData },
-                      { key: 'band', data: bandData },
-                    ] as const).map(st => (
-                      <li key={st.key} className="flex items-center gap-2">
-                        <span className={cn('w-2 h-2 rounded-full', STATION_META[st.key].chartColor)} />
-                        <span>{STATION_META[st.key].name}:</span>
-                        <span>{formatTime(st.data.length > 0 ? st.data[st.data.length - 1].datetime : undefined)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="text-xs mt-2">Letztes Wetter-Update: {weatherLastUpdate?.time ?? '-'}</div>
-                </div>
-                {/* 2. Wetter & Backup */}
-                <div>
-                  <div className="font-semibold mb-2 flex items-center gap-2"><Droplets className="w-4 h-4 text-cyan-500" />Wetter & Backup</div>
-                  <ul className="text-xs space-y-1">
-                    <li>Letztes Backup: <span className="font-mono">{backupInfo?.lastBackup ? new Date(backupInfo.lastBackup).toLocaleString('de-DE') : '-'}</span></li>
-                    <li>CSV-Watcher: <span className={cn('font-mono', watcher?.watcherActive ? 'text-green-600' : 'text-red-500')}>{watcher?.watcherActive ? 'Aktiv' : 'Inaktiv'}</span></li>
-                    <li>CSV-Ordner: <span className="font-mono">{watcher?.watchedDirectories?.map((d: any) => d.station).join(', ')}</span></li>
-                  </ul>
-                </div>
-                {/* 3. Systeminfos */}
-                <div>
-                  <div className="font-semibold mb-2 flex items-center gap-2"><TableIcon className="w-4 h-4 text-violet-500" />System</div>
-                  <ul className="text-xs space-y-1">
-                    <li>Datenbankgröße: <span className="font-mono">{health?.dbSize ? (health.dbSize / 1024 / 1024).toFixed(2) : '-'} MB</span></li>
-                    <li>Health-Status: <span className={health?.integrityProblem ? 'text-red-500 font-bold' : 'text-green-600 font-semibold'}>{health?.integrityProblem ? 'Fehlerhaft' : 'OK'}</span></li>
-                    {health?.integrityProblem && (
-                      <li className="text-xs text-red-500">Integritätsfehler: {health.integrityCount}</li>
-                    )}
-                  </ul>
-                </div>
+            <CardContent className="pt-0 pb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {config && Object.entries(config.thresholdsByStationAndTime).map(([station, blocks]) => {
+                  let showBlocks = blocks as any[];
+                  if (station === "ort" && Array.isArray(blocks) && blocks.length > 2) {
+                    showBlocks = blocks.slice(0, 2);
+                  }
+                  return (
+                    <Card key={station} className="rounded-xl bg-white/90 dark:bg-gray-900/70 border-0 shadow-md p-4">
+                      <CardHeader className="pb-2 flex flex-col items-center gap-2 text-center">
+                        <span className="text-base font-semibold text-gray-700 dark:text-gray-300 w-full text-center">
+                          {station.charAt(0).toUpperCase() + station.slice(1)}
+                        </span>
+                      </CardHeader>
+                      <CardContent className="space-y-2 pt-0">
+                        {showBlocks.map((block, i) => (
+                          <div
+                            key={i}
+                            className="flex flex-col gap-1 p-2 rounded-lg mb-2 last:mb-0 transition-all hover:shadow-lg hover:ring-2 hover:ring-yellow-300/40 dark:hover:ring-yellow-500/30"
+                          >
+                            <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-1 text-center w-full">
+                              <Calendar className="w-4 h-4 text-blue-400" />
+                              <span>{block.from} - {block.to}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                              <Badge className="bg-yellow-400/20 text-yellow-700 border-yellow-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-yellow-400/80 hover:text-yellow-900 hover:shadow-md justify-center">
+                                <AlertTriangle className="w-4 h-4" /> Warnung: ≥ {block.warning} dB
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                              <Badge className="bg-red-400/20 text-red-700 border-red-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-red-400/80 hover:text-red-900 hover:shadow-md justify-center">
+                                <AlertTriangle className="w-4 h-4" /> Alarm: ≥ {block.alarm} dB
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
+
+        {/* Systemstatus */}
+        <div className="mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* 1. Stationen-Status */}
+            <Card className="rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800 flex flex-col">
+              <CardHeader className="flex flex-row items-center gap-4 p-6 pb-2">
+                <Droplets className="w-6 h-6 text-emerald-500" />
+                <span className="text-lg font-bold text-gray-900 dark:text-white">Letzte Aktualisierung</span>
+              </CardHeader>
+              <CardContent className="pt-0 pb-6">
+                <ul className="text-xs space-y-1">
+                  {([
+                    { key: 'ort', data: ortData },
+                    { key: 'heuballern', data: heuballernData },
+                    { key: 'techno', data: technoData },
+                    { key: 'band', data: bandData },
+                  ] as const).map(st => (
+                    <li key={st.key} className="flex items-center gap-2">
+                      <span className={cn('w-2 h-2 rounded-full', STATION_META[st.key].chartColor)} />
+                      <span>{STATION_META[st.key].name}:</span>
+                      <span>{formatTime(st.data.length > 0 ? st.data[st.data.length - 1].datetime : undefined)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-xs mt-2">Letztes Wetter-Update: {formatTime(weatherLastUpdate?.time)}</div>
+              </CardContent>
+            </Card>
+            {/* 2. Wetter & Backup */}
+            <Card className="rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800 flex flex-col">
+              <CardHeader className="flex flex-row items-center gap-4 p-6 pb-2">
+                <Droplets className="w-6 h-6 text-cyan-500" />
+                <span className="text-lg font-bold text-gray-900 dark:text-white">Wetter & Backup</span>
+              </CardHeader>
+              <CardContent className="pt-0 pb-6">
+                <ul className="text-xs space-y-1">
+                  <li>Letztes Backup: <span className="font-mono">{backupInfo?.lastBackup ? new Date(backupInfo.lastBackup).toLocaleString('de-DE') : '-'}</span></li>
+                  <li>CSV-Watcher: <span className={cn('font-mono', watcher?.watcherActive ? 'text-green-600' : 'text-red-500')}>{watcher?.watcherActive ? 'Aktiv' : 'Inaktiv'}</span></li>
+                  <li>CSV-Ordner: <span className="font-mono">{watcher?.watchedDirectories?.map((d: any) => d.station).join(', ')}</span></li>
+                </ul>
+              </CardContent>
+            </Card>
+            {/* 3. Systeminfos */}
+            <Card className="rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800 flex flex-col">
+              <CardHeader className="flex flex-row items-center gap-4 p-6 pb-2">
+                <TableIcon className="w-6 h-6 text-violet-500" />
+                <span className="text-lg font-bold text-gray-900 dark:text-white">System</span>
+              </CardHeader>
+              <CardContent className="pt-0 pb-6">
+                <ul className="text-xs space-y-1">
+                  <li>Datenbankgröße: <span className="font-mono">{health?.dbSize ? (health.dbSize / 1024 / 1024).toFixed(2) : '-'} MB</span></li>
+                  <li>Health-Status: <span className={health?.integrityProblem ? 'text-red-500 font-bold' : 'text-green-600 font-semibold'}>{health?.integrityProblem ? 'Fehlerhaft' : 'OK'}</span></li>
+                  {health?.integrityProblem && (
+                    <li className="text-xs text-red-500">Integritätsfehler: {health.integrityCount}</li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </TooltipProvider>
   )

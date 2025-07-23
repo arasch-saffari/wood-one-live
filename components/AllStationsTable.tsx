@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Table as TableIcon, Wind, AlertTriangle, Droplets, Info, Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown, Volume2, MapPin } from "lucide-react"
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { Table as TableIcon, Wind, AlertTriangle, MapPin, Volume2, Music, Droplets, Thermometer, Activity, Info, Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { DataTableColumn } from "@/components/DataTable"
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { cn } from '@/lib/utils'
 
 function windDirectionText(dir: number | string | null | undefined): string {
   if (dir === null || dir === undefined) return '–';
@@ -39,34 +40,33 @@ type TableRowType = {
   ws?: number;
   wd?: number | string;
   rh?: number;
-}
-
-type StationTableProps = {
-  data: unknown[];
-  config: unknown;
   station: string;
 }
 
-export function StationTable({ data, config, station }: StationTableProps) {
+type AllStationsTableProps = {
+  ortData: any[];
+  heuballernData: any[];
+  technoData: any[];
+  bandData: any[];
+  config: any;
+}
+
+export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config }: AllStationsTableProps) {
   const [showWeather, setShowWeather] = useState(false)
   const [search, setSearch] = useState("")
+  const [filterStation, setFilterStation] = useState("")
   const [filterDate, setFilterDate] = useState("")
   const [page, setPage] = useState(1)
   const pageSize = 25
   const [filter15min, setFilter15min] = useState(false)
   const [showOnlyAlarms, setShowOnlyAlarms] = useState(false)
 
-  const tableRows: TableRowType[] = data as TableRowType[]
-
-  // Wetterspalten nur anzeigen, wenn mindestens ein Wert vorhanden ist (in den gefilterten Zeilen)
-  const hasWeatherData = useMemo(() => {
-    return tableRows.some(row =>
-      (row.ws !== undefined && row.ws !== null) ||
-      (row.wd !== undefined && row.wd !== null && row.wd !== '') ||
-      (row.rh !== undefined && row.rh !== null)
-    )
-  }, [tableRows])
-
+  const tableRows: TableRowType[] = [
+    ...ortData.map(row => ({ ...row, station: "Ort" })),
+    ...technoData.map(row => ({ ...row, station: "Techno Floor" })),
+    ...bandData.map(row => ({ ...row, station: "Band Bühne" })),
+    ...heuballernData.map(row => ({ ...row, station: "Heuballern" })),
+  ]
   const tableColumns: DataTableColumn<TableRowType>[] = [
     { label: "Datum", key: "datetime", sortable: true, render: (row: TableRowType) => {
       if (!row.datetime) return "-"
@@ -76,11 +76,12 @@ export function StationTable({ data, config, station }: StationTableProps) {
     } },
     { label: "Zeit", key: "time", sortable: true },
     { label: "dB", key: "las", sortable: true, render: (row: TableRowType) => row.las !== undefined ? row.las.toFixed(1) : "-" },
-    ...((showWeather && hasWeatherData) ? [
+    ...(showWeather ? [
       { label: "Wind", key: "ws", sortable: true, render: (row: TableRowType) => (row.ws !== undefined && row.ws !== null) ? row.ws.toFixed(1) : "-" },
       { label: "Richtung", key: "wd", render: (row: TableRowType) => (row.wd !== undefined && row.wd !== null && row.wd !== '') ? windDirectionText(row.wd) : "-" },
       { label: "Luftfeuchte", key: "rh", render: (row: TableRowType) => (row.rh !== undefined && row.rh !== null) ? row.rh.toFixed(0) + '%' : "-" },
     ] : []),
+    { label: "Ort", key: "station", sortable: true },
   ]
   // Sortier-Logik
   const [sortKey, setSortKey] = useState<string>('datetime')
@@ -109,15 +110,15 @@ export function StationTable({ data, config, station }: StationTableProps) {
 
   const filteredRows = useMemo(() => {
     let rows = tableRows.filter((row: TableRowType) => {
+      if (filterStation && row.station !== filterStation) return false
       if (filterDate && row.datetime && new Date(row.datetime).toLocaleDateString('de-DE') !== filterDate) return false
       if (search) {
         const s = search.toLowerCase()
         return Object.values(row).some(val => (val ? String(val).toLowerCase().includes(s) : false))
       }
-      if (showOnlyAlarms && config && typeof config === 'object' && 'thresholdsByStationAndTime' in config) {
-        const stationKey = station.toLowerCase().replace(/ /g, '')
-        const thresholdsByStationAndTime = (config as Record<string, unknown>).thresholdsByStationAndTime as Record<string, unknown[]> | undefined;
-        const blocks = thresholdsByStationAndTime?.[stationKey] as Array<{alarm?: number}> | undefined;
+      if (showOnlyAlarms && config?.thresholdsByStationAndTime) {
+        const stationKey = (row.station || '').toLowerCase().replace(/ /g, '')
+        const blocks = config.thresholdsByStationAndTime[stationKey]
         if (!blocks || !blocks[0] || typeof blocks[0].alarm !== 'number') return false
         if (typeof row.las !== 'number') return false
         return row.las >= blocks[0].alarm
@@ -152,12 +153,12 @@ export function StationTable({ data, config, station }: StationTableProps) {
         const minBlock = String(Math.floor(Number(m) / 15) * 15).padStart(2, '0')
         const date = new Date(row.datetime)
         const dateStr = date.toLocaleDateString('de-DE')
-        const key = `${dateStr}|${hour}:${minBlock}`
+        const key = `${row.station}|${dateStr}|${hour}:${minBlock}`
         if (!grouped[key]) grouped[key] = []
         grouped[key].push(row)
       }
       rows = Object.entries(grouped).map(([key, group]) => {
-        const [, time] = key.split('|')
+        const [station, , time] = key.split('|')
         const avg = (arr: (number|undefined)[]) => {
           const nums = arr.filter((v): v is number => typeof v === 'number')
           return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : undefined
@@ -176,19 +177,21 @@ export function StationTable({ data, config, station }: StationTableProps) {
           ws: avg(group.map(r => r.ws)),
           wd: group[group.length-1].wd,
           rh: avg(group.map(r => r.rh)),
+          station,
         }
       }).sort((a, b) => {
         const dA = a.datetime || ''
         const dB = b.datetime || ''
         if (dA !== dB) return dA.localeCompare(dB)
         if (a.time !== b.time) return (a.time || '').localeCompare(b.time || '')
-        return 0
+        return (a.station || '').localeCompare(b.station || '')
       })
     }
     return rows
-  }, [tableRows, filterDate, search, filter15min, sortKey, sortDir, showOnlyAlarms, config])
+  }, [tableRows, filterStation, filterDate, search, filter15min, sortKey, sortDir, showOnlyAlarms, config?.thresholdsByStationAndTime])
   const pageCount = Math.ceil(filteredRows.length / pageSize)
   const pagedRows = useMemo<TableRowType[]>(() => filteredRows.slice((page-1)*pageSize, page*pageSize), [filteredRows, page, pageSize])
+  const allStations = useMemo(() => Array.from(new Set(tableRows.map(r => r.station))), [tableRows])
   const allDates = useMemo(() => {
     const dateSet = new Set(tableRows.map(r => r.datetime ? new Date(r.datetime).toLocaleDateString('de-DE') : "-"));
     return Array.from(dateSet).filter((d): d is string => d !== "-");
@@ -214,6 +217,17 @@ export function StationTable({ data, config, station }: StationTableProps) {
               <SelectContent>
                 <SelectItem value="all">Alle Daten</SelectItem>
                 {allDates.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full md:w-[150px]">
+            <Select value={filterStation || 'all'} onValueChange={v => setFilterStation(v === 'all' ? '' : v)}>
+              <SelectTrigger className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 transition">
+                <span>{filterStation ? filterStation : 'Ort'}</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle Orte</SelectItem>
+                {allStations.map(st => <SelectItem key={st} value={st}>{st}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -289,10 +303,8 @@ export function StationTable({ data, config, station }: StationTableProps) {
               ) : pagedRows.map((row: TableRowType, i: number) => (
                 <tr key={i} className={
                   `transition rounded-xl shadow-sm ` +
-                  (i % 2 === 0
-                    ? 'bg-white/90 dark:bg-gray-900/70'
-                    : 'bg-gray-100 dark:bg-gray-800/90') +
-                  ' hover:bg-blue-50/60 dark:hover:bg-blue-900/30'
+                  (i % 2 === 0 ? 'bg-white/90 dark:bg-gray-900/40' : 'bg-gray-50 dark:bg-gray-800/40') +
+                  ' hover:bg-blue-50/60 dark:hover:bg-blue-900/20'
                 }>
                   {tableColumns.map((col: DataTableColumn<TableRowType>) => (
                     <td key={col.key} className={
@@ -381,4 +393,4 @@ export function StationTable({ data, config, station }: StationTableProps) {
       </CardContent>
     </Card>
   )
-}
+} 
