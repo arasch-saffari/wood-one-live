@@ -23,6 +23,7 @@ import { ChartPlayground } from '@/components/ChartPlayground'
 import { useHealth } from "@/hooks/useHealth"
 import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
 import { AllStationsTable } from "@/components/AllStationsTable"
+import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select"
 // ChartAxis inline definieren
 type ChartAxis = {
   id: string;
@@ -88,15 +89,26 @@ export default function AllLocationsPage() {
   const { config } = useConfig();
   // Keine Granularität, Zeit oder maxPoints mehr
 
-  // 2. Daten-Hooks
-  const ortDataObj = useStationData("ort", "24h", 60000);
-  const heuballernDataObj = useStationData("heuballern", "24h", 60000);
-  const technoDataObj = useStationData("techno", "24h", 60000);
-  const bandDataObj = useStationData("band", "24h", 60000);
+  // 2. Daten-Hooks für Charts (jetzt 15min-Aggregation, ohne Limit)
+  const ortDataObj = useStationData("ort", "24h", 60000, 1, 100000, "15min");
+  const heuballernDataObj = useStationData("heuballern", "24h", 60000, 1, 100000, "15min");
+  const technoDataObj = useStationData("techno", "24h", 60000, 1, 100000, "15min");
+  const bandDataObj = useStationData("band", "24h", 60000, 1, 100000, "15min");
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []
   const bandData = bandDataObj.data ?? []
+
+  // Daten für Tabelle (immer 15min Aggregation, ohne Limit)
+  const ortTableObj = useStationData("ort", "24h", 60000, 1, 100000, "15min");
+  const heuballernTableObj = useStationData("heuballern", "24h", 60000, 1, 100000, "15min");
+  const technoTableObj = useStationData("techno", "24h", 60000, 1, 100000, "15min");
+  const bandTableObj = useStationData("band", "24h", 60000, 1, 100000, "15min");
+  const ortTableData = ortTableObj.data ?? []
+  const heuballernTableData = heuballernTableObj.data ?? []
+  const technoTableData = technoTableObj.data ?? []
+  const bandTableData = bandTableObj.data ?? []
+
   const { weather: latestWeather } = useWeatherData("global", "now")
   const weatherLastUpdate = useWeatherLastUpdate();
   const { health } = useHealth();
@@ -260,6 +272,7 @@ export default function AllLocationsPage() {
   return (
     <TooltipProvider>
       <div className="space-y-4 lg:space-y-6">
+        {/* Granularitätsauswahl für Tabelle entfernt */}
         {/* Header Bereich */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -324,6 +337,7 @@ export default function AllLocationsPage() {
               { value: getThresholds('ort', ortData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
               { value: getThresholds('ort', ortData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
             ] : []}
+            granularity={undefined} // No granularity for charts
           />
           <ChartPlayground
             data={bandChartData as unknown as Record<string, unknown>[]}
@@ -339,6 +353,7 @@ export default function AllLocationsPage() {
               { value: getThresholds('band', bandData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
               { value: getThresholds('band', bandData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
             ] : []}
+            granularity={undefined} // No granularity for charts
           />
           <ChartPlayground
             data={technoChartData as unknown as Record<string, unknown>[]}
@@ -354,6 +369,7 @@ export default function AllLocationsPage() {
               { value: getThresholds('techno', technoData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
               { value: getThresholds('techno', technoData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
             ] : []}
+            granularity={undefined} // No granularity for charts
           />
           <ChartPlayground
             data={heuballernChartData as unknown as Record<string, unknown>[]}
@@ -369,6 +385,7 @@ export default function AllLocationsPage() {
               { value: getThresholds('heuballern', heuballernData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
               { value: getThresholds('heuballern', heuballernData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
             ] : []}
+            granularity={undefined} // No granularity for charts
           />
         </div>
 
@@ -419,19 +436,21 @@ export default function AllLocationsPage() {
               axes={axes}
               title=""
               icon={null}
+              granularity={undefined} // No granularity for charts
             />
           </div>
         ) : (
           <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Daten ...</div>
         )}
 
-        {/* Tabellenansicht (aus Zugvoegel, erweitert um Heuballern) */}
+        {/* Tabellenansicht */}
         <AllStationsTable
-          ortData={ortData}
-          heuballernData={heuballernData}
-          technoData={technoData}
-          bandData={bandData}
+          ortData={ortTableData.map(row => ({ ...row, station: "Ort" }))}
+          heuballernData={heuballernTableData.map(row => ({ ...row, station: "Heuballern" }))}
+          technoData={technoTableData.map(row => ({ ...row, station: "Techno Floor" }))}
+          bandData={bandTableData.map(row => ({ ...row, station: "Band Bühne" }))}
           config={config}
+          granularity={"15min"}
         />
 
         {/* Grenzwert-Referenz */}

@@ -48,16 +48,17 @@ type AllStationsTableProps = {
   technoData: TableRowType[];
   bandData: TableRowType[];
   config: Record<string, unknown>;
+  granularity?: string;
 }
 
-export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config }: AllStationsTableProps) {
+export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity }: AllStationsTableProps) {
   const [showWeather, setShowWeather] = useState(false)
   const [search, setSearch] = useState("")
   const [filterStation, setFilterStation] = useState("")
   const [filterDate, setFilterDate] = useState("")
   const [page, setPage] = useState(1)
   const pageSize = 25
-  const [filter15min, setFilter15min] = useState(false)
+  // const [filter15min, setFilter15min] = useState(false) // Entfernt, da Aggregation jetzt über API
   const [showOnlyAlarms, setShowOnlyAlarms] = useState(false)
 
   const tableRows: TableRowType[] = [
@@ -69,11 +70,17 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
   const tableColumns: DataTableColumn<TableRowType>[] = [
     { label: "Datum", key: "datetime", sortable: true, render: (row: TableRowType) => {
       if (!row.datetime) return "-"
-      if (/^\d{2}\.\d{2}\.\d{4}$/.test(row.datetime)) return row.datetime
+      // SSR-sicheres ISO-Format YYYY-MM-DD
       const d = new Date(row.datetime)
-      return isNaN(d.getTime()) ? row.datetime : d.toLocaleDateString('de-DE')
+      return isNaN(d.getTime()) ? row.datetime : d.toISOString().slice(0, 10)
     } },
-    { label: "Zeit", key: "time", sortable: true },
+    { label: "Zeit", key: "time", sortable: true, render: (row: TableRowType) => {
+      if (!row.time) return "-"
+      // Nur HH:mm anzeigen, egal ob row.time mit oder ohne Sekunden kommt
+      // Unterstützt Formate wie "04:45:59" oder "04:45"
+      const match = row.time.match(/^(\d{2}:\d{2})/)
+      return match ? match[1] : row.time.slice(0, 5)
+    } },
     { label: "dB", key: "las", sortable: true, render: (row: TableRowType) => row.las !== undefined ? row.las.toFixed(1) : "-" },
     ...(showWeather ? [
       { label: "Wind", key: "ws", sortable: true, render: (row: TableRowType) => (row.ws !== undefined && row.ws !== null) ? row.ws.toFixed(1) : "-" },
@@ -107,8 +114,33 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
     )
   }
 
+  // Filtere auf echte 15-Minuten-Zeitpunkte (Minuten 0, 15, 30, 45, egal welche Sekunden), aber nur einen Wert pro Slot
+  const filteredTableRows = useMemo(() => {
+    // Zuerst: Nur Werte mit Minuten 0, 15, 30, 45
+    const candidates = tableRows.filter(row => {
+      if (!row.time) return false;
+      const match = row.time.match(/^([0-2][0-9]):([0-5][0-9])(:[0-5][0-9])?$/);
+      if (!match) return false;
+      const min = parseInt(match[2], 10);
+      return min % 15 === 0;
+    });
+    // Dann: Pro Datum+Stunde+Minute nur einen Wert behalten (z.B. den mit der höchsten/letzten Sekunde)
+    const seen = new Set<string>();
+    const unique = [];
+    for (let i = candidates.length - 1; i >= 0; i--) { // von hinten, damit der letzte Wert pro Slot bleibt
+      const row = candidates[i];
+      const date = row.datetime ? new Date(row.datetime).toLocaleDateString('de-DE') : '';
+      const hm = row.time ? row.time.slice(0,5) : '';
+      const key = `${date}|${hm}|${row.station}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(row);
+      }
+    }
+    return unique.reverse(); // wieder chronologisch
+  }, [tableRows]);
   const filteredRows = useMemo(() => {
-    let rows = tableRows.filter((row: TableRowType) => {
+    let rows = filteredTableRows.filter((row: TableRowType) => {
       if (filterStation && row.station !== filterStation) return false
       if (filterDate && row.datetime && new Date(row.datetime).toLocaleDateString('de-DE') !== filterDate) return false
       if (search) {
@@ -141,52 +173,9 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
         ? String(aVal).localeCompare(String(bVal))
         : String(bVal).localeCompare(String(aVal))
     })
-    if (filter15min) {
-      const grouped: Record<string, TableRowType[]> = {}
-      for (const row of rows) {
-        if (!row.time || !row.datetime) continue
-        const [h, m] = row.time.split(':')
-        if (!h || !m) continue
-        const hour = h.padStart(2, '0')
-        const minBlock = String(Math.floor(Number(m) / 15) * 15).padStart(2, '0')
-        const date = new Date(row.datetime)
-        const dateStr = date.toLocaleDateString('de-DE')
-        const key = `${row.station}|${dateStr}|${hour}:${minBlock}`
-        if (!grouped[key]) grouped[key] = []
-        grouped[key].push(row)
-      }
-      rows = Object.entries(grouped).map(([key, group]) => {
-        const [station, , time] = key.split('|')
-        const avg = (arr: (number|undefined)[]) => {
-          const nums = arr.filter((v): v is number => typeof v === 'number')
-          return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : undefined
-        }
-        let dateStr = '-';
-        if (group[0].datetime) {
-          const d = new Date(group[0].datetime)
-          if (!isNaN(d.getTime())) {
-            dateStr = d.toLocaleDateString('de-DE')
-          }
-        }
-        return {
-          datetime: dateStr,
-          time,
-          las: avg(group.map(r => r.las)),
-          ws: avg(group.map(r => r.ws)),
-          wd: group[group.length-1].wd,
-          rh: avg(group.map(r => r.rh)),
-          station,
-        }
-      }).sort((a, b) => {
-        const dA = a.datetime || ''
-        const dB = b.datetime || ''
-        if (dA !== dB) return dA.localeCompare(dB)
-        if (a.time !== b.time) return (a.time || '').localeCompare(b.time || '')
-        return (a.station || '').localeCompare(b.station || '')
-      })
-    }
+    // filter15min entfernt
     return rows
-  }, [tableRows, filterStation, filterDate, search, filter15min, sortKey, sortDir, showOnlyAlarms, config?.thresholdsByStationAndTime])
+  }, [filteredTableRows, filterStation, filterDate, search, sortKey, sortDir, showOnlyAlarms, config?.thresholdsByStationAndTime])
   const pageCount = Math.ceil(filteredRows.length / pageSize)
   const pagedRows = useMemo<TableRowType[]>(() => filteredRows.slice((page-1)*pageSize, page*pageSize), [filteredRows, page, pageSize])
   const allStations = useMemo(() => Array.from(new Set(tableRows.map(r => r.station))), [tableRows])
@@ -198,8 +187,13 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
   return (
     <Card className="mb-10 rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800">
       <CardHeader className="flex flex-row items-center gap-4 p-6 pb-2">
-        <TableIcon className="w-6 h-6 text-violet-500" />
+        <TableIcon className="w-6 h-6 text-blue-500" />
         <span className="text-xl font-bold text-gray-900 dark:text-white">Tabellenansicht</span>
+        {granularity && (
+          <span className="ml-4 px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-semibold">
+            {granularity} Daten
+          </span>
+        )}
       </CardHeader>
       <CardContent className="pt-0 pb-6">
         <div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-3 mb-4 md:mb-6 items-end w-full sticky top-0 z-20 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900/80 backdrop-blur-md pt-4 pb-4 px-2 md:px-4 rounded-2xl shadow-sm">
@@ -230,15 +224,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
             </Select>
           </div>
           <div className="w-full md:w-[170px]">
-            <Select value={filter15min ? '15' : 'all'} onValueChange={v => setFilter15min(v === '15')}>
-              <SelectTrigger className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 transition">
-                <span>{filter15min ? 'Nur 15-Minuten-Werte' : 'Werte'}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle Zeitpunkte</SelectItem>
-                <SelectItem value="15">Nur 15-Minuten-Werte</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Removed filter15min Select */}
           </div>
           <div className="flex-1" />
           <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto min-w-[320px] h-10 mt-2 md:mt-0">
@@ -296,9 +282,9 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
               </tr>
             </thead>
             <tbody>
-              {pagedRows.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <tr><td colSpan={tableColumns.length} className="text-gray-400 text-center py-4">Keine Daten</td></tr>
-              ) : pagedRows.map((row: TableRowType, i: number) => (
+              ) : filteredRows.slice((page-1)*pageSize, page*pageSize).map((row: TableRowType, i: number) => (
                 <tr key={i} className={
                   `transition rounded-xl shadow-sm ` +
                   (i % 2 === 0 ? 'bg-white/90 dark:bg-gray-900/40' : 'bg-gray-50 dark:bg-gray-800/40') +

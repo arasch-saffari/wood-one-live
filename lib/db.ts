@@ -245,8 +245,8 @@ export function insertMeasurement(station: string, time: string, las: number) {
 }
 
 // Fast database queries with optimized indexing
-export function getMeasurementsForStation(station: string, interval: "24h" | "7d" = "24h") {
-  const limit = interval === "7d" ? 5000 : 1000;
+export function getMeasurementsForStation(station: string) {
+  // const limit = interval === "7d" ? 5000 : 1000;
   // Zeit auf 10-Minuten-Block runden (z.B. 19:25:24 -> 19:20:00)
   // SQLite: substr(m.time,1,2) gibt Stunde, substr(m.time,4,2) gibt Minute
   // (CAST(substr(m.time,4,2) AS INTEGER) / 10) * 10 gibt den 10er-Block
@@ -262,10 +262,28 @@ export function getMeasurementsForStation(station: string, interval: "24h" | "7d
       )
     WHERE m.station = ?
     ORDER BY m.rowid DESC
-    LIMIT ?
   `)
-  const results = stmt.all(station, limit) as Array<{ time: string; las: number; datetime: string; ws?: number; wd?: string; rh?: number; temp?: number }>;
+  const results = stmt.all(station) as Array<{ time: string; las: number; datetime: string; ws?: number; wd?: string; rh?: number; temp?: number }>;
   return results.reverse(); // Chronologische Reihenfolge
+}
+
+// Liefert minütliche Mittelwerte für eine Station und einen Zeitraum
+export function getMinuteAveragesForStation(station: string, interval: "24h" | "7d" = "24h") {
+  // Zeitraum bestimmen
+  let since = ''
+  if (interval === "24h") {
+    since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ')
+  } else if (interval === "7d") {
+    since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ')
+  }
+  const stmt = db.prepare(`
+    SELECT substr(datetime, 1, 16) as minute, AVG(las) as avgLas
+    FROM measurements
+    WHERE station = ? AND datetime >= ?
+    GROUP BY minute
+    ORDER BY minute ASC
+  `)
+  return stmt.all(station, since) as Array<{ minute: string, avgLas: number }>
 }
 
 // Utility function to check database health

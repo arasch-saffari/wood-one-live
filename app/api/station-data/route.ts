@@ -7,6 +7,8 @@ import fs from "fs";
 import path from "path";
 import { getThresholdsForStationAndTime, checkRateLimit } from '@/lib/utils'
 import db from '@/lib/database'
+import os from 'os'
+import { getMinuteAveragesForStation } from '@/lib/db'
 
 const configPath = path.join(process.cwd(), 'config.json')
 function getConfig() {
@@ -28,6 +30,17 @@ const weatherCache = new Map<string, { data: any; timestamp: number }>();
 
 const apiCache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_DURATION = 60 * 1000 // 1 Minute
+
+// Server-seitiges Caching für große Zeiträume
+const stationDataCache = new Map<string, { data: any, timestamp: number }>()
+const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 Minuten
+
+// File-Cache für große Zeiträume
+const CACHE_DIR = path.join(process.cwd(), 'cache')
+if (!fs.existsSync(CACHE_DIR)) {
+  fs.mkdirSync(CACHE_DIR, { recursive: true })
+}
+const FILE_CACHE_DURATION_MS = 5 * 60 * 1000 // 5 Minuten
 
 function roundTo5MinBlock(time: string): string {
   const [h, m] = time.split(":");
@@ -89,42 +102,57 @@ async function getWeatherWithCache(station: string, time: string) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const test = searchParams.get('test')
-  if (test === '1') {
-    // Test-Endpunkt: Gib rohe Messdaten für die Station zurück
-    const station = searchParams.get('station')
-    if (!station) return NextResponse.json({ error: 'Missing station parameter' }, { status: 400 })
-    try {
-      const rows = db.prepare('SELECT * FROM measurements WHERE station = ? ORDER BY datetime ASC LIMIT 500').all(station)
-      return NextResponse.json({ data: rows, totalCount: rows.length })
-    } catch (e: any) {
-      return NextResponse.json({ error: e?.message || 'Fehler beim Test-Query' }, { status: 500 })
-    }
-  }
-  // --- Rate Limiting ---
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || ''
-  if (!checkRateLimit(ip, '/api/station-data', 200, 60_000)) {
-    return NextResponse.json({ error: 'Zu viele Anfragen. Bitte warte einen Moment.' }, { status: 429 })
-  }
   const station = searchParams.get("station")
+  const page = parseInt(searchParams.get("page") || "1", 10)
+  const pageSize = parseInt(searchParams.get("pageSize") || "1000", 10)
+  const aggregate = searchParams.get("aggregate")
+  const interval = (searchParams.get("interval") as "24h" | "7d") || "24h"
   if (!station) {
     return NextResponse.json({ error: "Missing station parameter" }, { status: 400 });
   }
-  // Konfiguration laden
-  const config = getConfig();
-  // Hole die letzten 1000 (24h) oder 5000 (7d) Messwerte für die Station
-  const interval = (searchParams.get("interval") as "24h" | "7d") || "24h";
-  const measurements = getMeasurementsForStation(station, interval);
-  // Hole Wetterdaten für die Zeitpunkte (optional, falls benötigt)
-  // ... Wetterdaten-Logik kann optional bleiben ...
-  // Baue das Ergebnis-Array
-  const result = measurements.map(m => ({
-    time: m.time,
-    las: m.las,
-    datetime: m.datetime,
-    ws: m.ws,
-    wd: m.wd,
-    rh: m.rh,
-  }));
-  return NextResponse.json({ data: result, totalCount: result.length });
+  // Aggregation: minütliche Mittelwerte
+  if (aggregate === "minutely") {
+    const minuteAverages = getMinuteAveragesForStation(station, interval)
+    const totalCount = minuteAverages.length
+    const start = (page - 1) * pageSize
+    const end = start + pageSize
+    const paged = minuteAverages.slice(start, end)
+    console.log(`[API station-data] Station: ${station}, Aggregation: minutely, Count: ${totalCount}`)
+    return NextResponse.json({ data: paged, totalCount, page, pageSize })
+  }
+  // File-Cache-Logik wieder aktivieren
+  const cacheFile = path.join(CACHE_DIR, `stationdata-${station}.json`)
+  let allData: { data: any[], totalCount: number } | null = null
+  let usedCache = false
+  if (fs.existsSync(cacheFile)) {
+    const stats = fs.statSync(cacheFile)
+    if (Date.now() - stats.mtimeMs < FILE_CACHE_DURATION_MS) {
+      allData = JSON.parse(fs.readFileSync(cacheFile, 'utf-8'))
+      usedCache = true
+    }
+  }
+  if (!allData) {
+    const measurements = getMeasurementsForStation(station);
+    const result = measurements.map(m => ({
+      time: m.time,
+      las: m.las,
+      datetime: m.datetime,
+      ws: m.ws,
+      wd: m.wd,
+      rh: m.rh,
+    }));
+    allData = { data: result, totalCount: result.length }
+    if (result.length > 5000) {
+      fs.writeFileSync(cacheFile, JSON.stringify(allData))
+    }
+  }
+  if (!allData) {
+    console.log(`[API station-data] Station: ${station}, Rohdaten: 0, usedCache: ${usedCache}`)
+    return NextResponse.json({ data: [], totalCount: 0, page, pageSize })
+  }
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+  const pagedData = allData.data.slice(start, end)
+  console.log(`[API station-data] Station: ${station}, Rohdaten: ${allData.totalCount}, usedCache: ${usedCache}`)
+  return NextResponse.json({ data: pagedData, totalCount: allData.totalCount, page, pageSize });
 } 

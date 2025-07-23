@@ -84,9 +84,9 @@ export async function processCSVFile(station: string, csvPath: string) {
         sysTime = `${hours}:${minutes}:${seconds}`
         console.log(`⏰ Normalisierte Zeit: ${sysTime}`)
         
-        // Wertebereich-Check für Lärmdaten
+        // Wertebereich-Check für Lärmdaten ENTFERNT!
         const las = Number(lasRaw.replace(",", "."))
-        if (isNaN(las) || las <= 0 || las >= 150) {
+        if (isNaN(las)) {
           console.log(`⚠️  Ungültiger Lärmwert: ${lasRaw} -> ${las}`)
           return false
         }
@@ -187,6 +187,11 @@ export async function processCSVFile(station: string, csvPath: string) {
         throw batchErr
       }
       
+      // Nach erfolgreichem Import: File-Cache für diese Station löschen
+      const cacheFile = path.join(process.cwd(), 'cache', `stationdata-${station}.json`)
+      if (fs.existsSync(cacheFile)) {
+        fs.unlinkSync(cacheFile)
+      }
       return insertedCount
     } catch (e) {
       if (attempts < MAX_ATTEMPTS) {

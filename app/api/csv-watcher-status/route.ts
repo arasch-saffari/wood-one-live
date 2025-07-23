@@ -28,7 +28,9 @@ export async function GET() {
       if (fs.existsSync(heartbeatPath)) {
         status.watcherHeartbeat = fs.readFileSync(heartbeatPath, 'utf-8')
       }
-    } catch {}
+    } catch {
+      // ignore heartbeat read errors
+    }
     
     for (const station of stations) {
       const csvDir = path.join(process.cwd(), "public", "csv", station)
@@ -59,7 +61,13 @@ export async function GET() {
       }
     }
     
-    return NextResponse.json(status)
+    const processingLockPath = path.join(process.cwd(), 'backups', 'csv-processing.lock')
+    const processing = fs.existsSync(processingLockPath)
+
+    return NextResponse.json({
+      ...status,
+      processing,
+    })
   } catch (e) {
     return NextResponse.json({ 
       success: false, 

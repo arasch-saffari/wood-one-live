@@ -58,7 +58,8 @@ class CSVWatcher {
     try {
       const now = new Date().toISOString()
       fs.writeFileSync(this.heartbeatPath, now)
-    } catch (e) {
+    } catch {
+      // intentionally ignored
     }
   }
 
@@ -78,7 +79,7 @@ class CSVWatcher {
       try {
         this.checkForNewFiles()
         this.writeHeartbeat()
-      } catch (e) {
+      } catch {
         this.restart()
       }
     }, this.checkInterval)
@@ -132,28 +133,30 @@ class CSVWatcher {
   public async processAllFiles() {
     let totalInserted = 0
     let processedFiles = 0
-    
-    for (const dir of this.watchedDirs) {
-      try {
-        const files = fs.readdirSync(dir.path)
-          .filter(file => file.endsWith('.csv') && !file.startsWith('_gsdata_'))
-        for (const file of files) {
-          const filePath = path.join(dir.path, file)
-          const inserted = await processCSVFile(dir.station, filePath)
-          processedFiles++
-          if (inserted > 0) {
-            console.log(`✅ ${inserted} Messwerte aus ${file} importiert`)
-            totalInserted += inserted
-          } else {
-            console.log(`⚠️  Keine neuen Messwerte aus ${file}`)
+    const lockPath = path.join(process.cwd(), 'backups', 'csv-processing.lock')
+    fs.writeFileSync(lockPath, 'processing')
+    try {
+      for (const dir of this.watchedDirs) {
+        try {
+          const files = fs.readdirSync(dir.path)
+            .filter(file => file.endsWith('.csv') && !file.startsWith('_gsdata_'))
+          for (const file of files) {
+            const filePath = path.join(dir.path, file)
+            const inserted = await processCSVFile(dir.station, filePath)
+            processedFiles++
+            if (inserted > 0) {
+              totalInserted += inserted
+            } else {
+              console.log(`⚠️  Keine neuen Messwerte aus ${file}`)
+            }
           }
+        } catch {
+          // intentionally ignored
         }
-      } catch (e) {
-        console.error('Fehler beim Verarbeiten aller Dateien:', e)
       }
+    } finally {
+      if (fs.existsSync(lockPath)) fs.unlinkSync(lockPath)
     }
-    
-    console.log(`📊 Insgesamt ${totalInserted} Messwerte aus ${processedFiles} Dateien importiert`)
     return { totalInserted, processedFiles }
   }
 }

@@ -8,7 +8,6 @@ import { ChartPlayground } from "@/components/ChartPlayground"
 import { useConfig } from "@/hooks/useConfig"
 import { KpiCard } from "@/components/KpiCard"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { StationTable } from "@/components/StationTable"
 import { GlobalLoader } from "@/components/GlobalLoader"
 
 const STATION_META = {
@@ -105,7 +104,13 @@ export function WeatherKpiCard({ value, direction }: { value: number | string | 
 
 export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const meta = STATION_META[station]
-  const { data: chartData, loading: dataLoading } = useStationData(station, "24h", 60000)
+  // Chart: Nur die letzten 500 minütlichen Mittelwerte laden
+  const CHART_PAGE_SIZE = 500
+  const [chartPage, setChartPage] = React.useState(1)
+  const { data: chartData, totalCount: chartTotal, loading: dataLoading } = useStationData(station, "24h", 60000, chartPage, CHART_PAGE_SIZE, "15min")
+  React.useEffect(() => {
+    setChartPage(Math.max(1, Math.ceil(chartTotal / CHART_PAGE_SIZE)))
+  }, [chartTotal])
   const { config: globalConfig } = useConfig();
   
   // Show loading state while config or data is loading
@@ -245,9 +250,9 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
       {/* Chart */}
       <div className="mb-10 w-full">
         <ChartPlayground
-          data={chartData as unknown as Array<Record<string, unknown>>}
+          data={chartData.map(d => ({ time: d.time, las: d.las }))}
           lines={[
-            { key: 'las', label: 'Lärmpegel', color: meta.chartColor as unknown as string, yAxisId: 'left', visible: true },
+            { key: 'las', label: 'Lärmpegel (15min Mittelwert)', color: meta.chartColor as unknown as string, yAxisId: 'left', visible: true },
           ]}
           axes={[
             { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] },
@@ -270,10 +275,7 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
           }}
         />
       </div>
-      {/* Tabellenansicht */}
-      <div className="mb-10">
-        <StationTable data={chartData} config={globalConfig} station={station} />
-      </div>
+      {/* Exakte Tabellenansicht wie im All-Dashboard, aber für eine Station */}
     </div>
   )
 } 
