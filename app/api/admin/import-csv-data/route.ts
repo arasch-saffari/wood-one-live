@@ -25,9 +25,9 @@ export async function POST() {
     console.log(`✅ CSV-Import abgeschlossen: ${totalInserted} Messwerte importiert`)
     
     // 4. Wetter-API für alle neuen Messwerte abrufen
-    console.log('🌤️  Rufe Wetterdaten für alle Messwerte ab...')
+    console.log('🌤️  Rufe Wetterdaten für alle Zeitblöcke ab...')
     let weatherFetched = 0
-    
+
     // Hole alle neuen Messwerte
     const newMeasurements = db.prepare(`
       SELECT DISTINCT station, time, datetime 
@@ -35,33 +35,62 @@ export async function POST() {
       WHERE datetime IS NOT NULL 
       ORDER BY datetime DESC
     `).all() as Array<{ station: string; time: string; datetime: string }>
-    
-    console.log(`📊 Verarbeite Wetterdaten für ${newMeasurements.length} Messwerte...`)
-    
-    for (const measurement of newMeasurements) {
-      try {
-        const weather = await fetchWeather()
-        if (weather) {
-          insertWeather(
-            measurement.station, 
-            measurement.time, 
-            weather.windSpeed || 0, 
-            weather.windDir || '', 
-            weather.relHumidity || 0, 
-            weather.temperature || undefined
-          )
-          weatherFetched++
-          
-          if (weatherFetched % 10 === 0) {
-            console.log(`🌤️  ${weatherFetched}/${newMeasurements.length} Wetterdaten abgerufen...`)
-          }
-        }
-      } catch (weatherError) {
-        console.log(`⚠️  Wetter-API Fehler für ${measurement.time}:`, weatherError)
+
+    // Gruppiere Messungen nach Zeitblock (z.B. 5-Minuten-Block)
+    function getBlockTime(datetime: string) {
+      const date = new Date(datetime)
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes()
+      const blockMin = Math.floor(minutes / 5) * 5
+      return `${hours}:${blockMin.toString().padStart(2, '0')}`
+    }
+
+    // Map: blockTime -> Array<{station, time, datetime}>
+    const blockMap = new Map<string, Array<{ station: string; time: string; datetime: string }>>()
+    for (const m of newMeasurements) {
+      const blockTime = getBlockTime(m.datetime)
+      if (!blockMap.has(blockTime)) blockMap.set(blockTime, [])
+      blockMap.get(blockTime)!.push(m)
+    }
+
+    // Wetterdaten pro Block holen (max. 5 parallel)
+    const pLimit = (max: number) => {
+      let active = 0; const queue: (() => void)[] = []
+      const next = () => { if (queue.length && active < max) { active++; queue.shift()!() } }
+      return async <T>(fn: () => Promise<T>): Promise<T> => {
+        if (active >= max) await new Promise<void>(resolve => queue.push(resolve))
+        active++
+        try { return await fn() } finally { active--; next() }
       }
     }
-    
-    console.log(`✅ ${weatherFetched} Wetterdaten erfolgreich abgerufen`)
+    const limit = pLimit(5)
+
+    const blockTimes = Array.from(blockMap.keys())
+    await Promise.all(blockTimes.map(blockTime =>
+      limit(async () => {
+        try {
+          const weather = await fetchWeather()
+          if (weather) {
+            for (const m of blockMap.get(blockTime)!) {
+              insertWeather(
+                m.station,
+                blockTime,
+                weather.windSpeed || 0,
+                weather.windDir || '',
+                weather.relHumidity || 0,
+                weather.temperature || undefined
+              )
+              weatherFetched++
+            }
+            console.log(`🌤️  Wetterdaten für Block ${blockTime} gespeichert (${blockMap.get(blockTime)!.length} Messungen)`)
+          }
+        } catch (weatherError) {
+          console.log(`⚠️  Wetter-API Fehler für Block ${blockTime}:`, weatherError)
+        }
+      })
+    ))
+
+    console.log(`✅ ${weatherFetched} Wetterdaten erfolgreich abgerufen und zugeordnet`)
     
     // 5. CSV-Watcher wieder starten
     csvWatcher.start()

@@ -1,11 +1,11 @@
-import { ReactNode } from "react"
+import React from 'react'
 
 interface StationHeaderProps {
-  icon: ReactNode
+  icon: React.ReactNode
   name: string
   color: string
   gradient: string
-  statusBadge: ReactNode
+  statusBadge: React.ReactNode
   subtitle?: string
 }
 

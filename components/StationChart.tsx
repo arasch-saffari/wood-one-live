@@ -1,3 +1,4 @@
+import React from 'react'
 import { GenericChart } from "@/components/GenericChart"
 import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -29,12 +30,9 @@ export function StationChart({
   // Konfiguriere Linien und Achsen für GenericChart
   const lines = [
     { key: "las", label: "Lärmpegel", color: stationColors.primary, yAxisId: "noise" },
-    { key: "ws", label: "Wind", color: chartColors.wind, yAxisId: "wind", strokeDasharray: "5 5" },
-    { key: "rh", label: "Luftfeuchte", color: chartColors.humidity, yAxisId: "noise", strokeDasharray: "2 2" },
   ]
   const axes = [
     { id: "noise", orientation: "left" as const, domain: [30, 95] as [number, number], label: "Lärmpegel (dB)", ticks: [30, 40, 50, 60, 70, 80, 90] },
-    { id: "wind", orientation: "right" as const, domain: [0, 25] as [number, number], label: "Windgeschwindigkeit (km/h)", ticks: [0, 5, 10, 15, 20, 25] },
   ]
   const chartThresholds = [
     { value: thresholds.warning, label: "Warnung", color: chartColors.warning, yAxisId: "noise" },
@@ -47,7 +45,6 @@ export function StationChart({
       axes={axes}
       thresholds={chartThresholds}
       legend={true}
-      maxPointsDefault={maxPointsDefault}
       height={350}
       tooltipFormatter={(value, name) => {
         if (name === "ws") return [`${value} km/h`, "Windgeschwindigkeit"]

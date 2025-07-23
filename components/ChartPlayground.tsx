@@ -1,22 +1,8 @@
 "use client";
-import React, { useState } from 'react';
+import React from 'react';
 import { GenericChart } from '@/components/GenericChart';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart3 } from 'lucide-react';
-import { useConfig } from '@/hooks/useConfig';
-import { ReactNode } from 'react';
-
-const granularities = ['1h', '15min', '10min', '5min', '1min']
-const pointOptions = [50, 100, 200, 500, 0]
-
-function generateDemoData(len = 30) {
-  return Array.from({ length: len }).map((_, i) => ({
-    time: `${String(i).padStart(2, '0')}:00`,
-    ort: 50 + Math.sin(i / 5) * 5 + Math.random() * 2,
-    windSpeed: 10 + Math.sin(i / 8) * 3 + Math.random() * 1.5,
-  }))
-}
 
 // Typen für ChartPlayground
 interface ChartLine {

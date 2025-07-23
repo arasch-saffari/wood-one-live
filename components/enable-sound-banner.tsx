@@ -1,8 +1,19 @@
 "use client"
 
+import React from 'react'
 import { useEffect, useState } from "react"
 import { AlertTriangle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+
+// Typ für BeforeInstallPromptEvent
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
+function hasStandalone(navigator: Navigator): navigator is Navigator & { standalone: boolean } {
+  return 'standalone' in navigator
+}
 
 export function EnableSoundBanner() {
   const [visible, setVisible] = useState(false)
@@ -42,7 +53,7 @@ export function EnablePwaBanner() {
   useEffect(() => {
     // Prüfe, ob Android (und nicht iOS oder Desktop)
     const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as Navigator).standalone
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (hasStandalone(navigator) && navigator.standalone)
     const alreadyShown = window.localStorage.getItem('pwaBannerShown') === 'true'
     if (!isAndroid || isStandalone || alreadyShown) return
 
@@ -71,8 +82,8 @@ export function EnablePwaBanner() {
         className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold text-xs shadow hover:scale-105 transition"
         onClick={async () => {
           if (deferredPrompt) {
-            (deferredPrompt as any).prompt()
-            const { outcome } = (deferredPrompt as any).userChoice
+            (deferredPrompt as BeforeInstallPromptEvent).prompt()
+            const { outcome } = await (deferredPrompt as BeforeInstallPromptEvent).userChoice
             if (outcome === "accepted") {
               setShowBanner(false)
             }

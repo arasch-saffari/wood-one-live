@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useEffect, useState } from 'react'
 
 export function SystemBanner() {
@@ -12,7 +14,9 @@ export function SystemBanner() {
         if (data.notify) {
           setWarning(data.message || 'Systemintegritätsproblem erkannt!')
         }
-      } catch {}
+      } catch {
+        // intentionally ignored
+      }
     }
     fetchWarning()
     const interval = setInterval(fetchWarning, 60_000)

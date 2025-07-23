@@ -1,4 +1,4 @@
-import { ReactNode } from "react"
+import React from 'react'
 
 export function LoadingSpinner({ text = "Lädt...", className = "" }: { text?: string, className?: string }) {
   return (

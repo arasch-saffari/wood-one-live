@@ -76,6 +76,11 @@ function formatTime(latest: string | undefined) {
   return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
 
+// Hilfsfunktion: Icon als JSX-Element
+function getStationIcon(icon: any) {
+  return icon ? React.createElement(icon, { className: 'w-5 h-5' }) : null;
+}
+
 export default function AllLocationsPage() {
   // Ladezustand für alle Daten
   const [showLoader, setShowLoader] = useState(true)
@@ -141,6 +146,13 @@ export default function AllLocationsPage() {
     }
   })
 
+  // chartData filtern: Nur Zeitpunkte mit mindestens einem Wert, max. 500 Einträge
+  const filteredChartData = chartData.filter(
+    d => d.ort !== null || d.band !== null || d.techno !== null || d.heuballern !== null
+  );
+  const lastN = 500;
+  const slicedChartData = filteredChartData.length > lastN ? filteredChartData.slice(-lastN) : filteredChartData;
+
   // Compose current levels for KPI cards (last value in each array)
   const currentLevels = {
     ort: ortData.length > 0 ? ortData[ortData.length - 1].las : 0,
@@ -204,6 +216,47 @@ export default function AllLocationsPage() {
     { id: 'wind', orientation: 'right', domain: [0, 25] as [number, number], label: 'km/h' },
   ]
 
+  // Debug-Ausgaben für chartData und lines
+  console.log('chartData', chartData);
+  console.log('lines', [
+    { key: 'ort', label: STATION_META.ort.name, color: STATION_META.ort.chartColor },
+    { key: 'band', label: STATION_META.band.name, color: STATION_META.band.chartColor },
+    { key: 'techno', label: STATION_META.techno.name, color: STATION_META.techno.chartColor },
+    { key: 'heuballern', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor },
+  ]);
+
+  // Chart für 'ort'
+  const ortTimes = ortData.map(d => d.time).filter(Boolean).sort();
+  const ortSlicedTimes = ortTimes.slice(ortTimes.length > 500 ? ortTimes.length - 500 : 0);
+  const ortChartData = ortSlicedTimes.map(time => {
+    const entry = ortData.find(d => d.time === time);
+    return { time, las: entry?.las ?? null };
+  });
+
+  // Chart für 'band'
+  const bandTimes = bandData.map(d => d.time).filter(Boolean).sort();
+  const bandSlicedTimes = bandTimes.slice(bandTimes.length > 500 ? bandTimes.length - 500 : 0);
+  const bandChartData = bandSlicedTimes.map(time => {
+    const entry = bandData.find(d => d.time === time);
+    return { time, las: entry?.las ?? null };
+  });
+
+  // Chart für 'techno'
+  const technoTimes = technoData.map(d => d.time).filter(Boolean).sort();
+  const technoSlicedTimes = technoTimes.slice(technoTimes.length > 500 ? technoTimes.length - 500 : 0);
+  const technoChartData = technoSlicedTimes.map(time => {
+    const entry = technoData.find(d => d.time === time);
+    return { time, las: entry?.las ?? null };
+  });
+
+  // Chart für 'heuballern'
+  const heuballernTimes = heuballernData.map(d => d.time).filter(Boolean).sort();
+  const heuballernSlicedTimes = heuballernTimes.slice(heuballernTimes.length > 500 ? heuballernTimes.length - 500 : 0);
+  const heuballernChartData = heuballernSlicedTimes.map(time => {
+    const entry = heuballernData.find(d => d.time === time);
+    return { time, las: entry?.las ?? null };
+  });
+
   return (
     <TooltipProvider>
       <div className="space-y-4 lg:space-y-6">
@@ -253,6 +306,70 @@ export default function AllLocationsPage() {
                 </Link>
               </motion.div>
             )})}
+        </div>
+
+        {/* Multi-Line-Chart für alle Standorte */}
+        <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <ChartPlayground
+            data={ortChartData as unknown as Record<string, unknown>[]}
+            lines={[
+              { key: 'las', label: STATION_META.ort.name, color: STATION_META.ort.chartColor, yAxisId: 'left' },
+            ]}
+            axes={[
+              { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] }
+            ]}
+            title={STATION_META.ort.name}
+            icon={null}
+            thresholds={getThresholds('ort', ortData) ? [
+              { value: getThresholds('ort', ortData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+              { value: getThresholds('ort', ortData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+            ] : []}
+          />
+          <ChartPlayground
+            data={bandChartData as unknown as Record<string, unknown>[]}
+            lines={[
+              { key: 'las', label: STATION_META.band.name, color: STATION_META.band.chartColor, yAxisId: 'left' },
+            ]}
+            axes={[
+              { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] }
+            ]}
+            title={STATION_META.band.name}
+            icon={null}
+            thresholds={getThresholds('band', bandData) ? [
+              { value: getThresholds('band', bandData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+              { value: getThresholds('band', bandData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+            ] : []}
+          />
+          <ChartPlayground
+            data={technoChartData as unknown as Record<string, unknown>[]}
+            lines={[
+              { key: 'las', label: STATION_META.techno.name, color: STATION_META.techno.chartColor, yAxisId: 'left' },
+            ]}
+            axes={[
+              { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] }
+            ]}
+            title={STATION_META.techno.name}
+            icon={null}
+            thresholds={getThresholds('techno', technoData) ? [
+              { value: getThresholds('techno', technoData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+              { value: getThresholds('techno', technoData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+            ] : []}
+          />
+          <ChartPlayground
+            data={heuballernChartData as unknown as Record<string, unknown>[]}
+            lines={[
+              { key: 'las', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor, yAxisId: 'left' },
+            ]}
+            axes={[
+              { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] }
+            ]}
+            title={STATION_META.heuballern.name}
+            icon={null}
+            thresholds={getThresholds('heuballern', heuballernData) ? [
+              { value: getThresholds('heuballern', heuballernData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+              { value: getThresholds('heuballern', heuballernData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+            ] : []}
+          />
         </div>
 
         {/* Wetter-Übersicht Card */}

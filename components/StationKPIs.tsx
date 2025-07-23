@@ -1,6 +1,6 @@
+import React from 'react'
 import { KpiCard } from "@/components/KpiCard"
 import { Volume2, TrendingUp, Wind } from "lucide-react"
-import { motion } from "framer-motion"
 
 interface StationKPIsProps {
   current: number

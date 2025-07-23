@@ -1,5 +1,6 @@
-import React, { useState, useRef, useMemo } from "react"
-import { Line } from 'react-chartjs-2';
+"use client";
+import React, { useRef, useEffect, useState } from "react";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -7,26 +8,24 @@ import {
   PointElement,
   LineElement,
   Title,
-  Tooltip as ChartJsTooltip,
-  Legend as ChartJsLegend,
-} from 'chart.js';
+  Tooltip,
+  Legend,
+  Chart,
+  TooltipItem,
+} from "chart.js";
+// import zoomPlugin from "chartjs-plugin-zoom"; // Wird dynamisch importiert
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, ChartJsTooltip, ChartJsLegend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-// Typen für GenericChart
 interface GenericChartLine {
   key: string;
   label: string;
   color: string;
   yAxisId?: string;
-  strokeDasharray?: string;
-  visible?: boolean;
-  type?: "monotone" | "linear";
-  activeDotColor?: string;
 }
 interface GenericChartAxis {
   id: string;
-  orientation: 'left' | 'right';
+  orientation: "left" | "right";
   domain: [number, number];
   label: string;
   ticks?: number[];
@@ -36,7 +35,6 @@ interface GenericChartThreshold {
   label: string;
   color: string;
   yAxisId?: string;
-  strokeDasharray?: string;
 }
 interface GenericChartProps {
   data: Array<Record<string, unknown>>;
@@ -45,7 +43,6 @@ interface GenericChartProps {
   thresholds?: GenericChartThreshold[];
   legend?: boolean;
   height?: number;
-  tooltipFormatter?: (value: unknown, name: string) => [string, string];
 }
 
 export function GenericChart({
@@ -54,129 +51,243 @@ export function GenericChart({
   axes,
   thresholds = [],
   legend = true,
-  height = 350,
-  tooltipFormatter,
+  height = 400,
 }: GenericChartProps) {
-  // Sichtbarkeit aller Linien und Schwellenwerte
-  const allKeys = useMemo(() => [...lines.map(l => l.key), ...thresholds.map(t => t.label)], [lines, thresholds]);
-  const [visibleLines, setVisibleLines] = useState<Record<string, boolean>>(() => Object.fromEntries(allKeys.map(k => [k, true])));
-  const prevKeysRef = useRef<string[]>(allKeys);
-  React.useEffect(() => {
-    const prev = prevKeysRef.current;
-    if (prev.length !== allKeys.length || !prev.every((k, i) => k === allKeys[i])) {
-      setVisibleLines(Object.fromEntries(allKeys.map(k => [k, true])));
-      prevKeysRef.current = allKeys;
-    }
-  }, [allKeys]);
-  const [hoveredLineKey, setHoveredLineKey] = React.useState<string | null>(null);
-  const toggleLine = React.useCallback((key: string) => {
-    setVisibleLines(v => ({ ...v, [key]: !v[key] }));
+  const chartRef = useRef<Chart<"line"> | null>(null);
+  // Dynamischer Import von chartjs-plugin-zoom nur im Client
+  useEffect(() => {
+    (async () => {
+      if (typeof window !== "undefined") {
+        const mod = await import("chartjs-plugin-zoom");
+        ChartJS.register(mod.default);
+      }
+    })();
   }, []);
-  // Chart-Daten vorbereiten
-  const visibleData = React.useMemo(() => Array.isArray(data) ? data : [], [data]);
-  // Chart.js Datasets
-  const chartDatasets = React.useMemo(() => [
-    ...lines.filter(line => visibleLines[line.key]).map(line => ({
-      label: line.label,
-      data: visibleData.map((d) => typeof d[line.key] === 'number' ? d[line.key] as number : null),
-      borderColor: line.color,
-      backgroundColor: line.color,
-      borderWidth: hoveredLineKey === line.key ? 4 : 2,
-      borderDash: line.strokeDasharray ? line.strokeDasharray.split(' ').map(Number) : undefined,
-      yAxisID: line.yAxisId || 'left',
-      pointRadius: 0,
-      tension: 0.3,
-    })),
-    ...thresholds.filter(thr => visibleLines[thr.label]).map(thr => ({
-      label: thr.label,
-      data: visibleData.map(() => thr.value),
-      borderColor: thr.color,
-      borderWidth: 1,
-      borderDash: thr.strokeDasharray ? thr.strokeDasharray.split(' ').map(Number) : [3, 3],
-      pointRadius: 0,
+
+  // User-Auswahl: wie viele Datenpunkte anzeigen
+  const [showAll, setShowAll] = useState(false);
+  const [maxPoints, setMaxPoints] = useState(60);
+  // Performance: Wenn mehr als 500 Datenpunkte, nur die letzten 500 anzeigen (Warnung)
+  const maxPerformancePoints = 500;
+  let slicedData = data;
+  let performanceWarning = false;
+  if (!showAll && data.length > maxPoints) {
+    slicedData = data.slice(-maxPoints);
+  } else if (showAll && data.length > maxPerformancePoints) {
+    slicedData = data.slice(-maxPerformancePoints);
+    performanceWarning = true;
+  }
+
+  // X-Achse: Zeit (datetime oder time)
+  const labels = slicedData.map((d) => {
+    if (typeof d.datetime === "string") return d.datetime.slice(11, 16);
+    if (typeof d.time === "string") return d.time;
+    if (d.datetime != null) return String(d.datetime);
+    if (d.time != null) return String(d.time);
+    return "";
+  });
+  // Y-Daten: Lärmpegel
+  const lasLine = lines.find((l) => l.key === "las");
+  if (!lasLine) return null;
+  const lasData = slicedData.map((d) => (typeof d.las === "number" ? d.las : null));
+  // Schwellenwerte als zusätzliche Dataset-Linien
+  const thresholdDatasets = thresholds.map((thr) => ({
+    label: thr.label,
+    data: slicedData.map(() => thr.value),
+    borderColor: typeof thr.color === 'string' ? thr.color : '#6366f1',
+    borderDash: [6, 6],
+    borderWidth: 2,
+    pointRadius: 0,
+    fill: false,
+    yAxisID: lasLine.yAxisId || "left",
+    tension: 0,
+    borderCapStyle: "round" as const,
+  }));
+  // Chart.js Dataset
+  const datasets = [
+    {
+      label: lasLine.label,
+      data: lasData,
+      borderColor: typeof lasLine.color === 'string' ? lasLine.color : '#6366f1',
+      backgroundColor: typeof lasLine.color === 'string' ? lasLine.color : '#6366f1',
+      borderWidth: 3,
+      pointRadius: 3,
       fill: false,
-      yAxisID: thr.yAxisId || 'left',
-      tension: 0,
-    })),
-  ], [lines, thresholds, visibleLines, visibleData, hoveredLineKey]);
-  // Chart.js Optionen
-  const chartOptions = React.useMemo(() => ({
+      yAxisID: lasLine.yAxisId || "left",
+      tension: 0.35,
+      borderCapStyle: "round" as const,
+      cubicInterpolationMode: "monotone" as const,
+    },
+    ...thresholdDatasets,
+  ];
+  // Achsen-Konfiguration
+  const leftAxis = axes.find((a) => a.orientation === "left");
+  // Farben für Light/Dark Mode
+  const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+  const fg = isDark ? '#e5e7eb' : '#334155'; // slate-200/800
+  const grid = isDark ? 'rgba(100,116,139,0.18)' : 'rgba(100,116,139,0.13)';
+  const accent = isDark ? '#6366f1' : '#6366f1';
+  const options = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 900,
+      easing: 'easeOutQuart' as const,
+    },
     plugins: {
-      legend: { display: legend },
+      legend: {
+        display: legend,
+        labels: {
+          color: fg,
+          font: { size: 15, weight: 'bold' as const, family: 'var(--font-sans, Inter, ui-sans-serif, system-ui)' },
+          boxWidth: 18,
+          boxHeight: 18,
+          padding: 18,
+        },
+        align: 'end' as const,
+        position: 'top' as const,
+        maxHeight: 48,
+        maxWidth: 400,
+        rtl: false,
+        fullSize: false,
+      },
       tooltip: {
+        enabled: true,
+        backgroundColor: isDark ? "rgba(24,24,32,0.98)" : "#fff",
+        titleColor: fg,
+        bodyColor: fg,
+        borderColor: accent,
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
         callbacks: {
-          label: function(context: { parsed: { y: number }, dataset: { label?: string } }) {
-            if (tooltipFormatter) {
-              const [val, label] = tooltipFormatter(context.parsed.y, context.dataset.label || '')
-              return `${label}: ${val}`
+          label: (ctx: TooltipItem<'line'>) => {
+            if (ctx.dataset.label === lasLine.label) {
+              return ` ${lasLine.label}: ${ctx.parsed.y} dB`;
             }
-            return `${context.dataset.label}: ${context.parsed.y}`
-          }
-        }
+            return ` ${ctx.dataset.label}: ${ctx.parsed.y} dB`;
+          },
+        },
       },
       title: { display: false },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'x' as const,
+          modifierKey: 'ctrl' as const,
+        },
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: 'x' as const,
+        },
+        limits: {
+          x: { minRange: 5 },
+        },
+      },
     },
     scales: {
-      left: {
-        type: 'linear' as const,
-        position: 'left' as const,
-        min: axes.find(a => a.id === 'left')?.domain[0],
-        max: axes.find(a => a.id === 'left')?.domain[1],
-        title: { display: !!axes.find(a => a.id === 'left')?.label, text: axes.find(a => a.id === 'left')?.label },
-        grid: { color: 'rgba(200,200,200,0.1)' },
+      [lasLine.yAxisId || "left"]: {
+        type: "linear" as const,
+        position: "left" as const,
+        min: leftAxis?.domain?.[0] ?? 30,
+        max: leftAxis?.domain?.[1] ?? 90,
+        title: {
+          display: true,
+          text: leftAxis?.label || "Lärmpegel (dB)",
+          color: fg,
+          font: { size: 15, weight: 'bold' as const, family: 'var(--font-sans, Inter, ui-sans-serif, system-ui)' },
+        },
+        ticks: {
+          color: fg,
+          font: { size: 13, family: 'var(--font-sans, Inter, ui-sans-serif, system-ui)' },
+          stepSize: 10,
+        },
+        grid: {
+          color: grid,
+        },
       },
-      ...axes.filter(a => a.id !== 'left').reduce((acc, axis) => {
-        acc[axis.id] = {
-          type: 'linear' as const,
-          position: axis.orientation as 'left' | 'right',
-          min: axis.domain[0],
-          max: axis.domain[1],
-          title: { display: !!axis.label, text: axis.label },
-          grid: { color: 'rgba(200,200,200,0.1)' },
-        };
-        return acc;
-      }, {} as Record<string, unknown>),
+      x: {
+        title: { display: false },
+        ticks: {
+          color: fg,
+          font: { size: 13, family: 'var(--font-sans, Inter, ui-sans-serif, system-ui)' },
+        },
+        grid: {
+          color: grid,
+        },
+      },
     },
-    animation: false as const,
-  }), [legend, tooltipFormatter, axes]);
+  };
+  // Export als PNG
+  function handleExport() {
+    if (chartRef.current) {
+      const url = chartRef.current.toBase64Image();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'chart.png';
+      a.click();
+    }
+  }
+  // Fallback: Kein Chart, wenn keine Daten
+  const hasData = labels.length > 0 && datasets.some(ds => Array.isArray(ds.data) && ds.data.some(v => v !== null && v !== undefined));
+  // Nur Linien mit mindestens einem Wert ≠ null anzeigen
+  const linesWithData = lines.filter(line =>
+    Array.isArray(data) && data.some(d => typeof d[line.key] === 'number')
+  );
+  const linesWithoutData = lines.filter(line =>
+    !Array.isArray(data) || !data.some(d => typeof d[line.key] === 'number')
+  );
   return (
-    <div className="space-y-4 lg:space-y-6">
-      <div style={{ height }}>
-        <Line
-          data={{
-            labels: visibleData.map((d) => typeof d.time === 'string' ? d.time : ''),
-            datasets: chartDatasets,
-          }}
-          options={chartOptions}
-          height={height}
-        />
-      </div>
-      {legend && (
-        <div className="flex flex-wrap gap-4 mt-4 text-xs items-center justify-center">
-          {lines.map(line => (
-            <label
-              key={line.key}
-              className="flex items-center gap-1 cursor-pointer"
-              onMouseEnter={() => setHoveredLineKey(line.key)}
-              onMouseLeave={() => setHoveredLineKey(null)}
-            >
-              <input type="checkbox" checked={!!visibleLines[line.key]} onChange={() => toggleLine(line.key)} className="accent-emerald-500" aria-label={line.label} />
-              <span className="w-3 h-3 rounded-full" style={{ background: line.color }}></span> {line.label}
-            </label>
-          ))}
-          {thresholds.map(thr => (
-            <label key={thr.label} className="flex items-center gap-1 cursor-pointer"
-              onMouseEnter={() => setHoveredLineKey(thr.label)}
-              onMouseLeave={() => setHoveredLineKey(null)}
-            >
-              <input type="checkbox" checked={!!visibleLines[thr.label]} onChange={() => toggleLine(thr.label)} className="accent-yellow-500" aria-label={thr.label} />
-              <span className="w-3 h-3 rounded-full" style={{ background: thr.color }}></span> {thr.label}
-            </label>
-          ))}
+    <div style={{ height }} className="w-full bg-card rounded-xl shadow-lg p-4 md:p-8 relative flex flex-col">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <button
+            className="bg-muted text-xs px-3 py-1 rounded shadow hover:bg-accent transition z-10"
+            onClick={handleExport}
+            type="button"
+            title="Chart als PNG exportieren"
+          >
+            Export PNG
+          </button>
+          <select
+            className="bg-muted border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent ml-2"
+            value={showAll ? 'all' : maxPoints}
+            onChange={e => {
+              if (e.target.value === 'all') setShowAll(true);
+              else {
+                setShowAll(false);
+                setMaxPoints(Number(e.target.value));
+              }
+            }}
+          >
+            <option value={60}>Letzte 60</option>
+            <option value={120}>Letzte 120</option>
+            <option value={250}>Letzte 250</option>
+            <option value={500}>Letzte 500</option>
+            <option value="all">Alle</option>
+          </select>
         </div>
-      )}
+        {performanceWarning && (
+          <div className="text-xs text-yellow-600 font-semibold mt-2 md:mt-0">
+            Achtung: Es werden nur die letzten 500 Datenpunkte angezeigt (Performance).
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-h-[250px]">
+        {!hasData ? (
+          <div className="flex items-center justify-center h-full text-gray-400 text-sm">Keine Daten für die ausgewählten Linien/Zeitpunkte vorhanden.</div>
+        ) : (
+          <Line
+            ref={chartRef}
+            data={{
+              labels,
+              datasets,
+            }}
+            options={options}
+          />
+        )}
+      </div>
     </div>
   );
 } 

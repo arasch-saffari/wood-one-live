@@ -226,39 +226,59 @@ export function parseCSVData(csvContent: string, station: string) {
 export async function processAllCSVFiles() {
   const stations = ['ort', 'techno', 'heuballern', 'band']
   let totalInserted = 0
-  
+
   console.log('🔍 Starte CSV-Verarbeitung für alle Stationen...')
-  
-  for (const station of stations) {
+
+  // Hilfsfunktion für parallele Limitierung
+  const pLimit = (max: number) => {
+    let active = 0; const queue: (() => void)[] = []
+    const next = () => { if (queue.length && active < max) { active++; queue.shift()!() } }
+    return async <T>(fn: () => Promise<T>): Promise<T> => {
+      if (active >= max) await new Promise<void>(resolve => queue.push(resolve))
+      active++
+      try { return await fn() } finally { active--; next() }
+    }
+  }
+
+  // Stationen parallel verarbeiten
+  const stationResults = await Promise.all(stations.map(async (station) => {
     const csvDir = path.join(process.cwd(), "public", "csv", station)
     console.log(`📁 Überprüfe Verzeichnis: ${csvDir}`)
-    
+
     try {
       if (!fs.existsSync(csvDir)) {
         console.log(`⚠️  Verzeichnis existiert nicht: ${csvDir}`)
-        continue
+        return 0
       }
-      
+
       const csvFiles = fs.readdirSync(csvDir).filter(file => file.endsWith('.csv'))
       console.log(`📊 Gefunden: ${csvFiles.length} CSV-Dateien in ${station}`)
-      
-      for (const csvFile of csvFiles) {
-        const csvPath = path.join(csvDir, csvFile)
-        console.log(`🔄 Verarbeite: ${csvFile}`)
-        
-        try {
-          const inserted = await processCSVFile(station, csvPath)
-          console.log(`✅ ${inserted} Messwerte aus ${csvFile} importiert`)
-          totalInserted += inserted
-        } catch (fileError) {
-          console.error(`❌ Fehler beim Verarbeiten von ${csvFile}:`, fileError)
-        }
-      }
+
+      // Dateien parallel verarbeiten (max. 4 gleichzeitig pro Station)
+      const limit = pLimit(4)
+      const results = await Promise.all(csvFiles.map(csvFile =>
+        limit(async () => {
+          const csvPath = path.join(csvDir, csvFile)
+          console.log(`🔄 Verarbeite: ${csvFile}`)
+          try {
+            const inserted = await processCSVFile(station, csvPath)
+            console.log(`✅ ${inserted} Messwerte aus ${csvFile} importiert`)
+            return inserted
+          } catch (fileError) {
+            console.error(`❌ Fehler beim Verarbeiten von ${csvFile}:`, fileError)
+            return 0
+          }
+        })
+      ))
+      const stationSum = results.reduce((a, b) => a + b, 0)
+      return stationSum
     } catch (e) {
       console.error(`❌ Fehler beim Verarbeiten von ${station}:`, e)
+      return 0
     }
-  }
-  
+  }))
+
+  totalInserted = stationResults.reduce((a, b) => a + b, 0)
   console.log(`📊 Insgesamt ${totalInserted} Messwerte importiert`)
   return totalInserted
 }

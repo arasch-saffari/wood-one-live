@@ -1,9 +1,9 @@
+import React from 'react'
 import { Card, CardContent } from "@/components/ui/card"
-import { ReactNode } from "react"
 
 interface StationAlertProps {
   bg: string
-  icon: ReactNode
+  icon: React.ReactNode
   title: string
   text: string
   textColor: string

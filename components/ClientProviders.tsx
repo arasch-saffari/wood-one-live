@@ -1,4 +1,5 @@
 "use client";
+import React from 'react'
 import { ConfigProvider } from "@/hooks/useConfig";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";

@@ -1,19 +1,13 @@
 "use client";
+import React from 'react'
 import { useStationData, StationDataPoint } from "@/hooks/useStationData"
-import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Music, Volume2, BarChart3 } from "lucide-react"
-import { STATION_COLORS, CHART_COLORS, getStationColor } from "@/lib/colors"
-import { toast } from "@/components/ui/use-toast"
-import { StationHeader } from "@/components/StationHeader"
-import { StationKPIs } from "@/components/StationKPIs"
-import { StationAlert } from "@/components/StationAlert"
-import { StationTableLink } from "@/components/StationTableLink"
+import { STATION_COLORS } from "@/lib/colors"
 import { ChartPlayground } from "@/components/ChartPlayground"
 import { useConfig } from "@/hooks/useConfig"
 import { KpiCard } from "@/components/KpiCard"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { DataTable } from "@/components/DataTable"
 import { StationTable } from "@/components/StationTable"
 import { GlobalLoader } from "@/components/GlobalLoader"
 
@@ -58,11 +52,6 @@ type StationKey = keyof typeof STATION_META
 interface StationDashboardPageProps {
   station: StationKey;
 }
-interface Thresholds {
-  warning: number;
-  alarm: number;
-}
-
 interface ThresholdBlock {
   from: string;
   to: string;
@@ -98,6 +87,22 @@ function windDirectionText(dir: number | string | null | undefined): string {
   return directions[idx];
 }
 
+// WeatherKpiCard-Komponente
+export function WeatherKpiCard({ value, direction }: { value: number | string | undefined, direction: string }) {
+  const displayValue = typeof value === 'number' ? value : (value ?? 'keine daten');
+  return (
+    <KpiCard
+      icon={<BarChart3 className="w-5 h-5 text-purple-500" />}
+      value={displayValue}
+      unit="km/h"
+      label="Windgeschwindigkeit"
+      color="text-purple-500"
+    >
+      <div className="text-xs text-gray-500 mt-1">Windrichtung: {direction}</div>
+    </KpiCard>
+  );
+}
+
 export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const meta = STATION_META[station]
   const { data: chartData, loading: dataLoading } = useStationData(station, "24h", 60000)
@@ -125,10 +130,18 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const windDirectionRaw = chartData[chartData.length - 1]?.wd
   const windDirection = windDirectionRaw === null || windDirectionRaw === undefined || windDirectionRaw === '' ? '–' : windDirectionText(windDirectionRaw)
   // Schwellenwerte
-  function getDynamicThresholds(config: any, station: string, chartData: any[]): ThresholdBlock {
-    if (!config || !config.thresholdsByStationAndTime || !chartData.length) return { warning: 55, alarm: 60, las: 50, laf: 52, from: "00:00", to: "23:59" }
+  function getDynamicThresholds(config: unknown, station: string, chartData: StationDataPoint[]): ThresholdBlock {
+    if (
+      !config ||
+      typeof config !== 'object' ||
+      !('thresholdsByStationAndTime' in config) ||
+      !chartData.length
+    ) {
+      return { warning: 55, alarm: 60, las: 50, laf: 52, from: "00:00", to: "23:59" }
+    }
+    const thresholdsConfig = config as { thresholdsByStationAndTime: Record<string, ThresholdBlock[]> }
     const now = chartData[chartData.length - 1]?.datetime?.slice(11, 16)
-    const blocks: ThresholdBlock[] = config.thresholdsByStationAndTime[station]
+    const blocks: ThresholdBlock[] = thresholdsConfig.thresholdsByStationAndTime[station]
     if (!blocks) return { warning: 55, alarm: 60, las: 50, laf: 52, from: "00:00", to: "23:59" }
     const currentBlock = blocks.find((b: ThresholdBlock) => {
       if (!b.from || !b.to || !now) return false
@@ -210,15 +223,7 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
         >
           <div className="text-xs text-gray-500 mt-1">um {maxTime} Uhr</div>
         </KpiCard>
-        <KpiCard
-          icon={<BarChart3 className="w-5 h-5 text-purple-500" />}
-          value={typeof currentWind === 'number' ? currentWind : 'keine daten'}
-          unit="km/h"
-          label="Windgeschwindigkeit"
-          color="text-purple-500"
-        >
-          <div className="text-xs text-gray-500 mt-1">Windrichtung: {windDirection}</div>
-        </KpiCard>
+        <WeatherKpiCard value={currentWind} direction={windDirection} />
       </div>
       {/* Status-/Alarm-Box */}
       <div className="mb-8">
@@ -240,16 +245,12 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
       {/* Chart */}
       <div className="mb-10 w-full">
         <ChartPlayground
-          data={chartData}
+          data={chartData as unknown as Array<Record<string, unknown>>}
           lines={[
-            { key: 'las', label: 'Lärmpegel', color: meta.chartColor, yAxisId: 'left', visible: true },
-            { key: 'ws', label: 'Wind', color: '#06b6d4', yAxisId: 'wind', strokeDasharray: '5 5', visible: true },
-            { key: 'rh', label: 'Luftfeuchte', color: '#0ea5e9', yAxisId: 'left', strokeDasharray: '2 2', visible: true },
-            { key: 'temp', label: 'Temperatur', color: '#f59e42', yAxisId: 'left', strokeDasharray: '3 3', visible: true },
+            { key: 'las', label: 'Lärmpegel', color: meta.chartColor as unknown as string, yAxisId: 'left', visible: true },
           ]}
           axes={[
             { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] },
-            { id: 'wind', orientation: 'right', domain: [0, 25], label: 'Windgeschwindigkeit (km/h)', ticks: [0, 5, 10, 15, 20, 25] },
           ]}
           thresholds={[
             { value: thresholds.warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },

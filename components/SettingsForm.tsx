@@ -1,8 +1,8 @@
+import React from 'react'
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ReactNode, FormEvent } from "react"
 
 export interface SettingsField {
   name: string
@@ -20,11 +20,11 @@ export interface SettingsField {
 
 export interface SettingsFormProps {
   fields: SettingsField[]
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
   submitLabel?: string
-  error?: string | ReactNode
+  error?: string | React.ReactNode
   loading?: boolean
-  children?: ReactNode
+  children?: React.ReactNode
 }
 
 export function SettingsForm({ fields, onSubmit, submitLabel = "Speichern", error, loading, children }: SettingsFormProps) {
@@ -33,7 +33,7 @@ export function SettingsForm({ fields, onSubmit, submitLabel = "Speichern", erro
       <Card className="max-w-2xl mx-auto w-full">
         <CardHeader />
         <CardContent className="space-y-4">
-          {fields.map(field => (
+          {Array.isArray(fields) ? fields.map(field => (
             <div key={field.name} className="flex flex-col gap-1">
               <Label htmlFor={field.name}>{field.label}</Label>
               {field.type === "select" ? (
@@ -44,13 +44,13 @@ export function SettingsForm({ fields, onSubmit, submitLabel = "Speichern", erro
                   disabled={field.disabled}
                   className="max-w-xs border rounded px-2 py-1"
                 >
-                  {(field.options || []).map(opt => (
+                  {Array.isArray(field.options) ? field.options.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
+                  )) : null}
                 </select>
               ) : field.type === "checkbox-group" ? (
                 <div className="flex gap-4 flex-wrap">
-                  {(field.options || []).map(opt => (
+                  {Array.isArray(field.options) ? field.options.map(opt => (
                     <label key={opt.value} className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -66,13 +66,13 @@ export function SettingsForm({ fields, onSubmit, submitLabel = "Speichern", erro
                       />
                       {opt.label}
                     </label>
-                  ))}
+                  )) : null}
                 </div>
               ) : (
                 <Input
                   id={field.name}
                   type={field.type}
-                  value={field.value}
+                  value={String(field.value ?? '')}
                   onChange={e => field.onChange(field.type === "number" ? Number(e.target.value) : e.target.value)}
                   placeholder={field.placeholder ? String(field.placeholder) : undefined}
                   min={field.min}
@@ -83,7 +83,7 @@ export function SettingsForm({ fields, onSubmit, submitLabel = "Speichern", erro
                 />
               )}
             </div>
-          ))}
+          )) : null}
           {children}
           {error && <div className="text-red-500 text-sm font-medium">{error}</div>}
           <Button type="submit" disabled={loading} className="mt-2">
