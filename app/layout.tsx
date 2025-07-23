@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ClientProviders } from "@/components/ClientProviders";
+import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,10 +34,30 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Noise Monitor" />
-        <link rel="apple-touch-icon" href="/placeholder-logo.png" />
+        {/* Favicon & Icons */}
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/web-app-manifest-192x192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/web-app-manifest-512x512.png" />
+        {/* Social Media Meta-Tags */}
+        <meta property="og:title" content="Noise Monitoring Dashboard" />
+        <meta property="og:description" content="Echtzeit Lärmüberwachung für Festivals und Veranstaltungen" />
+        <meta property="og:image" content="/logo.png" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="wood-one.live" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Noise Monitoring Dashboard" />
+        <meta name="twitter:description" content="Echtzeit Lärmüberwachung für Festivals und Veranstaltungen" />
+        <meta name="twitter:image" content="/logo.png" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={cn(
+          geistSans.variable,
+          geistMono.variable,
+          "min-h-screen bg-background font-sans antialiased"
+        )}
       >
         <ClientProviders>
           {children}

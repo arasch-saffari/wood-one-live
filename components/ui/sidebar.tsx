@@ -358,7 +358,12 @@ const SidebarHeader = React.forwardRef<
       data-sidebar="header"
       className={cn("flex flex-col gap-2 p-2", className)}
       {...props}
-    />
+    >
+      <a href="/dashboard/all" className="flex items-center justify-center mb-2 mt-1">
+        <img src="/logo.png" alt="wood-one.live Logo" className="max-h-10 w-auto rounded-lg shadow-sm" />
+      </a>
+      {/* ... weitere Header-Inhalte ... */}
+    </div>
   )
 })
 SidebarHeader.displayName = "SidebarHeader"
