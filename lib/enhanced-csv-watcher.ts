@@ -388,10 +388,10 @@ export class EnhancedCSVWatcher extends EventEmitter {
         timestamp: new Date().toISOString()
       };
 
-      // Rate limiting für SSE-Updates - nur alle 10 Sekunden pro Station
+      // Rate limiting für SSE-Updates - nur alle 30 Sekunden pro Station (erhöht von 10s)
       const now = Date.now();
       const lastUpdate = (this as any).lastFrontendUpdates || {};
-      const minInterval = 10000; // 10 Sekunden
+      const minInterval = 30000; // 30 Sekunden (erhöht von 10s)
       
       if (!lastUpdate[station] || (now - lastUpdate[station]) >= minInterval) {
         triggerDeltaUpdate(updateData);
@@ -401,7 +401,7 @@ export class EnhancedCSVWatcher extends EventEmitter {
         (this as any).lastFrontendUpdates[station] = now;
         console.log(`📡 Frontend update triggered: ${action} for ${station}`);
       } else {
-        console.log(`⏱️  Frontend update rate limited for ${station} (10s interval)`);
+        console.log(`⏱️  Frontend update rate limited for ${station} (30s interval)`);
       }
       
     } catch (error) {

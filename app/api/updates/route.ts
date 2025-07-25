@@ -15,6 +15,10 @@ let pendingUpdates: Record<string, unknown>[] = []
 // Controller state tracking
 const controllerStates = new Map<string, boolean>()
 
+// Global rate limiting für SSE-Updates
+let lastGlobalUpdate = 0
+const MIN_GLOBAL_UPDATE_INTERVAL = 5000 // 5 Sekunden zwischen globalen Updates
+
 export async function GET() {
   // Initialize application on first API call
   if (!initialized) {
@@ -63,6 +67,13 @@ export async function GET() {
 }
 
 export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
+  // Global rate limiting check
+  const now = Date.now()
+  if (now - lastGlobalUpdate < MIN_GLOBAL_UPDATE_INTERVAL) {
+    console.debug('⏱️  Global SSE update rate limited (5s interval)')
+    return
+  }
+  
   // Add to pending updates
   if (updateData) {
     pendingUpdates.push(updateData)
@@ -73,10 +84,11 @@ export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
     clearTimeout(updateTimeout)
   }
   
-  // Debounce updates - send after 50ms of inactivity (reduced from 100ms)
+  // Debounce updates - send after 100ms of inactivity (increased from 50ms)
   updateTimeout = setTimeout(() => {
+    lastGlobalUpdate = Date.now()
     sendDebouncedUpdate()
-  }, 50)
+  }, 100)
 }
 
 function sendDebouncedUpdate() {
@@ -139,8 +151,16 @@ function sendDebouncedUpdate() {
         if (sub.controller.desiredSize !== undefined) {
           // Final safety check - wrap the enqueue call in try-catch
           try {
-            sub.controller.enqueue(encoder.encode(data))
-            successCount++;
+            // Additional check: ensure controller is not in closed state
+            if (sub.controller.desiredSize !== null) {
+              sub.controller.enqueue(encoder.encode(data))
+              successCount++;
+            } else {
+              // Controller is closed
+              sub.closed = true;
+              controllerStates.set(sub.id, false);
+              errorCount++;
+            }
           } catch (enqueueError) {
             // Controller became invalid between checks
             sub.closed = true;
