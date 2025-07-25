@@ -42,6 +42,9 @@ export default function ZugvoegelDashboard() {
   const { config } = useConfig();
   // Paging-States für jede Station
   const pageSize = 50;
+  // Pagination state for AllStationsTable
+  const [tablePage, setTablePage] = React.useState(1);
+  const tablePageSize = 25;
   // Daten-Hooks
   const ortDataObj = useStationData("ort", "24h", 60000, 1, pageSize, "15min");
   const technoDataObj = useStationData("techno", "24h", 60000, 1, pageSize, "15min");
@@ -242,6 +245,10 @@ export default function ZugvoegelDashboard() {
             showOnlyAlarms={showOnlyAlarms}
             config={config}
             granularity={"15min"}
+            filterStation={"__all__"}
+            page={tablePage}
+            setPage={setTablePage}
+            pageSize={tablePageSize}
           />
         </div>
         {/* Grenzwert-Referenz */}

@@ -182,7 +182,7 @@ function getWarningThresholdForRow(row: TableRowType, config: ConfigType): numbe
 export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity, page, setPage, pageSize, totalCount, alarmRows, showOnlyAlarms: showOnlyAlarmsProp, onAlarmToggle, onTopRowChange, filterStation: filterStationProp }: AllStationsTableProps) {
   const [showWeather, setShowWeather] = useState(false)
   const [search, setSearch] = useState("")
-  const [filterStation, setFilterStation] = useState("")
+  const [filterStation, setFilterStation] = useState("__all__") // Default: Alle Stationen
   // If filterStationProp is set, override the filterStation state
   const effectiveFilterStation = filterStationProp !== undefined ? filterStationProp : filterStation;
   const [filterDate, setFilterDate] = useState("")
@@ -308,28 +308,27 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
 
   const filteredRows = useMemo(() => {
     let rows = tableRows;
-    if (userSorted) {
-      const col = tableColumns.find(c => c.key === sortKey);
-      if (col && typeof col.sortFn === 'function') {
-        rows = [...rows].sort((a, b) => col.sortFn!(a, b, sortDir));
-      } else {
-        rows = [...rows].sort((a, b) => {
-          const aVal = a[sortKey as keyof TableRowType];
-          const bVal = b[sortKey as keyof TableRowType];
-          if (aVal == null && bVal == null) return 0;
-          if (aVal == null) return 1;
-          if (bVal == null) return -1;
-          if (typeof aVal === 'number' && typeof bVal === 'number') {
-            return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
-          }
-          return sortDir === 'asc'
-            ? String(aVal).localeCompare(String(bVal))
-            : String(bVal).localeCompare(String(aVal));
-        });
-      }
+    // Always sort by datetime DESC by default, unless userSorted is true
+    const col = tableColumns.find(c => c.key === sortKey);
+    if (col && typeof col.sortFn === 'function') {
+      rows = [...rows].sort((a, b) => col.sortFn!(a, b, sortDir));
+    } else {
+      rows = [...rows].sort((a, b) => {
+        const aVal = a[sortKey as keyof TableRowType];
+        const bVal = b[sortKey as keyof TableRowType];
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+        return sortDir === 'asc'
+          ? String(aVal).localeCompare(String(bVal))
+          : String(bVal).localeCompare(String(aVal));
+      });
     }
     return rows;
-  }, [tableRows, sortKey, sortDir, userSorted, tableColumns]);
+  }, [tableRows, sortKey, sortDir, tableColumns]);
 
   // Filterung: "Nur Alarme" zeigt ausschließlich Datensätze, die als Alarm eingestuft sind
   const effectivePage = page ?? 1
@@ -346,7 +345,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
       });
     }
     // Filter nach Station (from prop or UI)
-    if (effectiveFilterStation) {
+    if (effectiveFilterStation && effectiveFilterStation !== "__all__") {
       rows = rows.filter(r => r.station === effectiveFilterStation);
     }
     // Suche
@@ -448,12 +447,12 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
           </div>
           {allStations.length > 1 && (
             <div className="w-full md:w-[150px]">
-              <Select value={filterStation || 'all'} onValueChange={v => setFilterStation(v === 'all' ? '' : v)}>
-                <SelectTrigger className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 transition">
-                  <span>{filterStation ? filterStation : 'Ort'}</span>
+              <Select value={effectiveFilterStation} onValueChange={setFilterStation}>
+                <SelectTrigger className="w-[160px]">
+                  <span>{effectiveFilterStation === "__all__" ? "Alle Stationen" : effectiveFilterStation}</span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Alle Orte</SelectItem>
+                  <SelectItem key="all" value="__all__">Alle Stationen</SelectItem>
                   {allStations.map(st => <SelectItem key={st} value={st}>{st}</SelectItem>)}
                 </SelectContent>
               </Select>

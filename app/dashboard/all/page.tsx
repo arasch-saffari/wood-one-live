@@ -149,6 +149,10 @@ export default function AllLocationsPage() {
   const { health } = useHealth() as { health: Partial<{ dbSize: number; integrityProblem: boolean; integrityCount: number; lastBackup?: string }> };
   const { watcherStatus: watcher } = useCsvWatcherStatus();
   
+  // Pagination state for AllStationsTable
+  const [tablePage, setTablePage] = React.useState(1);
+  const tablePageSize = 25;
+
   // Datumsliste & Alarmdaten für jede Station
   // Datumsliste laden - WICHTIG: Alle useEffect Hooks vor dem frühen Return platzieren
   useEffect(() => {
@@ -624,6 +628,9 @@ export default function AllLocationsPage() {
           config={config}
           granularity={"15min"}
           alarmRows={allAlarmRows}
+          page={tablePage}
+          setPage={setTablePage}
+          pageSize={tablePageSize}
         />
         {/* Grenzwert-Referenz */}
         <div className="mb-10">
