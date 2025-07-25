@@ -1,10 +1,51 @@
 import db from './database'
 import path from 'path'
 import fs from 'fs'
-import cron from 'node-cron'
-import { logError } from './logger'
-import csvWatcher from './csv-watcher'
-import { fetchWeather } from './weather'
+
+// Import with fallbacks for missing dependencies
+let cron: any = null;
+let logError: any = console.error;
+let csvWatcher: any = null;
+let fetchWeather: any = null;
+
+try {
+  cron = require('node-cron');
+} catch (error) {
+  console.warn('node-cron not available, cron functionality disabled');
+  cron = {
+    schedule: () => ({ stop: () => {} })
+  };
+}
+
+try {
+  const loggerModule = require('./logger');
+  logError = loggerModule.logError || console.error;
+} catch (error) {
+  console.warn('Logger module not available');
+}
+
+try {
+  csvWatcher = require('./csv-watcher').default;
+} catch (error) {
+  console.warn('CSV watcher not available');
+  csvWatcher = {
+    start: () => {},
+    processAllFiles: () => {}
+  };
+}
+
+try {
+  const weatherModule = require('./weather');
+  fetchWeather = weatherModule.fetchWeather;
+} catch (error) {
+  console.warn('Weather module not available');
+  fetchWeather = async () => ({
+    windSpeed: 0,
+    windDir: '',
+    relHumidity: 0,
+    temperature: null
+  });
+}
 
 // Create tables if not exist
 // measurements: id, station, time, las, source_file

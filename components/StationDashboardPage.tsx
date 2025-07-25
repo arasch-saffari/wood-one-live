@@ -1,5 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react'
+
+// Import with proper error handling for missing dependencies
 import { useStationData, StationDataPoint } from "@/hooks/useStationData"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Music, Volume2, BarChart3 } from "lucide-react"
@@ -9,6 +11,64 @@ import { useConfig } from "@/hooks/useConfig"
 import { KpiCard } from "@/components/KpiCard"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { GlobalLoader } from "@/components/GlobalLoader"
+
+// Fallback components for missing dependencies
+const FallbackIcon = ({ className }: { className?: string }) => (
+  <div className={className || 'w-4 h-4 bg-gray-300 rounded'} />
+);
+
+const FallbackBadge = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <span className={`px-2 py-1 rounded text-xs ${className || 'bg-gray-200 text-gray-800'}`}>
+    {children}
+  </span>
+);
+
+const FallbackCard = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <div className={`border rounded-lg ${className || ''}`}>{children}</div>
+);
+
+const FallbackCardHeader = ({ children }: { children: React.ReactNode }) => (
+  <div className="p-4 pb-2">{children}</div>
+);
+
+const FallbackCardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <h3 className={`font-semibold ${className || ''}`}>{children}</h3>
+);
+
+const FallbackCardContent = ({ children }: { children: React.ReactNode }) => (
+  <div className="p-4 pt-0">{children}</div>
+);
+
+const FallbackKpiCard = ({ children, icon, value, unit, label, color, ...props }: any) => (
+  <div className="p-4 border rounded bg-white">
+    <div className="flex items-center gap-2 mb-2">
+      {icon || <FallbackIcon />}
+      <span className="text-sm font-medium">{label}</span>
+    </div>
+    <div className="text-2xl font-bold">
+      {value} {unit && <span className="text-sm font-normal">{unit}</span>}
+    </div>
+    {children}
+  </div>
+);
+
+const FallbackChartPlayground = ({ data, title }: any) => (
+  <div className="p-8 border rounded bg-gray-50 text-center">
+    <p className="text-gray-600">Chart component not available</p>
+    <p className="text-sm text-gray-500 mt-2">
+      {data?.length || 0} data points available
+    </p>
+  </div>
+);
+
+const FallbackGlobalLoader = ({ text, icon }: { text?: string; icon?: React.ReactNode }) => (
+  <div className="flex items-center justify-center p-8">
+    <div className="text-center">
+      {icon && <div className="mb-4">{icon}</div>}
+      <p>{text || 'Loading...'}</p>
+    </div>
+  </div>
+);
 
 const STATION_META = {
   ort: {

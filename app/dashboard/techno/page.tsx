@@ -55,6 +55,15 @@ export default function TechnoPage() {
   const [page, setPage] = useState(1)
   const [alarmPage, setAlarmPage] = useState(1)
   const pageSize = 25
+  
+  // Sorting state
+  const [sortBy, setSortBy] = useState<string>('datetime');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  const handleSortChange = (newSortBy: string, newSortOrder: 'asc' | 'desc') => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+  };
   const technoDataObj = useStationData("techno", "24h", 60000, page, pageSize, "15min")
   const { config } = useConfig();
   const technoData = technoDataObj.data?.map(row => ({ ...row, station: "Techno Floor" })) ?? [];
@@ -114,8 +123,9 @@ export default function TechnoPage() {
         })) : undefined}
         showOnlyAlarms={showOnlyAlarms}
         onAlarmToggle={handleAlarmToggle}
-        sortKey="datetime"
-        sortDir="desc"
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={handleSortChange}
       />
     </>
   )

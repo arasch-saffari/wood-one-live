@@ -68,7 +68,9 @@ async function POST(request: NextRequest) {
 }
 
 // Apply rate limiting with stricter limits for uploads
-export { withRateLimit(withErrorHandler(POST), { 
+const rateLimitedPOST = withRateLimit(withErrorHandler(POST), { 
   windowMs: 60000, // 1 minute
   maxRequests: 5    // 5 uploads per minute
-}) as POST };
+});
+
+export { rateLimitedPOST as POST };

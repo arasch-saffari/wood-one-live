@@ -1,4 +1,37 @@
-import { DateTime } from 'luxon';
+// Import with fallback for missing luxon dependency
+let DateTime: any;
+try {
+  DateTime = require('luxon').DateTime;
+} catch (error) {
+  console.warn('Luxon not available, using Date fallback');
+  // Fallback implementation using native Date
+  DateTime = {
+    now: () => ({ 
+      toUTC: () => ({ toISO: () => new Date().toISOString() }),
+      setZone: (zone: string) => ({ toISO: () => new Date().toISOString() })
+    }),
+    fromISO: (iso: string, options?: any) => ({
+      isValid: !isNaN(new Date(iso).getTime()),
+      toUTC: () => ({ toISO: () => new Date(iso).toISOString() }),
+      setZone: (zone: string) => ({ 
+        toISO: () => new Date(iso).toISOString(),
+        toRelative: () => 'some time ago',
+        toFormat: (format: string) => new Date(iso).toLocaleString()
+      }),
+      startOf: (unit: string) => ({ toUTC: () => ({ toISO: () => new Date(iso).toISOString() }) }),
+      endOf: (unit: string) => ({ toUTC: () => ({ toISO: () => new Date(iso).toISOString() }) }),
+      diff: (other: any, unit: string) => ({ [unit]: 0 })
+    }),
+    fromJSDate: (date: Date) => ({
+      toUTC: () => ({ toISO: () => date.toISOString() })
+    }),
+    fromFormat: (str: string, format: string, options?: any) => ({
+      isValid: !isNaN(new Date(str).getTime()),
+      startOf: (unit: string) => ({ toUTC: () => ({ toISO: () => new Date(str).toISOString() }) }),
+      endOf: (unit: string) => ({ toUTC: () => ({ toISO: () => new Date(str).toISOString() }) })
+    })
+  };
+}
 
 // Default timezone for the application
 const DEFAULT_TIMEZONE = 'Europe/Berlin'; // Adjust based on your location

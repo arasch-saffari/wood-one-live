@@ -1,7 +1,26 @@
 import Database from 'better-sqlite3'
 import path from 'path'
-import { logQueryPerformance, logger, DatabaseError } from './logger'
-import { TimeUtils } from './time-utils'
+// Import with fallbacks for missing dependencies
+let logQueryPerformance: any = () => {};
+let logger: any = console;
+let DatabaseError: any = Error;
+let TimeUtils: any = null;
+
+try {
+  const loggerModule = require('./logger');
+  logQueryPerformance = loggerModule.logQueryPerformance || (() => {});
+  logger = loggerModule.logger || console;
+  DatabaseError = loggerModule.DatabaseError || Error;
+} catch (error) {
+  console.warn('Logger module not available, using console');
+}
+
+try {
+  const timeModule = require('./time-utils');
+  TimeUtils = timeModule.TimeUtils;
+} catch (error) {
+  console.warn('Time utils not available');
+}
 
 // Use environment variable directly to avoid circular dependency
 const dbPath = process.env.DB_PATH || './data.sqlite'

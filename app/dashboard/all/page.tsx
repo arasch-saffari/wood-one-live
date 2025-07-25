@@ -152,6 +152,15 @@ export default function AllLocationsPage() {
   // Pagination state for AllStationsTable
   const [tablePage, setTablePage] = React.useState(1);
   const tablePageSize = 25;
+  
+  // Sorting state for AllStationsTable
+  const [sortBy, setSortBy] = React.useState<string>('datetime');
+  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('desc');
+  
+  const handleSortChange = (newSortBy: string, newSortOrder: 'asc' | 'desc') => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+  };
 
   // Datumsliste & Alarmdaten für jede Station
   // Datumsliste laden - WICHTIG: Alle useEffect Hooks vor dem frühen Return platzieren
@@ -670,6 +679,9 @@ export default function AllLocationsPage() {
           page={tablePage}
           setPage={setTablePage}
           pageSize={tablePageSize}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
         />
         {/* Grenzwert-Referenz */}
         <div className="mb-10">

@@ -30,18 +30,41 @@ export async function GET() {
   })
 }
 
-export function triggerDeltaUpdate() {
+export function triggerDeltaUpdate(updateData?: any) {
   const encoder = new TextEncoder()
-  const data = `event: update\ndata: {"timestamp": "${new Date().toISOString()}"}\n\n`
+  
+  // Strukturierte Update-Daten
+  const payload = {
+    timestamp: new Date().toISOString(),
+    ...updateData
+  };
+  
+  const data = `event: update\ndata: ${JSON.stringify(payload)}\n\n`
+  
+  let successCount = 0;
+  let errorCount = 0;
+  
   for (const sub of subscribers) {
     if (!sub.closed) {
       try {
         sub.controller.enqueue(encoder.encode(data))
+        successCount++;
       } catch (error) {
         sub.closed = true // Mark as closed to avoid repeated errors
+        errorCount++;
         console.error('Fehler beim Senden von SSE-Update:', error)
       }
     }
+  }
+  
+  // Log Update-Statistiken
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📡 SSE Update sent: ${successCount} success, ${errorCount} errors, type: ${updateData?.type || 'generic'}`);
+  }
+  
+  // Cleanup geschlossene Verbindungen
+  if (errorCount > 0) {
+    cleanupSubscribers();
   }
 }
 

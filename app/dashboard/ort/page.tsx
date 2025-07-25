@@ -55,6 +55,15 @@ export default function OrtPage() {
   const [page, setPage] = useState(1)
   const [alarmPage, setAlarmPage] = useState(1)
   const pageSize = 25
+  
+  // Sorting state
+  const [sortBy, setSortBy] = useState<string>('datetime');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  const handleSortChange = (newSortBy: string, newSortOrder: 'asc' | 'desc') => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+  };
   const ortDataObj = useStationData("ort", "24h", 60000, page, pageSize, "15min")
   const { config } = useConfig();
   const [alarmRows, setAlarmRows] = useState<Array<{
@@ -117,8 +126,9 @@ export default function OrtPage() {
         })) : undefined}
         showOnlyAlarms={showOnlyAlarms}
         onAlarmToggle={handleAlarmToggle}
-        sortKey="datetime"
-        sortDir="desc"
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={handleSortChange}
       />
     </>
   )

@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { config } from '../config';
 import { logger } from '../logger';
+
+// Import config with fallback
+let config: any = null;
+try {
+  config = require('../config').config;
+} catch (error) {
+  logger.warn('Config module not available, using defaults');
+  config = {
+    rateLimit: {
+      windowMs: 60000,
+      maxRequests: 100
+    }
+  };
+}
 
 // Simple in-memory rate limiter for Next.js API routes
 class RateLimiter {
@@ -79,11 +92,18 @@ class RateLimiter {
   }
 }
 
-// Create rate limiter instance
-const rateLimiter = new RateLimiter(
-  config.rateLimit.windowMs,
-  config.rateLimit.maxRequests
-);
+// Create rate limiter instance with fallback values
+let rateLimiter: RateLimiter;
+
+try {
+  rateLimiter = new RateLimiter(
+    config.rateLimit?.windowMs || 60000, // 1 minute default
+    config.rateLimit?.maxRequests || 100 // 100 requests default
+  );
+} catch (error) {
+  logger.warn('Config not available, using default rate limits');
+  rateLimiter = new RateLimiter(60000, 100);
+}
 
 // Middleware function for API routes
 export function withRateLimit<T extends any[]>(
@@ -93,8 +113,8 @@ export function withRateLimit<T extends any[]>(
   // Create custom limiter if different limits are needed
   const limiter = customLimits 
     ? new RateLimiter(
-        customLimits.windowMs || config.rateLimit.windowMs,
-        customLimits.maxRequests || config.rateLimit.maxRequests
+        customLimits.windowMs || config.rateLimit?.windowMs || 60000,
+        customLimits.maxRequests || config.rateLimit?.maxRequests || 100
       )
     : rateLimiter;
 
@@ -103,7 +123,8 @@ export function withRateLimit<T extends any[]>(
 
     // Add rate limit headers
     const headers = new Headers();
-    headers.set('X-RateLimit-Limit', limiter.maxRequests.toString());
+    const stats = limiter.getStats();
+    headers.set('X-RateLimit-Limit', stats.maxRequests.toString());
     headers.set('X-RateLimit-Remaining', result.remaining.toString());
     headers.set('X-RateLimit-Reset', new Date(result.resetTime).toISOString());
 

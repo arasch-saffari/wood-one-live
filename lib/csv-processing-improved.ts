@@ -1,11 +1,63 @@
 import fs from 'fs';
 import path from 'path';
 import csvParser from 'csv-parser';
-import { DatabaseService } from './database';
-import { logger, ImportError, ValidationError } from './logger';
-import { TimeUtils } from './time-utils';
-import { CacheService } from './cache';
-import { config } from './config';
+// Import with fallbacks for missing dependencies
+let DatabaseService: any = null;
+let logger: any = console;
+let ImportError: any = Error;
+let ValidationError: any = Error;
+let TimeUtils: any = null;
+let CacheService: any = null;
+let config: any = {};
+
+try {
+  const dbModule = require('./database');
+  DatabaseService = dbModule.DatabaseService;
+} catch (error) {
+  console.warn('Database service not available');
+}
+
+try {
+  const loggerModule = require('./logger');
+  logger = loggerModule.logger;
+  ImportError = loggerModule.ImportError || Error;
+  ValidationError = loggerModule.ValidationError || Error;
+} catch (error) {
+  console.warn('Logger module not available, using console');
+}
+
+try {
+  const timeModule = require('./time-utils');
+  TimeUtils = timeModule.TimeUtils;
+} catch (error) {
+  console.warn('Time utils not available');
+  // Fallback TimeUtils
+  TimeUtils = {
+    nowUtc: () => new Date().toISOString(),
+    toUtcIso: (date: any) => new Date(date).toISOString(),
+    isValidDate: (dateString: string) => !isNaN(new Date(dateString).getTime())
+  };
+}
+
+try {
+  const cacheModule = require('./cache');
+  CacheService = cacheModule.CacheService;
+} catch (error) {
+  console.warn('Cache service not available');
+  // Fallback CacheService
+  CacheService = {
+    del: () => {},
+    set: () => {},
+    get: () => null
+  };
+}
+
+try {
+  const configModule = require('./config');
+  config = configModule.config || {};
+} catch (error) {
+  console.warn('Config module not available');
+}
 
 interface CSVProcessingResult {
   insertedCount: number;

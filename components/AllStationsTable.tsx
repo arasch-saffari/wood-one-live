@@ -105,6 +105,10 @@ type AllStationsTableProps = {
   onAlarmToggle?: (val: boolean) => void;
   onTopRowChange?: (row: TableRowType | null) => void;
   filterStation?: string;
+  // Neue Props für Sortierung
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  onSortChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
 }
 
 // Hilfsfunktion: robustes Datum-Parsing für verschiedene Formate
@@ -178,7 +182,7 @@ function getWarningThresholdForRow(row: TableRowType, config: ConfigType): numbe
   return blocks[0]?.warning;
 }
 
-export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity, page, setPage, pageSize, totalCount, alarmRows, showOnlyAlarms: showOnlyAlarmsProp, onAlarmToggle, onTopRowChange, filterStation: filterStationProp }: AllStationsTableProps) {
+export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity, page, setPage, pageSize, totalCount, alarmRows, showOnlyAlarms: showOnlyAlarmsProp, onAlarmToggle, onTopRowChange, filterStation: filterStationProp, sortBy: externalSortBy, sortOrder: externalSortOrder, onSortChange }: AllStationsTableProps) {
   const [showWeather, setShowWeather] = useState(false)
   const [search, setSearch] = useState("")
   const [filterStation, setFilterStation] = useState("__all__") // Default: Alle Stationen
@@ -225,9 +229,12 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
     console.log('[AllStationsTable] technoData:', technoData.map(r => r.datetime));
     console.log('[AllStationsTable] bandData:', bandData.map(r => r.datetime));
   }
-  // Sortier-Logik
-  const [sortKey, setSortKey] = useState<string>('datetime')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  // Sortier-Logik: Verwende externe Props falls vorhanden, sonst lokalen State
+  const [localSortKey, setLocalSortKey] = useState<string>('datetime')
+  const [localSortDir, setLocalSortDir] = useState<'asc' | 'desc'>('desc')
+  
+  const sortKey = externalSortBy || localSortKey
+  const sortDir = externalSortOrder || localSortDir
   const tableColumns: DataTableColumn<TableRowType>[] = [
     { label: "Datum", key: "datetime", sortable: true, 
       sortFn: (a: TableRowType, b: TableRowType, dir: 'asc' | 'desc') => {
@@ -359,17 +366,22 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
 
   function handleSort(key: string) {
     const newSortDir = sortKey === key && sortDir === 'asc' ? 'desc' : 'asc'
-    setSortKey(key)
-    setSortDir(newSortDir)
     
-    // Wenn serverseitige Pagination aktiv ist, informiere Parent-Komponente über Sortierung
-    if (page !== undefined && pageSize !== undefined && totalCount !== undefined && setPage) {
+    // Wenn externe Sortierung verfügbar ist, verwende diese
+    if (onSortChange) {
+      onSortChange(key, newSortDir)
       // Reset auf Seite 1 bei neuer Sortierung
-      setPage(1)
-      // TODO: Parent-Komponente muss sortBy/sortOrder an API weiterleiten
-      if (typeof window !== 'undefined') {
-        console.log('[AllStationsTable] Sortierung geändert:', { sortKey: key, sortDir: newSortDir })
+      if (setPage) {
+        setPage(1)
       }
+    } else {
+      // Fallback: lokale Sortierung
+      setLocalSortKey(key)
+      setLocalSortDir(newSortDir)
+    }
+    
+    if (typeof window !== 'undefined') {
+      console.log('[AllStationsTable] Sortierung geändert:', { sortKey: key, sortDir: newSortDir })
     }
   }
 

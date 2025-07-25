@@ -1,12 +1,14 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getAllStationsTableData } from '@/lib/table-data-service'
-import { apiLatency } from '../metrics/route'
+import { logger } from '@/lib/logger'
+
 // Import middleware with fallbacks
 let withErrorHandler: any = null;
 let ApiResponse: any = null;
 let withRateLimit: any = null;
 let validateRequest: any = null;
 let getTableDataSchema: any = null;
+let apiLatency: any = null;
 
 try {
   const errorModule = require('@/lib/middleware/error-handler');
@@ -30,10 +32,16 @@ try {
 } catch (error) {
   console.warn('Validation module not available');
 }
-import { logger } from '@/lib/logger'
+
+try {
+  const metricsModule = require('../metrics/route');
+  apiLatency = metricsModule.apiLatency;
+} catch (error) {
+  console.warn('Metrics module not available');
+}
 
 async function GET(req: NextRequest) {
-  const apiLatencyEnd = apiLatency.startTimer({ route: '/api/table-data' })
+  const apiLatencyEnd = apiLatency?.startTimer ? apiLatency.startTimer({ route: '/api/table-data' }) : () => {}
   
   try {
     const { searchParams } = new URL(req.url)

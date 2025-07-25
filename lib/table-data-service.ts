@@ -1,6 +1,8 @@
 // Service für serverseitige Tabellendaten mit Sortierung und Pagination
 import db from './database'
 import { logger, DatabaseError, ValidationError } from './logger'
+import { intelligentCache } from './intelligent-cache'
+import { PerformanceMonitor } from './database-optimizer'
 
 // Import with fallbacks to handle missing dependencies gracefully
 let CacheService: any = null;
@@ -39,6 +41,8 @@ export interface TableDataOptions {
   sortOrder?: 'asc' | 'desc'
   station?: string
   dateFilter?: string
+  startDate?: string
+  endDate?: string
   searchQuery?: string
   showOnlyAlarms?: boolean
 }
@@ -60,6 +64,7 @@ export interface TableDataResult {
 }
 
 export async function getAllStationsTableData(options: TableDataOptions = {}): Promise<TableDataResult> {
+  const performanceEnd = PerformanceMonitor.startQuery('getAllStationsTableData');
   const startTime = Date.now();
   
   try {
@@ -90,25 +95,57 @@ export async function getAllStationsTableData(options: TableDataOptions = {}): P
       showOnlyAlarms = false
     } = validatedData;
 
-    // Try to use cache if available
-    let cached = null;
+    // Generate intelligent cache key
+    const cacheKey = generateCacheKey({
+      station: station || '__all__',
+      page,
+      pageSize,
+      sortBy,
+      sortOrder,
+      startDate,
+      endDate,
+      searchQuery,
+      showOnlyAlarms
+    });
+
+    // Try intelligent cache first
+    const cached = await intelligentCache.get<TableDataResult>(cacheKey, [
+      'table_data',
+      `station_${station || 'all'}`,
+      showOnlyAlarms ? 'alarms' : 'normal'
+    ]);
+
+    if (cached) {
+      logger.debug({ cacheKey }, 'Table data served from intelligent cache');
+      performanceEnd();
+      return cached;
+    }
+
+    // Fallback to legacy cache
     if (CacheService && CacheKeys) {
       try {
-        const cacheKey = `table_data_${station || '__all__'}_${page}_${pageSize}_${sortBy}_${sortOrder}_${startDate || ''}_${endDate || ''}_${searchQuery || ''}_${showOnlyAlarms}`;
-        cached = CacheService.get<TableDataResult>(cacheKey);
-        if (cached) {
-          logger.debug({ cacheKey }, 'Table data served from cache');
-          return cached;
+        const legacyCacheKey = `table_data_${station || '__all__'}_${page}_${pageSize}_${sortBy}_${sortOrder}_${startDate || ''}_${endDate || ''}_${searchQuery || ''}_${showOnlyAlarms}`;
+        const legacyCached = CacheService.get(legacyCacheKey) as TableDataResult;
+        if (legacyCached) {
+          logger.debug({ legacyCacheKey }, 'Table data served from legacy cache');
+          // Migrate to intelligent cache
+          await intelligentCache.set(cacheKey, legacyCached, {
+            ttl: 5 * 60 * 1000, // 5 minutes
+            tags: ['table_data', `station_${station || 'all'}`],
+            priority: 'normal'
+          });
+          performanceEnd();
+          return legacyCached;
         }
       } catch (cacheError) {
-        logger.warn({ error: cacheError }, 'Cache access failed');
+        logger.warn({ error: cacheError }, 'Legacy cache access failed');
       }
     }
 
-    // Validierung der Parameter
+    // Validierung der Parameter mit korrekter Sortierung
     const validSortFields = ['datetime', 'time', 'las', 'ws', 'wd', 'rh', 'station']
     const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'datetime'
-    const safeSortOrder = ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'DESC'
+    const safeSortOrder = ['asc', 'desc'].includes(sortOrder?.toLowerCase()) ? sortOrder.toUpperCase() : 'DESC'
   
   const limit = Math.min(Math.max(1, pageSize), 1000)
   const offset = Math.max(0, (page - 1) * limit)
@@ -229,8 +266,26 @@ export async function getAllStationsTableData(options: TableDataOptions = {}): P
     baseQuery += whereClause
   }
 
-  // Sortierung hinzufügen
-  baseQuery += ` ORDER BY m.${safeSortBy} ${safeSortOrder}`
+  // Sortierung hinzufügen - korrekte Behandlung für verschiedene Spalten
+  let orderByClause = '';
+  if (safeSortBy === 'ws' || safeSortBy === 'wd' || safeSortBy === 'rh') {
+    // Wetter-Spalten aus dem JOIN - mit NULL-Behandlung
+    const weatherColumn = safeSortBy === 'ws' ? 'windSpeed' : safeSortBy === 'wd' ? 'windDir' : 'relHumidity';
+    orderByClause = ` ORDER BY w.${weatherColumn} ${safeSortOrder} NULLS LAST`;
+  } else if (safeSortBy === 'station') {
+    // Station-Spalte
+    orderByClause = ` ORDER BY m.station ${safeSortOrder}`;
+  } else {
+    // Measurements-Spalten (datetime, time, las) - mit sekundärer Sortierung
+    orderByClause = ` ORDER BY m.${safeSortBy} ${safeSortOrder}`;
+    
+    // Sekundäre Sortierung für bessere Konsistenz
+    if (safeSortBy !== 'datetime') {
+      orderByClause += `, m.datetime DESC`;
+    }
+  }
+  
+  baseQuery += orderByClause;
 
   // Pagination hinzufügen
   baseQuery += ` LIMIT ? OFFSET ?`
@@ -321,25 +376,39 @@ export async function getAllStationsTableData(options: TableDataOptions = {}): P
       totalPages
     };
 
-    // Cache the result if cache is available
-    if (CacheService && cached !== null) {
+    // Cache the result in intelligent cache
+    await intelligentCache.set(cacheKey, result, {
+      ttl: calculateCacheTTL(options),
+      tags: [
+        'table_data',
+        `station_${station || 'all'}`,
+        showOnlyAlarms ? 'alarms' : 'normal',
+        `page_${page}`
+      ],
+      priority: page === 1 ? 'high' : 'normal', // First page gets high priority
+      persistToDisk: totalCount > 1000 // Persist large datasets
+    });
+
+    // Fallback to legacy cache
+    if (CacheService) {
       try {
-        const cacheKey = `table_data_${station || '__all__'}_${page}_${pageSize}_${sortBy}_${sortOrder}_${startDate || ''}_${endDate || ''}_${searchQuery || ''}_${showOnlyAlarms}`;
-        CacheService.set(cacheKey, result, 300); // Cache for 5 minutes
+        const legacyCacheKey = `table_data_${station || '__all__'}_${page}_${pageSize}_${sortBy}_${sortOrder}_${startDate || ''}_${endDate || ''}_${searchQuery || ''}_${showOnlyAlarms}`;
+        CacheService.set(legacyCacheKey, result, 300); // Cache for 5 minutes
       } catch (cacheError) {
-        logger.warn({ error: cacheError }, 'Failed to cache result');
+        logger.warn({ error: cacheError }, 'Failed to cache result in legacy cache');
       }
     }
 
     // Log performance
-    const totalDuration = Date.now() - startTime;
+    const totalDuration = performanceEnd();
     logger.info({
       station: station || '__all__',
       page,
       pageSize: limit,
       totalCount,
       duration: totalDuration,
-      cached: false
+      cached: false,
+      cacheKey
     }, 'Table data query completed');
 
     return result;
@@ -360,6 +429,77 @@ export async function getAllStationsTableData(options: TableDataOptions = {}): P
   }
 }
 
+/**
+ * Generiert einen intelligenten Cache-Key
+ */
+function generateCacheKey(options: {
+  station: string;
+  page: number;
+  pageSize: number;
+  sortBy: string;
+  sortOrder: string;
+  startDate?: string;
+  endDate?: string;
+  searchQuery?: string;
+  showOnlyAlarms: boolean;
+}): string {
+  const parts = [
+    'table_data',
+    options.station,
+    `p${options.page}`,
+    `ps${options.pageSize}`,
+    `sb${options.sortBy}`,
+    `so${options.sortOrder}`,
+    options.startDate ? `sd${options.startDate}` : '',
+    options.endDate ? `ed${options.endDate}` : '',
+    options.searchQuery ? `sq${Buffer.from(options.searchQuery).toString('base64').substring(0, 10)}` : '',
+    options.showOnlyAlarms ? 'alarms' : 'normal'
+  ].filter(Boolean);
+  
+  return parts.join('_');
+}
+
+/**
+ * Berechnet adaptive Cache-TTL basierend auf Anfrage-Parametern
+ */
+function calculateCacheTTL(options: TableDataOptions): number {
+  const baseTime = 5 * 60 * 1000; // 5 Minuten base
+  
+  // Aktuelle Daten (erste Seite) - kürzere TTL
+  if (options.page === 1 && !options.startDate && !options.endDate) {
+    return 2 * 60 * 1000; // 2 Minuten
+  }
+  
+  // Historische Daten - längere TTL
+  if (options.startDate || options.endDate) {
+    const now = new Date();
+    const startDate = options.startDate ? new Date(options.startDate) : null;
+    
+    if (startDate && (now.getTime() - startDate.getTime()) > 7 * 24 * 60 * 60 * 1000) {
+      return 60 * 60 * 1000; // 1 Stunde für Daten älter als 7 Tage
+    }
+    
+    return 15 * 60 * 1000; // 15 Minuten für neuere historische Daten
+  }
+  
+  // Alarm-Daten - mittlere TTL
+  if (options.showOnlyAlarms) {
+    return 3 * 60 * 1000; // 3 Minuten
+  }
+  
+  // Suchqueries - kürzere TTL
+  if (options.searchQuery) {
+    return 2 * 60 * 1000; // 2 Minuten
+  }
+  
+  // Spätere Seiten - längere TTL
+  if (options.page && options.page > 3) {
+    return 10 * 60 * 1000; // 10 Minuten
+  }
+  
+  return baseTime;
+}
+
 function normalizeStationName(station: string): string {
   const stationMap: { [key: string]: string } = {
     'ort': 'Ort',
@@ -368,6 +508,59 @@ function normalizeStationName(station: string): string {
     'heuballern': 'Heuballern'
   }
   return stationMap[station.toLowerCase()] || station
+}
+
+/**
+ * Invalidiert Cache für eine Station
+ */
+export async function invalidateStationCache(station: string): Promise<void> {
+  try {
+    await intelligentCache.invalidateByTags([
+      'table_data',
+      `station_${station}`,
+      `station_all` // Auch "alle Stationen" Cache invalidieren
+    ]);
+    
+    logger.info({ station }, 'Station cache invalidated');
+  } catch (error) {
+    logger.warn({ error, station }, 'Failed to invalidate station cache');
+  }
+}
+
+/**
+ * Wärmt den Cache für häufig genutzte Queries vor
+ */
+export async function warmupTableDataCache(): Promise<void> {
+  const stations = ['ort', 'techno', 'band', 'heuballern'];
+  const commonQueries = [
+    { page: 1, pageSize: 25, sortBy: 'datetime', sortOrder: 'desc' as const },
+    { page: 1, pageSize: 50, sortBy: 'datetime', sortOrder: 'desc' as const },
+    { page: 1, pageSize: 25, sortBy: 'datetime', sortOrder: 'desc' as const, showOnlyAlarms: true }
+  ];
+
+  const warmupKeys = [];
+  
+  // Alle Stationen
+  for (const query of commonQueries) {
+    warmupKeys.push({
+      key: generateCacheKey({ station: '__all__', ...query, showOnlyAlarms: query.showOnlyAlarms || false }),
+      generator: () => getAllStationsTableData(query),
+      tags: ['table_data', 'station_all', query.showOnlyAlarms ? 'alarms' : 'normal']
+    });
+  }
+  
+  // Einzelne Stationen
+  for (const station of stations) {
+    for (const query of commonQueries) {
+      warmupKeys.push({
+        key: generateCacheKey({ station, ...query, showOnlyAlarms: query.showOnlyAlarms || false }),
+        generator: () => getAllStationsTableData({ ...query, station }),
+        tags: ['table_data', `station_${station}`, query.showOnlyAlarms ? 'alarms' : 'normal']
+      });
+    }
+  }
+
+  await intelligentCache.warmup(warmupKeys);
 }
 
 export default getAllStationsTableData
