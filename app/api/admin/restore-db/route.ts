@@ -15,7 +15,8 @@ export async function POST(req: Request) {
     const dbPath = path.join(process.cwd(), 'data.sqlite')
     fs.writeFileSync(dbPath, Buffer.from(arrayBuffer))
     return NextResponse.json({ success: true, message: 'Backup erfolgreich wiederhergestellt.' })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, message: e?.message || 'Fehler beim Restore.', notify: true }, { status: 500 })
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : 'Fehler beim Restore.'
+    return NextResponse.json({ success: false, message: errorMessage, notify: true }, { status: 500 })
   }
 } 

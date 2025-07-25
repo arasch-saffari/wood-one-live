@@ -13,7 +13,9 @@ async function archiveOldMeasurements() {
   // Hole alle alten Messwerte
   const rows = db.prepare('SELECT * FROM measurements WHERE datetime < ?').all(cutoffStr)
   if (!rows.length) {
-    console.log('Keine alten Messwerte zum Archivieren.')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Keine alten Messwerte zum Archivieren.')
+    }
     return
   }
   // Parquet-Schema dynamisch aus erster Zeile
@@ -33,8 +35,10 @@ async function archiveOldMeasurements() {
   await writer.close()
   // Lösche archivierte Zeilen
   const del = db.prepare('DELETE FROM measurements WHERE datetime < ?').run(cutoffStr)
-  console.log(`Archiviert: ${rows.length} Zeilen nach ${filePath}`)
-  console.log(`Gelöscht: ${del.changes} Zeilen aus measurements`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Archiviert: ${rows.length} Zeilen nach ${filePath}`)
+    console.log(`Gelöscht: ${del.changes} Zeilen aus measurements`)
+  }
 }
 
 archiveOldMeasurements().catch(e => {

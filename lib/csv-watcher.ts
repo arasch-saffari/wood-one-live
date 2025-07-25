@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import chokidar from 'chokidar'
 import { processCSVFile } from './csv-processing'
 
 function getConfig() {
@@ -32,9 +33,11 @@ function ensureCsvDirectories() {
 class CSVWatcher {
   private watchedDirs: WatchedDirectory[] = []
   private isRunning = false
-  private checkInterval = 10000 // Check every 10 seconds
+  private checkInterval = 300000 // Fallback check every 5 minutes (reduced from 10 seconds)
   private intervalHandle: NodeJS.Timeout | null = null
   private heartbeatPath = path.join(process.cwd(), 'backups', 'watcher-heartbeat.txt')
+  private fsWatcher: chokidar.FSWatcher | null = null
+  private processingQueue = new Set<string>() // Debounce-Mechanismus
 
   constructor() {
     // Keine Initialisierung mehr im Konstruktor!
@@ -72,14 +75,22 @@ class CSVWatcher {
     if (this.isRunning) return
     this.isRunning = true
     this.initializeWatchedDirectories()
+    
     // Initial-Import aller vorhandenen CSVs
     this.processAllFiles().then(({ totalInserted, processedFiles }) => {
-      console.log(`📊 Initial-Import abgeschlossen: ${totalInserted} Messwerte aus ${processedFiles} Dateien importiert.`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📊 Initial-Import abgeschlossen: ${totalInserted} Messwerte aus ${processedFiles} Dateien importiert.`)
+      }
     }).catch(e => {
       console.error('❌ Fehler beim Initial-Import:', e)
     })
-    this.checkForNewFiles()
+
+    // FS-Events-basierte Überwachung mit chokidar
+    this.setupFileSystemWatcher()
+    
     this.writeHeartbeat()
+    
+    // Fallback-Polling (reduziert auf 5 Minuten)
     this.intervalHandle = setInterval(() => {
       if (!this.isRunning) return
       try {
@@ -96,12 +107,102 @@ class CSVWatcher {
     setTimeout(() => this.start(), 2000)
   }
 
+  private setupFileSystemWatcher() {
+    if (this.fsWatcher) {
+      this.fsWatcher.close()
+    }
+
+    // Überwache alle CSV-Verzeichnisse
+    const watchPaths = this.watchedDirs.map(dir => path.join(dir.path, '*.csv'))
+    
+    this.fsWatcher = chokidar.watch(watchPaths, {
+      persistent: true,
+      ignoreInitial: true, // Ignoriere existierende Dateien beim Start
+      awaitWriteFinish: {
+        stabilityThreshold: 2000, // Warte 2s nach letzter Änderung
+        pollInterval: 100
+      }
+    })
+
+    this.fsWatcher
+      .on('add', (filePath) => this.handleFileEvent('add', filePath))
+      .on('change', (filePath) => this.handleFileEvent('change', filePath))
+      .on('error', (error) => {
+        console.error('FS-Watcher Fehler:', error)
+        // Fallback auf Polling bei FS-Watcher-Fehlern
+      })
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📁 FS-Events-Watcher gestartet für:', watchPaths)
+    }
+  }
+
+  private async handleFileEvent(event: 'add' | 'change', filePath: string) {
+    // Debounce: Verhindere mehrfache Verarbeitung derselben Datei
+    if (this.processingQueue.has(filePath)) {
+      return
+    }
+
+    // Filtere nur CSV-Dateien und ignoriere temporäre Dateien
+    if (!filePath.endsWith('.csv') || path.basename(filePath).startsWith('_gsdata_')) {
+      return
+    }
+
+    this.processingQueue.add(filePath)
+
+    try {
+      // Bestimme Station aus Pfad
+      const station = this.getStationFromPath(filePath)
+      if (!station) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`⚠️  Konnte Station für ${filePath} nicht bestimmen`)
+        }
+        return
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📄 FS-Event (${event}): ${path.basename(filePath)} in ${station}`)
+      }
+
+      const inserted = await processCSVFile(station, filePath)
+      
+      if (process.env.NODE_ENV === 'development') {
+        if (inserted > 0) {
+          console.log(`✅ ${inserted} Messwerte aus ${path.basename(filePath)} importiert (FS-Event)`)
+        } else {
+          console.log(`⚠️  Keine neuen Messwerte aus ${path.basename(filePath)} (FS-Event)`)
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Fehler beim Verarbeiten von ${filePath}:`, error)
+    } finally {
+      // Entferne aus Queue nach kurzer Verzögerung
+      setTimeout(() => {
+        this.processingQueue.delete(filePath)
+      }, 5000)
+    }
+  }
+
+  private getStationFromPath(filePath: string): string | null {
+    for (const dir of this.watchedDirs) {
+      if (filePath.startsWith(dir.path)) {
+        return dir.station
+      }
+    }
+    return null
+  }
+
   public stop() {
     this.isRunning = false
     if (this.intervalHandle) {
       clearInterval(this.intervalHandle)
       this.intervalHandle = null
     }
+    if (this.fsWatcher) {
+      this.fsWatcher.close()
+      this.fsWatcher = null
+    }
+    this.processingQueue.clear()
   }
 
   private async checkForNewFiles() {
@@ -121,10 +222,12 @@ class CSVWatcher {
           for (const file of newFiles) {
             // Hier: Datei direkt verarbeiten
             const inserted = await processCSVFile(dir.station, file.path)
-            if (inserted > 0) {
-              console.log(`✅ ${inserted} Messwerte aus ${file.name} importiert`)
-            } else {
-              console.log(`⚠️  Keine neuen Messwerte aus ${file.name}`)
+            if (process.env.NODE_ENV === 'development') {
+              if (inserted > 0) {
+                console.log(`✅ ${inserted} Messwerte aus ${file.name} importiert`)
+              } else {
+                console.log(`⚠️  Keine neuen Messwerte aus ${file.name}`)
+              }
             }
           }
         }

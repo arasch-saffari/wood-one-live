@@ -105,7 +105,7 @@ export function WeatherKpiCard({ value, direction }: { value: number | string | 
 export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const meta = STATION_META[station]
   // Chart: Nur die letzten 500 minütlichen Mittelwerte laden
-  const CHART_PAGE_SIZE = 500
+  const CHART_PAGE_SIZE = 100 // Reduziert von 500 auf 100 für bessere Performance
   const [chartPage, setChartPage] = React.useState(1)
   const { data: chartData, totalCount: chartTotal, loading: dataLoading } = useStationData(station, "24h", 60000, chartPage, CHART_PAGE_SIZE, "15min")
   React.useEffect(() => {

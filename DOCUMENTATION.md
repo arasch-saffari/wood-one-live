@@ -21,6 +21,7 @@
 15. [Automated Testing & Quality Assurance](#15-automated-testing--quality-assurance)
 16. [Robustness & Monitoring](#16-robustness--monitoring)
 17. [Delta-Updates, Monitoring & Prometheus](#17-delta-updates--monitoring--prometheus)
+18. [Performance Optimizations](#18-performance-optimizations)
 
 ---
 
@@ -471,4 +472,162 @@ noise-monitoring-dashboard/
 
 - **EventSource-Singleton:** Alle Hooks (useStationData, useWeatherData, useHealth) verwenden jetzt eine gemeinsame EventSource-Instanz pro Seite. Listener werden gezählt und sauber entfernt. Dadurch werden Memory-Leaks und UI-Hänger verhindert.
 - **SIGINT/SIGTERM-Listener-Singleton:** Cleanup-Listener für Prozessende werden jetzt nur noch einmalig registriert (Singleton-Pattern), um MaxListenersExceededWarning zu vermeiden.
-- **Stabileres Hot-Reload:** Durch die Singleton-Pattern gibt es keine doppelten EventListener mehr bei Hot-Reload oder Navigation. Die Seite bleibt performant und stabil. 
+- **Stabileres Hot-Reload:** Durch die Singleton-Pattern gibt es keine doppelten EventListener mehr bei Hot-Reload oder Navigation. Die Seite bleibt performant und stabil.
+
+---
+
+## 18. Performance Optimizations (Januar 2025)
+
+### 🚀 **Umfassende Performance-Verbesserungen**
+
+Das System wurde grundlegend optimiert, um Frontend-Hänger und Node-Cron "missed execution" Warnungen zu beheben.
+
+### **Backend-Optimierungen**
+
+#### **Node-Cron Optimierungen**
+- **Asynchrone I/O-Operationen**: Alle `fs.copyFileSync()`, `fs.writeFileSync()`, `fs.readFileSync()` zu `fs.promises.*` umgewandelt
+- **Timeout-Schutz**: Alle Cron-Jobs haben jetzt 30-60s Timeout mit `Promise.race()`
+- **Performance-Monitoring**: Ausführungszeiten werden gemessen und bei langsamen Jobs gewarnt
+- **Timezone-Konfiguration**: Alle Jobs verwenden `Europe/Berlin` Timezone
+- **CronOptimizer-Klasse**: Erweiterte Features für Überlappungsschutz und Retry-Mechanismus
+
+```typescript
+// Beispiel: Async Backup-Cron mit Timeout
+cron.schedule('0 3 * * *', async () => {
+  const backupPromise = Promise.race([
+    fs.promises.copyFile(dbPath, backupPath), // Non-blocking
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Backup timeout')), 60000)
+    )
+  ])
+  await backupPromise
+}, {
+  scheduled: true,
+  timezone: "Europe/Berlin"
+})
+```
+
+#### **SQL-Level-Pagination**
+- **Problem behoben**: API lud 50.000 Zeilen für Cache + JavaScript-slice()
+- **Lösung**: Direkte LIMIT/OFFSET in SQL-Queries
+- **Performance-Gewinn**: 99% weniger Datenübertragung
+
+```typescript
+// Vorher (LANGSAM):
+const allData = stmt.all(station) // 50.000 Zeilen
+const paged = allData.slice(start, end) // JavaScript-slice
+
+// Nachher (SCHNELL):
+const stmt = db.prepare(`
+  SELECT * FROM measurements 
+  WHERE station = ? 
+  ORDER BY datetime DESC 
+  LIMIT ? OFFSET ?
+`)
+const paged = stmt.all(station, limit, offset) // Nur benötigte Zeilen
+```
+
+### **Frontend-Optimierungen**
+
+#### **PageSize-Reduktion**
+- **Dashboard-Layout**: Von 4×50 auf 4×1 Datenpunkte für "Letzte Aktualisierung"
+- **Chart-Komponenten**: Von 500 auf 100 Datenpunkte pro Chart
+- **Tabellen**: Von 1000+ auf 25-100 Datenpunkte pro Request
+- **Default-Werte**: useStationData Standard von 50 auf 25 reduziert
+
+#### **Request-Optimierungen**
+- **Timeout-Schutz**: 10s Timeout mit AbortController für alle API-Requests
+- **Cache-Headers**: `Cache-Control: no-cache` für aktuelle Daten
+- **Polling-Reduktion**: Von 60s auf 300s für Background-Updates
+
+```typescript
+// Request mit Timeout und AbortController
+const controller = new AbortController()
+const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+const response = await fetch(url, { 
+  signal: controller.signal,
+  headers: {
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+  }
+})
+```
+
+#### **React.memo-Optimierungen**
+- **MemoizedStationDashboard**: Verhindert unnötige Re-Renders
+- **Custom Comparison**: Nur re-rendern wenn sich relevante Props ändern
+- **Performance-Gewinn**: Deutlich weniger CPU-Last bei Navigation
+
+### **Erwartete Performance-Verbesserungen**
+
+| Bereich | Vorher | Nachher | Verbesserung |
+|---------|--------|---------|--------------|
+| **API-Requests** | 50.000 Zeilen | 25-100 Zeilen | 99% weniger Daten |
+| **Dashboard-Layout** | 4×50 Datenpunkte | 4×1 Datenpunkt | 98% weniger Requests |
+| **Chart-Loading** | 500 Datenpunkte | 100 Datenpunkte | 80% weniger Daten |
+| **Cron-Jobs** | Sync I/O | Async + Timeout | Keine Blockierung |
+| **Request-Timeout** | Unbegrenzt | 10 Sekunden | Keine hängenden Requests |
+
+### **Monitoring & Debugging**
+
+#### **Performance-Metriken**
+```typescript
+// Cron-Job-Performance-Tracking
+const startTime = Date.now()
+// ... work ...
+const duration = Date.now() - startTime
+
+if (duration > THRESHOLD) {
+  console.warn(`[JobName] Langsame Ausführung: ${duration}ms`)
+}
+```
+
+#### **CronOptimizer-Features**
+- **Überlappungsschutz**: Verhindert mehrfache Job-Ausführungen
+- **Retry-Mechanismus**: Exponential backoff bei Fehlern
+- **Statistiken**: Tracking von Ausführungszeiten und Fehlern
+- **Graceful Shutdown**: Proper Cleanup bei SIGINT/SIGTERM
+
+### **Deployment-Empfehlungen**
+
+#### **Server-Monitoring**
+```bash
+# CPU-Last prüfen
+top -p $(pgrep node)
+
+# Memory-Usage prüfen  
+ps aux | grep node
+
+# I/O-Wait prüfen
+iostat -x 1
+```
+
+#### **Prometheus-Metriken**
+- `cron_job_duration_seconds`: Cron-Job-Ausführungszeit
+- `api_request_duration_seconds`: API-Latenz mit Route-Labels
+- `memory_rss_bytes`: RAM-Usage des Node-Prozesses
+- `db_file_size_bytes`: SQLite-Datenbankgröße
+
+### **Troubleshooting**
+
+#### **Häufige Performance-Probleme**
+- **Langsame API-Requests**: Prüfe pageSize-Parameter und SQL-Indizes
+- **Frontend-Hänger**: Reduziere pageSize in useStationData-Hooks
+- **Cron-Job-Timeouts**: Prüfe Prometheus-Metriken für Job-Dauer
+- **Memory-Leaks**: Überwache RSS-Memory-Usage über Zeit
+
+#### **Performance-Tests**
+```bash
+# API-Load-Testing
+ab -n 1000 -c 10 http://localhost:3000/api/station-data?station=ort&pageSize=25
+
+# Cron-Job-Status prüfen
+curl http://localhost:3000/api/admin/cron-status
+```
+
+---
+
+**Performance Optimizations Version**: 1.0  
+**Last Updated**: Januar 2025  
+**Status**: ✅ Produktionsbereit 

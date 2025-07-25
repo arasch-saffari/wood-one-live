@@ -70,7 +70,8 @@ export async function GET() {
       integrityCount,
       notify: integrityProblem ? true : undefined,
     })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Fehler beim Health-Check.' }, { status: 500 })
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : 'Fehler beim Health-Check.'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 } 

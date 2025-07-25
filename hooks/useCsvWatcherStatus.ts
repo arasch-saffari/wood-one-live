@@ -29,8 +29,9 @@ export function useCsvWatcherStatus(pollInterval = 60000) {
         if (!res.ok) throw new Error('Fehler beim Laden des CSV-Watcher-Status')
         const data = await res.json()
         if (mounted) setStatus(data)
-      } catch (e: any) {
-        if (mounted) setError(e.message || 'Fehler beim Laden des CSV-Watcher-Status')
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Fehler beim Laden des CSV-Watcher-Status'
+        if (mounted) setError(errorMessage)
       } finally {
         if (mounted) setLoading(false)
       }

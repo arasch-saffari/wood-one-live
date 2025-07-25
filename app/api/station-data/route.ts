@@ -17,10 +17,12 @@ export async function GET(req: Request) {
   const apiLatencyEnd = apiLatency.startTimer({ route: '/api/station-data' })
   const { searchParams } = new URL(req.url)
   const station = searchParams.get("station")
-  const page = parseInt(searchParams.get("page") || "1", 10)
-  const pageSize = parseInt(searchParams.get("pageSize") || "1000", 10)
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10))
+  const pageSize = Math.min(10000, Math.max(1, parseInt(searchParams.get("pageSize") || "1000", 10)))
   const aggregate = searchParams.get("aggregate")
   const interval = (searchParams.get("interval") as "24h" | "7d") || "24h"
+  const sortBy = searchParams.get("sortBy") as 'time' | 'las' | 'datetime' || 'datetime'
+  const sortOrder = searchParams.get("sortOrder") as 'asc' | 'desc' || 'desc'
   if (!station) {
     apiLatencyEnd()
     return NextResponse.json({ error: "Missing station parameter" }, { status: 400 });
@@ -29,108 +31,199 @@ export async function GET(req: Request) {
     // KPI-Aggregation für 24h (schnell per SQL)
     const station = searchParams.get('station')
     const row = db.prepare(`
-      SELECT MAX(las) as max, AVG(las) as avg,
-        (MAX(las) - MIN(las)) * 100.0 / MIN(las) as trend
+      SELECT MAX(las) as max, AVG(las) as avg, MIN(las) as min,
+        COUNT(*) as count
       FROM measurements
       WHERE station = ? AND datetime >= datetime('now', '-24 hours')
-    `).get(station) as { max: number, avg: number, trend: number }
+    `).get(station) as { max: number, avg: number, min: number, count: number }
+    
     apiLatencyEnd();
-    if (!row || row.max == null) return NextResponse.json({ max: 0, avg: 0, trend: 0 })
-    return NextResponse.json(row)
+    
+    if (!row || row.max == null || row.count === 0) {
+      return NextResponse.json({ max: 0, avg: 0, trend: 0 })
+    }
+    
+    // Division-durch-Null abfangen
+    let trend = 0
+    if (row.min > 0) {
+      trend = ((row.max - row.min) / row.min) * 100
+    } else if (row.max > 0) {
+      trend = 100 // 100% Anstieg wenn von 0 auf einen Wert
+    }
+    
+    return NextResponse.json({ 
+      max: row.max, 
+      avg: row.avg, 
+      trend: Math.round(trend * 100) / 100 // Auf 2 Dezimalstellen runden
+    })
   }
   // Aggregation: minütliche Mittelwerte
   if (aggregate === "minutely") {
-    const minuteAverages = getMinuteAveragesForStation(station, interval)
-    const totalCount = minuteAverages.length
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    const paged = minuteAverages.slice(start, end)
-    // Rückgabe: bucket statt minute
+    // SQL-Level-Pagination auch für minutely aggregation
+    const stmt = db.prepare(`
+      SELECT strftime('%Y-%m-%d %H:%M:00', datetime) as bucket, AVG(las) as avgLas
+      FROM measurements
+      WHERE station = ? AND datetime >= datetime('now', '-${interval === '7d' ? '7 days' : '24 hours'}')
+      GROUP BY bucket
+      ORDER BY bucket ${sortOrder.toUpperCase()}
+      LIMIT ? OFFSET ?
+    `)
+    
+    const countStmt = db.prepare(`
+      SELECT COUNT(DISTINCT strftime('%Y-%m-%d %H:%M:00', datetime)) as total
+      FROM measurements
+      WHERE station = ? AND datetime >= datetime('now', '-${interval === '7d' ? '7 days' : '24 hours'}')
+    `)
+    
+    const offset = (page - 1) * pageSize
+    const paged = stmt.all(station, pageSize, offset) as Array<{ bucket: string, avgLas: number }>
+    const countResult = countStmt.get(station) as { total: number }
+    
     apiLatencyEnd()
-    return NextResponse.json({ data: paged, totalCount, page, pageSize })
+    return NextResponse.json({ 
+      data: paged, 
+      totalCount: countResult.total, 
+      page, 
+      pageSize 
+    })
   }
   if (aggregate === "15min") {
-    const min15Averages = get15MinAveragesForStation(station, interval)
-    // Sortiere absteigend nach datetime
-    min15Averages.sort((a, b) => b.bucket.localeCompare(a.bucket));
-    const totalCount = min15Averages.length
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    const paged = min15Averages.slice(start, end).map(b => ({
+    // SQL-Level-Pagination auch für 15min aggregation
+    const stmt = db.prepare(`
+      SELECT bucket, avgLas
+      FROM measurements_15min_agg
+      WHERE station = ? AND bucket >= datetime('now', '-${interval === '7d' ? '7 days' : '24 hours'}')
+      ORDER BY bucket ${sortOrder.toUpperCase()}
+      LIMIT ? OFFSET ?
+    `)
+    
+    const countStmt = db.prepare(`
+      SELECT COUNT(*) as total
+      FROM measurements_15min_agg
+      WHERE station = ? AND bucket >= datetime('now', '-${interval === '7d' ? '7 days' : '24 hours'}')
+    `)
+    
+    const offset = (page - 1) * pageSize
+    const results = stmt.all(station, pageSize, offset) as Array<{ bucket: string, avgLas: number }>
+    const countResult = countStmt.get(station) as { total: number }
+    
+    const paged = results.map(b => ({
       time: b.bucket.slice(11, 16),
       las: b.avgLas,
       datetime: b.bucket
     }))
+    
     apiLatencyEnd()
-    return NextResponse.json({ data: paged, totalCount, page, pageSize })
+    return NextResponse.json({ 
+      data: paged, 
+      totalCount: countResult.total, 
+      page, 
+      pageSize 
+    })
   }
-  // Aggregation: 15min-Alarme (wie im All-Dashboard)
+  // Aggregation: 15min-Alarme (optimiert mit SQL-Level-Filtering)
   if (aggregate === "alarms") {
-    // Hole 15-Minuten-Aggregation
-    const min15Averages = get15MinAveragesForStation(station, interval)
-    // Sortiere absteigend nach datetime
-    min15Averages.sort((a, b) => b.bucket.localeCompare(a.bucket));
-    // Hole Schwellenwerte für die Station
-    // (Wir nehmen die aktuelle Zeit nicht, sondern prüfen für jeden Bucket die passende Schwelle)
-    // Lade Config aus Datei (wie im Dashboard)
-    let config: any = null;
-    try {
-      config = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'config.json'), 'utf-8'));
-    } catch {}
     let stationKey = station;
     if (stationKey === "techno") stationKey = "techno";
     if (stationKey === "band") stationKey = "band";
-    // Hilfsfunktion: Hole Alarm-Schwelle für eine Zeit
-    function getAlarmThresholdForTime(stationKey: string, time: string): number | undefined {
-      if (!config?.thresholdsByStationAndTime || !stationKey || !time) return undefined;
-      const blocks = config.thresholdsByStationAndTime[stationKey];
-      if (!blocks) return undefined;
-      const [h, m] = time.split(":").map(Number);
-      const minutes = h * 60 + m;
-      for (const block of blocks) {
-        const [fromH, fromM] = block.from.split(":").map(Number);
-        const [toH, toM] = block.to.split(":").map(Number);
-        const fromMin = fromH * 60 + fromM;
-        const toMin = toH * 60 + toM;
-        if (fromMin < toMin) {
-          if (minutes >= fromMin && minutes < toMin) return block.alarm;
-        } else {
-          if (minutes >= fromMin || minutes < toMin) return block.alarm;
-        }
-      }
-      return blocks[0]?.alarm;
-    }
-    // Filtere alle Zeilen, die als Alarm gelten
-    const alarmRows = min15Averages.filter(b => {
-      const time = b.bucket.slice(11, 16);
-      const alarm = getAlarmThresholdForTime(stationKey, time);
-      return typeof alarm === 'number' && b.avgLas >= alarm;
-    }).map(b => ({
+    
+    // SQL-Query mit JOIN zu Thresholds für bessere Performance
+    const stmt = db.prepare(`
+      WITH time_buckets AS (
+        SELECT 
+          agg.bucket,
+          agg.avgLas,
+          CAST(substr(agg.bucket, 12, 2) AS INTEGER) * 60 + 
+          CAST(substr(agg.bucket, 15, 2) AS INTEGER) as minutes_since_midnight
+        FROM measurements_15min_agg agg
+        WHERE agg.station = ? 
+        AND agg.bucket >= datetime('now', '-${interval === '7d' ? '7 days' : '24 hours'}')
+      ),
+      threshold_matches AS (
+        SELECT 
+          tb.*,
+          t.alarm_threshold,
+          CAST(substr(t.from_time, 1, 2) AS INTEGER) * 60 + 
+          CAST(substr(t.from_time, 4, 2) AS INTEGER) as from_minutes,
+          CAST(substr(t.to_time, 1, 2) AS INTEGER) * 60 + 
+          CAST(substr(t.to_time, 4, 2) AS INTEGER) as to_minutes
+        FROM time_buckets tb
+        JOIN thresholds t ON t.station = ?
+        WHERE (
+          (t.from_time <= t.to_time AND tb.minutes_since_midnight >= 
+           (CAST(substr(t.from_time, 1, 2) AS INTEGER) * 60 + CAST(substr(t.from_time, 4, 2) AS INTEGER))
+           AND tb.minutes_since_midnight < 
+           (CAST(substr(t.to_time, 1, 2) AS INTEGER) * 60 + CAST(substr(t.to_time, 4, 2) AS INTEGER)))
+          OR
+          (t.from_time > t.to_time AND (tb.minutes_since_midnight >= 
+           (CAST(substr(t.from_time, 1, 2) AS INTEGER) * 60 + CAST(substr(t.from_time, 4, 2) AS INTEGER))
+           OR tb.minutes_since_midnight < 
+           (CAST(substr(t.to_time, 1, 2) AS INTEGER) * 60 + CAST(substr(t.to_time, 4, 2) AS INTEGER))))
+        )
+        AND tb.avgLas >= t.alarm_threshold
+      )
+      SELECT bucket, avgLas
+      FROM threshold_matches
+      ORDER BY bucket ${sortOrder.toUpperCase()}
+      LIMIT ? OFFSET ?
+    `)
+    
+    const countStmt = db.prepare(`
+      WITH time_buckets AS (
+        SELECT 
+          agg.bucket,
+          agg.avgLas,
+          CAST(substr(agg.bucket, 12, 2) AS INTEGER) * 60 + 
+          CAST(substr(agg.bucket, 15, 2) AS INTEGER) as minutes_since_midnight
+        FROM measurements_15min_agg agg
+        WHERE agg.station = ? 
+        AND agg.bucket >= datetime('now', '-${interval === '7d' ? '7 days' : '24 hours'}')
+      )
+      SELECT COUNT(*) as total
+      FROM time_buckets tb
+      JOIN thresholds t ON t.station = ?
+      WHERE (
+        (t.from_time <= t.to_time AND tb.minutes_since_midnight >= 
+         (CAST(substr(t.from_time, 1, 2) AS INTEGER) * 60 + CAST(substr(t.from_time, 4, 2) AS INTEGER))
+         AND tb.minutes_since_midnight < 
+         (CAST(substr(t.to_time, 1, 2) AS INTEGER) * 60 + CAST(substr(t.to_time, 4, 2) AS INTEGER)))
+        OR
+        (t.from_time > t.to_time AND (tb.minutes_since_midnight >= 
+         (CAST(substr(t.from_time, 1, 2) AS INTEGER) * 60 + CAST(substr(t.from_time, 4, 2) AS INTEGER))
+         OR tb.minutes_since_midnight < 
+         (CAST(substr(t.to_time, 1, 2) AS INTEGER) * 60 + CAST(substr(t.to_time, 4, 2) AS INTEGER))))
+      )
+      AND tb.avgLas >= t.alarm_threshold
+    `)
+    
+    const offset = (page - 1) * pageSize
+    const results = stmt.all(stationKey, stationKey, pageSize, offset) as Array<{ bucket: string, avgLas: number }>
+    const countResult = countStmt.get(stationKey, stationKey) as { total: number }
+    
+    const paged = results.map(b => ({
       time: b.bucket.slice(11, 16),
       las: b.avgLas,
       datetime: b.bucket
-    }));
-    const totalCount = alarmRows.length;
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const paged = alarmRows.slice(start, end);
+    }))
+    
     apiLatencyEnd();
-    return NextResponse.json({ data: paged, totalCount, page, pageSize });
+    return NextResponse.json({ 
+      data: paged, 
+      totalCount: countResult.total, 
+      page, 
+      pageSize 
+    });
   }
-  // File-Cache-Logik wieder aktivieren
-  const cacheFile = path.join(CACHE_DIR, `stationdata-${station}.json`)
-  let allData: { data: any[], totalCount: number } | null = null
-  let usedCache = false
-  if (fs.existsSync(cacheFile)) {
-    const stats = fs.statSync(cacheFile)
-    if (Date.now() - stats.mtimeMs < FILE_CACHE_DURATION_MS) {
-      allData = JSON.parse(fs.readFileSync(cacheFile, 'utf-8'))
-      usedCache = true
-    }
-  }
-  if (!allData) {
-    const measurements = getMeasurementsForStation(station);
-    const result = measurements.map(m => ({
+  // Direkte SQL-Level-Pagination ohne Cache für bessere Performance
+  try {
+    const paginatedResult = getMeasurementsForStation(station, {
+      page: page,
+      pageSize: pageSize,
+      sortBy: sortBy,
+      sortOrder: sortOrder
+    })
+    
+    const result = paginatedResult.data.map(m => ({
       time: m.time,
       las: m.las,
       datetime: m.datetime,
@@ -138,20 +231,29 @@ export async function GET(req: Request) {
       wd: m.wd,
       rh: m.rh,
     }));
-    allData = { data: result, totalCount: result.length }
-    if (result.length > 5000) {
-      fs.writeFileSync(cacheFile, JSON.stringify(allData))
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API station-data] Station: ${station}, Page: ${page}/${paginatedResult.totalPages}, Rows: ${result.length}/${paginatedResult.totalCount}`)
     }
-  }
-  if (!allData) {
-    console.log(`[API station-data] Station: ${station}, Rohdaten: 0, usedCache: ${usedCache}`)
+    
     apiLatencyEnd()
-    return NextResponse.json({ data: [], totalCount: 0, page, pageSize })
+    return NextResponse.json({ 
+      data: result, 
+      totalCount: paginatedResult.totalCount, 
+      page: paginatedResult.page, 
+      pageSize: paginatedResult.pageSize,
+      totalPages: paginatedResult.totalPages
+    });
+    
+  } catch (error) {
+    console.error(`[API station-data] Fehler bei Station ${station}:`, error)
+    apiLatencyEnd()
+    return NextResponse.json({ 
+      error: 'Database error', 
+      data: [], 
+      totalCount: 0, 
+      page, 
+      pageSize 
+    }, { status: 500 });
   }
-  const start = (page - 1) * pageSize
-  const end = start + pageSize
-  const pagedData = allData.data.slice(start, end)
-  console.log(`[API station-data] Station: ${station}, Rohdaten: ${allData.totalCount}, usedCache: ${usedCache}`)
-  apiLatencyEnd()
-  return NextResponse.json({ data: pagedData, totalCount: allData.totalCount, page, pageSize });
 } 

@@ -16,35 +16,52 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-interface GenericChartLine {
-  key: string;
-  label: string;
-  color: string;
-  yAxisId?: string;
+interface ChartDataPoint {
+  [key: string]: string | number | null | undefined
 }
-interface GenericChartAxis {
-  id: string;
-  orientation: "left" | "right";
-  domain: [number, number];
-  label: string;
-  ticks?: number[];
+
+interface ChartLine {
+  key: string
+  label: string
+  color: string
+  yAxisId?: string
 }
-interface GenericChartThreshold {
-  value: number;
-  label: string;
-  color: string;
-  yAxisId?: string;
+
+interface ChartAxis {
+  id: string
+  orientation: 'left' | 'right'
+  domain?: [number, number]
+  label?: string
+  ticks?: number[]
 }
+
+interface ChartThreshold {
+  value: number
+  label: string
+  color: string
+  yAxisId?: string
+}
+
+interface TooltipContext {
+  active?: boolean
+  payload?: Array<{
+    value: number | string
+    dataKey: string
+    color: string
+  }>
+  label?: string
+}
+
 type GenericChartProps = {
-  data: any[]
-  lines: any[]
-  axes: any[]
-  thresholds?: any[]
+  data: ChartDataPoint[]
+  lines: ChartLine[]
+  axes: ChartAxis[]
+  thresholds?: ChartThreshold[]
   legend?: boolean
   height?: number
   tooltipFormatter?: {
-    label?: (ctx: any) => string | string[]
-    [key: string]: any
+    label?: (ctx: TooltipContext) => string | string[]
+    [key: string]: unknown
   }
 }
 

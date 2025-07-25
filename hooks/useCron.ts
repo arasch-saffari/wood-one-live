@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react"
 
+interface CronData {
+  crons?: Array<{
+    name: string
+    schedule: string
+    lastRun?: string
+    nextRun?: string
+  }>
+  [key: string]: unknown
+}
+
 export function useCron(pollInterval = 60000) {
-  const [cron, setCron] = useState<any>(null)
+  const [cron, setCron] = useState<CronData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -16,8 +26,9 @@ export function useCron(pollInterval = 60000) {
         if (!res.ok) throw new Error('Fehler beim Laden der Cron-Daten')
         const data = await res.json()
         if (mounted) setCron(data)
-      } catch (e: any) {
-        if (mounted) setError(e.message || 'Fehler beim Laden der Cron-Daten')
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Fehler beim Laden der Cron-Daten'
+        if (mounted) setError(errorMessage)
       } finally {
         if (mounted) setLoading(false)
       }

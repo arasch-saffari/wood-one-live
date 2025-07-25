@@ -60,8 +60,8 @@ interface WatcherType {
 export default function AllLocationsClient({ ortData: initialOrt, heuballernData: initialHeuballern, technoData: initialTechno, bandData: initialBand, config: initialConfig }: AllLocationsClientProps) {
   // 1. Context und State
   const { config } = useConfig();
-  // 2. Daten-Hooks für Charts (jetzt 15min-Aggregation, ohne Limit)
-  const pageSize = 1000;
+  // 2. Daten-Hooks für Charts (jetzt 15min-Aggregation, optimiert)
+  const pageSize = 100; // Reduziert von 1000 auf 100 für bessere Performance
   const ortDataObj = useStationData("ort", "24h", 60000, 1, pageSize, "15min");
   const heuballernDataObj = useStationData("heuballern", "24h", 60000, 1, pageSize, "15min");
   const technoDataObj = useStationData("techno", "24h", 60000, 1, pageSize, "15min");
@@ -246,7 +246,9 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
     heuballern: 'Heuballern',
   };
   // Reverse mapping for KPI lookup
-  const labelToKey: { [label: string]: StationKey } = Object.fromEntries(Object.entries(stationLabels).map(([k, v]) => [v, k])) as any;
+  const labelToKey: { [label: string]: StationKey } = Object.fromEntries(
+    Object.entries(stationLabels).map(([k, v]) => [v, k])
+  ) as { [label: string]: StationKey };
 
   // Helper: get top row for a station (latest by datetime desc)
   function getTopRow(data: TableRowType[]): TableRowType | null {

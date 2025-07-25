@@ -19,7 +19,7 @@ export function useStationData(
   interval: "24h" | "7d" = "24h",
   pollInterval: number = 60000, // 1 Minute Standard
   page: number = 1,
-  pageSize: number = 50,
+  pageSize: number = 25, // Reduziert von 50 auf 25 als Standard
   aggregate?: string
 ) {
   const [data, setData] = useState<StationDataPoint[]>([])
@@ -33,26 +33,46 @@ export function useStationData(
   const intervalRef = useRef(interval)
   const pageRef = useRef(page)
   const pageSizeRef = useRef(pageSize)
-  // Fetch-Funktion
+  // Fetch-Funktion mit Timeout und AbortController
   async function fetchAndSetData() {
     setLoading(true)
     setError(null)
+    
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s Timeout
+    
     const url = `/api/station-data?station=${stationRef.current}&interval=${intervalRef.current}&page=${pageRef.current}&pageSize=${pageSizeRef.current}` + (aggregate ? `&aggregate=${aggregate}` : '')
+    
     try {
-      const response = await fetch(url)
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+      
+      clearTimeout(timeoutId)
+      
       if (!response.ok) {
         setError(`Fehler: ${response.status}`)
         setLoading(false)
         return
       }
+      
       const json = await response.json()
       setData(json.data ?? [])
       setTotalCount(json.totalCount ?? 0)
       setCurrentPage(json.page ?? pageRef.current)
       setCurrentPageSize(json.pageSize ?? pageSizeRef.current)
       setLoading(false)
+      
     } catch (e: unknown) {
-      if (typeof e === 'object' && e && 'message' in e && typeof (e as { message?: string }).message === 'string') {
+      clearTimeout(timeoutId)
+      
+      if (e instanceof Error && e.name === 'AbortError') {
+        setError('Request timeout - Server antwortet nicht')
+      } else if (typeof e === 'object' && e && 'message' in e && typeof (e as { message?: string }).message === 'string') {
         setError((e as { message: string }).message || 'Fehler beim Laden.')
       } else {
         setError('Fehler beim Laden.')

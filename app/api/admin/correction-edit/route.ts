@@ -13,7 +13,14 @@ export async function POST(req: NextRequest) {
       if (!field || !allowedFields.includes(field)) {
         return Response.json({ success: false, message: 'Ungültiges Wetterdaten-Feld' })
       }
-      db.prepare(`UPDATE weather SET ${field} = ? WHERE id = ?`).run(value, id)
+      // Sichere SQL-Query mit expliziter Feldauswahl
+      const queries = {
+        windSpeed: 'UPDATE weather SET windSpeed = ? WHERE id = ?',
+        windDir: 'UPDATE weather SET windDir = ? WHERE id = ?',
+        relHumidity: 'UPDATE weather SET relHumidity = ? WHERE id = ?',
+        temperature: 'UPDATE weather SET temperature = ? WHERE id = ?'
+      }
+      db.prepare(queries[field as keyof typeof queries]).run(value, id)
     } else {
       return Response.json({ success: false, message: 'Unbekannter Typ' })
     }

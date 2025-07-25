@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] - 2025-01-25
+### Added
+- **Performance-Optimierungen**: Umfassende Frontend- und Backend-Optimierungen für bessere Ladezeiten
+- **SQL-Level-Pagination**: Alle API-Endpunkte nutzen jetzt LIMIT/OFFSET statt JavaScript-slice()
+- **Request-Timeout-Schutz**: 10s Timeout mit AbortController für alle API-Requests
+- **React.memo-Optimierungen**: Memoized Components für teure Re-Renders
+- **CronOptimizer-Klasse**: Erweiterte Cron-Job-Verwaltung mit Überlappungsschutz und Retry-Mechanismus
+
+### Fixed
+- **Node-Cron "missed execution" Warnungen**: Alle synchronen I/O-Operationen zu asynchronen umgewandelt
+- **Frontend-Hänger**: PageSize von 1000+ auf 25-100 Datenpunkte reduziert
+- **Dashboard-Layout-Performance**: Von 4×50 auf 4×1 Datenpunkte für "Letzte Aktualisierung"
+- **API-Cache-Problem**: 50.000-Zeilen-Cache entfernt, direkte SQL-Pagination implementiert
+- **Blocking I/O in Cron-Jobs**: fs.copyFileSync/writeFileSync/readFileSync zu fs.promises.* umgewandelt
+
+### Changed
+- **Default PageSize**: Von 50 auf 25 Datenpunkte als Standard in useStationData
+- **Polling-Frequenz**: Von 60s auf 300s für Dashboard-Layout-Komponenten
+- **Cron-Job-Timeouts**: Alle Cron-Jobs haben jetzt 30-60s Timeout-Schutz
+- **API-Response-Format**: Konsistente Rückgabe mit totalPages und besserer Fehlerbehandlung
+
 ## [Unreleased] - 2024-06-XX
 ### Fixed
 - Memory-Leak bei EventSource-Handling in allen React-Hooks (useStationData, useWeatherData, useHealth) behoben: Singleton-Pattern, Listener-Cleanup, keine doppelten Instanzen mehr.

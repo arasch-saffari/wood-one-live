@@ -93,7 +93,9 @@ if (typeof db.pragma === 'function') {
       } catch (e: unknown) {
         const error = e as Error
         if (error.message && error.message.includes('duplicate column name')) {
-          console.log('Spalte datetime existiert bereits, Migration wird übersprungen.')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Spalte datetime existiert bereits, Migration wird übersprungen.')
+          }
         } else {
           throw e
         }
@@ -131,7 +133,9 @@ if (typeof db.pragma === 'function') {
       db.exec('INSERT INTO measurements (id, station, time, las, source_file, datetime, all_csv_fields) SELECT id, station, time, las, source_file, datetime, all_csv_fields FROM measurements_old')
       db.exec('DROP TABLE measurements_old')
       db.exec('COMMIT')
-      console.log('UNIQUE-Constraint auf (station, datetime) migriert.')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('UNIQUE-Constraint auf (station, datetime) migriert.')
+      }
     }
   } catch (e) {
     console.error('Fehler bei Migration UNIQUE-Constraint:', e)
@@ -298,27 +302,76 @@ export function insertMeasurement(station: string, time: string, las: number) {
   return stmt.run(station, time, las, datetime)
 }
 
-// Fast database queries with optimized indexing
-export function getMeasurementsForStation(station: string) {
-  // const limit = interval === "7d" ? 5000 : 1000;
-  // Zeit auf 10-Minuten-Block runden (z.B. 19:25:24 -> 19:20:00)
-  // SQLite: substr(m.time,1,2) gibt Stunde, substr(m.time,4,2) gibt Minute
-  // (CAST(substr(m.time,4,2) AS INTEGER) / 10) * 10 gibt den 10er-Block
-  // weather.time ist dann z.B. 19:20:00
+// Fast database queries with optimized indexing - with SQL-level pagination
+export function getMeasurementsForStation(
+  station: string, 
+  options: {
+    page?: number
+    pageSize?: number
+    sortBy?: 'time' | 'las' | 'datetime'
+    sortOrder?: 'asc' | 'desc'
+  } = {}
+) {
+  const { page = 1, pageSize = 1000, sortBy = 'datetime', sortOrder = 'desc' } = options
+  
+  // Validierung der Parameter
+  const validSortFields = ['time', 'las', 'datetime']
+  const validSortOrders = ['asc', 'desc']
+  const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'datetime'
+  const safeSortOrder = validSortOrders.includes(sortOrder) ? sortOrder.toUpperCase() : 'DESC'
+  
+  // Berechne LIMIT und OFFSET
+  const limit = Math.min(Math.max(1, pageSize), 10000) // Max 10k Zeilen pro Seite
+  const offset = Math.max(0, (page - 1) * limit)
+  
+  // Hauptquery mit Pagination
   const stmt = db.prepare(`
     SELECT m.time, m.las, m.datetime,
       w.windSpeed as ws, w.windDir as wd, w.relHumidity as rh, w.temperature as temp
     FROM measurements m
     LEFT JOIN weather w
-      ON w.station = m.station
+      ON w.station = 'global'
       AND w.time = (
         substr(m.time,1,3) || printf('%02d', (CAST(substr(m.time,4,2) AS INTEGER) / 10) * 10) || ':00'
       )
     WHERE m.station = ?
-    ORDER BY m.rowid DESC
+    ORDER BY m.${safeSortBy} ${safeSortOrder}
+    LIMIT ? OFFSET ?
   `)
-  const results = stmt.all(station) as Array<{ time: string; las: number; datetime: string; ws?: number; wd?: string; rh?: number; temp?: number }>;
-  return results.reverse(); // Chronologische Reihenfolge
+  
+  // Count-Query für totalCount
+  const countStmt = db.prepare(`
+    SELECT COUNT(*) as total
+    FROM measurements
+    WHERE station = ?
+  `)
+  
+  const results = stmt.all(station, limit, offset) as Array<{ 
+    time: string; 
+    las: number; 
+    datetime: string; 
+    ws?: number; 
+    wd?: string; 
+    rh?: number; 
+    temp?: number 
+  }>
+  
+  const countResult = countStmt.get(station) as { total: number }
+  const totalCount = countResult.total
+  
+  return {
+    data: results,
+    totalCount,
+    page,
+    pageSize: limit,
+    totalPages: Math.ceil(totalCount / limit)
+  }
+}
+
+// Legacy function for backward compatibility
+export function getMeasurementsForStationLegacy(station: string) {
+  const result = getMeasurementsForStation(station, { pageSize: 10000 })
+  return result.data.reverse() // Chronologische Reihenfolge wie vorher
 }
 
 // Liefert minütliche Mittelwerte für eine Station und einen Zeitraum
@@ -395,22 +448,48 @@ if (process.env.ENABLE_BACKGROUND_JOBS === 'true') {
     console.error('Fehler beim Starten des CSV-Watchers:', e)
   }
 
-  // Automatischer Wetter-Update-Cronjob (alle 10 Minuten)
+  // Automatischer Wetter-Update-Cronjob (alle 10 Minuten) - mit Timeout-Schutz
   cron.schedule('*/10 * * * *', async () => {
+    const startTime = Date.now()
+    const TIMEOUT_MS = 30000 // 30 Sekunden Timeout
+    
     try {
-      const now = new Date()
-      const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
-      const weather = await fetchWeather()
-      try {
-        const result = db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
-          .run('global', time, weather.windSpeed ?? 0, weather.windDir ?? '', weather.relHumidity ?? 0, weather.temperature ?? null)
-        console.log('[Wetter-Cron] Wetterdaten aktualisiert:', weather, 'Insert result:', result)
-      } catch (insertErr) {
-        console.error('[Wetter-Cron] Fehler beim Insert:', insertErr)
+      // Promise mit Timeout für bessere Kontrolle
+      const weatherPromise = Promise.race([
+        (async () => {
+          const now = new Date()
+          const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
+          const weather = await fetchWeather()
+          
+          const result = db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+            .run('global', time, weather.windSpeed ?? 0, weather.windDir ?? '', weather.relHumidity ?? 0, weather.temperature ?? null)
+          
+          return { weather, result }
+        })(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Weather update timeout')), TIMEOUT_MS)
+        )
+      ])
+      
+      const { weather, result } = await weatherPromise as { weather: any, result: any }
+      
+      const duration = Date.now() - startTime
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Wetter-Cron] Wetterdaten aktualisiert in ${duration}ms:`, weather, 'Insert result:', result)
       }
+      
+      // Warnung bei langsamen Updates
+      if (duration > 10000) {
+        console.warn(`[Wetter-Cron] Langsamer Wetter-Update: ${duration}ms`)
+      }
+      
     } catch (e) {
-      console.error('[Wetter-Cron] Fehler beim Wetter-Update:', e)
+      const duration = Date.now() - startTime
+      console.error(`[Wetter-Cron] Fehler beim Wetter-Update nach ${duration}ms:`, e)
     }
+  }, {
+    scheduled: true,
+    timezone: "Europe/Berlin"
   })
 }
 
@@ -425,68 +504,170 @@ export function addDatabaseBackupCron() {
   if (!fs.existsSync(backupDir)) {
     fs.mkdirSync(backupDir, { recursive: true })
   }
-  // Täglich um 3 Uhr morgens
-  cron.schedule('0 3 * * *', () => {
+  // Täglich um 3 Uhr morgens - ASYNC für non-blocking I/O mit Timeout-Schutz
+  cron.schedule('0 3 * * *', async () => {
+    const startTime = Date.now()
+    const TIMEOUT_MS = 60000 // 60 Sekunden Timeout für Backup
+    
     try {
-      const dbPath = path.join(process.cwd(), 'data.sqlite')
-      if (!fs.existsSync(dbPath)) return
-      const now = new Date()
-      const name = `backup-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}.sqlite`
-      const backupPath = path.join(backupDir, name)
-      fs.copyFileSync(dbPath, backupPath)
+      const backupPromise = Promise.race([
+        (async () => {
+          const dbPath = path.join(process.cwd(), 'data.sqlite')
+          if (!fs.existsSync(dbPath)) return null
+          
+          const now = new Date()
+          const name = `backup-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}.sqlite`
+          const backupPath = path.join(backupDir, name)
+          
+          // Non-blocking async copy
+          await fs.promises.copyFile(dbPath, backupPath)
+          return name
+        })(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Backup timeout')), TIMEOUT_MS)
+        )
+      ])
+      
+      const backupName = await backupPromise
+      const duration = Date.now() - startTime
+      
+      if (backupName && process.env.NODE_ENV === 'development') {
+        console.log(`[Backup] Backup erstellt in ${duration}ms: ${backupName}`)
+      }
+      
+      // Warnung bei langsamen Backups
+      if (duration > 30000) {
+        console.warn(`[Backup] Langsames Backup: ${duration}ms`)
+      }
+      
     } catch (e) {
-      console.error('[Backup] Fehler beim Erstellen des Backups:', e)
+      const duration = Date.now() - startTime
+      console.error(`[Backup] Fehler beim Erstellen des Backups nach ${duration}ms:`, e)
     }
+  }, {
+    scheduled: true,
+    timezone: "Europe/Berlin"
   })
 }
 
 addDatabaseBackupCron() 
 
-// Automatischer Health-Check alle 24h
-cron.schedule('0 3 * * *', () => {
+// Automatischer Health-Check alle 24h - ASYNC für non-blocking I/O mit Timeout-Schutz
+cron.schedule('0 3 * * *', async () => {
+  const startTime = Date.now()
+  const TIMEOUT_MS = 30000 // 30 Sekunden Timeout
+  
   try {
-    const missingCreatedAt = db.prepare('SELECT COUNT(*) as count FROM weather WHERE created_at IS NULL').get() as { count: number }
-    const nulls = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get() as { count: number }
-    const health = {
-      time: new Date().toISOString(),
-      missingCreatedAt: missingCreatedAt.count,
-      nulls: nulls.count,
-      notify: (missingCreatedAt.count > 0 || nulls.count > 0)
+    const healthPromise = Promise.race([
+      (async () => {
+        const missingCreatedAt = db.prepare('SELECT COUNT(*) as count FROM weather WHERE created_at IS NULL').get() as { count: number }
+        const nulls = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station IS NULL OR time IS NULL OR las IS NULL').get() as { count: number }
+        const health = {
+          time: new Date().toISOString(),
+          missingCreatedAt: missingCreatedAt.count,
+          nulls: nulls.count,
+          notify: (missingCreatedAt.count > 0 || nulls.count > 0)
+        }
+        if (health.notify) {
+          const file = path.join(process.cwd(), 'backups', 'last-health-problem.json')
+          // Non-blocking async write
+          await fs.promises.writeFile(file, JSON.stringify(health, null, 2))
+        }
+        return health
+      })(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Health check timeout')), TIMEOUT_MS)
+      )
+    ])
+    
+    const health = await healthPromise
+    const duration = Date.now() - startTime
+    
+    if (health.notify && process.env.NODE_ENV === 'development') {
+      console.log(`[HealthCheck] Health-Problem-Datei erstellt in ${duration}ms`)
     }
-    if (health.notify) {
-      const file = path.join(process.cwd(), 'backups', 'last-health-problem.json')
-      fs.writeFileSync(file, JSON.stringify(health, null, 2))
+    
+    // Warnung bei langsamen Health-Checks
+    if (duration > 15000) {
+      console.warn(`[HealthCheck] Langsamer Health-Check: ${duration}ms`)
     }
+    
   } catch (e) {
-    console.error('[HealthCheck] Fehler beim automatischen Health-Check:', e)
+    const duration = Date.now() - startTime
+    console.error(`[HealthCheck] Fehler beim automatischen Health-Check nach ${duration}ms:`, e)
   }
+}, {
+  scheduled: true,
+  timezone: "Europe/Berlin"
 })
 
-// Monitoring für wiederkehrende Fehler (täglich)
-cron.schedule('30 3 * * *', () => {
+// Monitoring für wiederkehrende Fehler (täglich) - ASYNC für non-blocking I/O mit Timeout-Schutz
+cron.schedule('30 3 * * *', async () => {
+  const startTime = Date.now()
+  const TIMEOUT_MS = 45000 // 45 Sekunden Timeout für Log-Analyse
+  
   try {
-    const logPath = path.join(process.cwd(), 'logs', 'system.log')
-    if (!fs.existsSync(logPath)) return
-    const lines = fs.readFileSync(logPath, 'utf-8').split('\n').filter(Boolean)
-    const importErrors = lines.filter((line: string) => line.includes('[ImportError]')).length
-    const dbErrors = lines.filter((line: string) => line.includes('[DatabaseError]')).length
-    const integrityProblems = lines.filter((line: string) => line.includes('Integritätsproblem')).length
-    const threshold = 5
-    if (importErrors > threshold || dbErrors > threshold || integrityProblems > 0) {
-      const file = path.join(process.cwd(), 'backups', 'last-health-problem.json')
-      const health = {
-        time: new Date().toISOString(),
-        importErrors,
-        dbErrors,
-        integrityProblems,
-        notify: true,
-        message: `Monitoring: ${importErrors} ImportError, ${dbErrors} DatabaseError, ${integrityProblems} Integritätsprobleme in den letzten 24h.`
-      }
-      fs.writeFileSync(file, JSON.stringify(health, null, 2))
+    const monitoringPromise = Promise.race([
+      (async () => {
+        const logPath = path.join(process.cwd(), 'logs', 'system.log')
+        
+        // Non-blocking async file existence check
+        try {
+          await fs.promises.access(logPath)
+        } catch {
+          return null // File doesn't exist
+        }
+        
+        // Non-blocking async file read
+        const logContent = await fs.promises.readFile(logPath, 'utf-8')
+        const lines = logContent.split('\n').filter(Boolean)
+        
+        const importErrors = lines.filter((line: string) => line.includes('[ImportError]')).length
+        const dbErrors = lines.filter((line: string) => line.includes('[DatabaseError]')).length
+        const integrityProblems = lines.filter((line: string) => line.includes('Integritätsproblem')).length
+        const threshold = 5
+        
+        if (importErrors > threshold || dbErrors > threshold || integrityProblems > 0) {
+          const file = path.join(process.cwd(), 'backups', 'last-health-problem.json')
+          const health = {
+            time: new Date().toISOString(),
+            importErrors,
+            dbErrors,
+            integrityProblems,
+            notify: true,
+            message: `Monitoring: ${importErrors} ImportError, ${dbErrors} DatabaseError, ${integrityProblems} Integritätsprobleme in den letzten 24h.`
+          }
+          
+          // Non-blocking async write
+          await fs.promises.writeFile(file, JSON.stringify(health, null, 2))
+          return health
+        }
+        return null
+      })(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Monitoring timeout')), TIMEOUT_MS)
+      )
+    ])
+    
+    const result = await monitoringPromise
+    const duration = Date.now() - startTime
+    
+    if (result && process.env.NODE_ENV === 'development') {
+      console.log(`[Monitoring] Health-Problem-Datei für Monitoring erstellt in ${duration}ms`)
     }
+    
+    // Warnung bei langsamer Log-Analyse
+    if (duration > 20000) {
+      console.warn(`[Monitoring] Langsame Log-Analyse: ${duration}ms`)
+    }
+    
   } catch (e) {
-    console.error('[Monitoring] Fehler bei der Fehleranalyse:', e)
+    const duration = Date.now() - startTime
+    console.error(`[Monitoring] Fehler bei der Fehleranalyse nach ${duration}ms:`, e)
   }
+}, {
+  scheduled: true,
+  timezone: "Europe/Berlin"
 })
 
 // Cronjob: Aktualisiere alle 5 Minuten die 15min-Aggregate

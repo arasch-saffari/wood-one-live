@@ -41,11 +41,11 @@ export default function DashboardLayout({
   useEffect(() => { setMounted(true) }, [])
   const pathname = usePathname()
 
-  // Letzte Aktualisierung: Hole Daten von allen Stationen und berechne das neueste Datum
-  const ortDataObj = useStationData("ort", "24h", 60000)
-  const heuballernDataObj = useStationData("heuballern", "24h", 60000)
-  const technoDataObj = useStationData("techno", "24h", 60000)
-  const bandDataObj = useStationData("band", "24h", 60000)
+  // Optimiert: Lade nur minimale Daten für letzte Aktualisierung (1 Datenpunkt pro Station)
+  const ortDataObj = useStationData("ort", "24h", 300000, 1, 1, "15min") // 5min Polling, nur 1 Datenpunkt
+  const heuballernDataObj = useStationData("heuballern", "24h", 300000, 1, 1, "15min")
+  const technoDataObj = useStationData("techno", "24h", 300000, 1, 1, "15min")
+  const bandDataObj = useStationData("band", "24h", 300000, 1, 1, "15min")
   const ortData = ortDataObj.data ?? []
   const heuballernData = heuballernDataObj.data ?? []
   const technoData = technoDataObj.data ?? []

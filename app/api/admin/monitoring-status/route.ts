@@ -13,7 +13,8 @@ export async function GET() {
       return NextResponse.json({ notify: true, message: `Systemintegritätsproblem: ${data.nulls || 0} fehlerhafte Messungen, ${data.missingCreatedAt || 0} Wetter ohne Timestamp.` })
     }
     return NextResponse.json({ notify: false })
-  } catch (e: any) {
+  } catch (e: unknown) {
+    console.error('Monitoring status error:', e)
     return NextResponse.json({ notify: false })
   }
 } 

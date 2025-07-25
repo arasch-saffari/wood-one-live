@@ -22,7 +22,8 @@ export async function GET() {
     const dbPath = path.join(process.cwd(), 'data.sqlite')
     const dbSize = fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0
     return NextResponse.json({ measurements, weather, csvCounts, dbSize })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Fehler bei den Statistiken.' }, { status: 500 })
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : 'Fehler bei den Statistiken.'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 } 

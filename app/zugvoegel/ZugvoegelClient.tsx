@@ -23,7 +23,7 @@ interface ZugvoegelClientProps {
 
 export default function ZugvoegelClient({ ortData: initialOrt, technoData: initialTechno, bandData: initialBand, config: initialConfig }: ZugvoegelClientProps) {
   const { config } = useConfig();
-  const pageSize = 1000;
+  const pageSize = 100; // Reduziert von 1000 auf 100 für bessere Performance
   const ortDataObj = useStationData("ort", "24h", 60000, 1, pageSize, "15min")
   const technoDataObj = useStationData("techno", "24h", 60000, 1, pageSize, "15min")
   const bandDataObj = useStationData("band", "24h", 60000, 1, pageSize, "15min")

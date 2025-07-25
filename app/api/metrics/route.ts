@@ -46,6 +46,33 @@ register.registerMetric(memoryRssGauge)
 register.registerMetric(cpuUserGauge)
 register.registerMetric(cpuSystemGauge)
 
+// Cleanup-Handler für Intervals
+let dbSizeInterval: NodeJS.Timeout | null = null
+let processMetricsInterval: NodeJS.Timeout | null = null
+
+// Cleanup-Funktion
+function cleanupMetricsIntervals() {
+  if (dbSizeInterval) {
+    clearInterval(dbSizeInterval)
+    dbSizeInterval = null
+  }
+  if (processMetricsInterval) {
+    clearInterval(processMetricsInterval)
+    processMetricsInterval = null
+  }
+}
+
+// Registriere Cleanup nur einmal
+declare global {
+  var metricsCleanupRegistered: boolean | undefined
+}
+
+if (!global.metricsCleanupRegistered) {
+  process.on('SIGINT', cleanupMetricsIntervals)
+  process.on('SIGTERM', cleanupMetricsIntervals)
+  global.metricsCleanupRegistered = true
+}
+
 // DB-Size regelmäßig aktualisieren
 function updateDbSize() {
   try {
@@ -54,19 +81,25 @@ function updateDbSize() {
       const size = fs.statSync(dbPath).size
       dbSizeGauge.set(size)
     }
-  } catch {}
+  } catch (error) {
+    console.error('Error updating DB size metric:', error)
+  }
 }
-setInterval(updateDbSize, 60_000)
+dbSizeInterval = setInterval(updateDbSize, 60_000)
 updateDbSize()
 
 function updateProcessMetrics() {
-  const mem = process.memoryUsage()
-  memoryRssGauge.set(mem.rss)
-  const cpu = process.cpuUsage()
-  cpuUserGauge.set(cpu.user / 1e6) // microseconds → seconds
-  cpuSystemGauge.set(cpu.system / 1e6)
+  try {
+    const mem = process.memoryUsage()
+    memoryRssGauge.set(mem.rss)
+    const cpu = process.cpuUsage()
+    cpuUserGauge.set(cpu.user / 1e6) // microseconds → seconds
+    cpuSystemGauge.set(cpu.system / 1e6)
+  } catch (error) {
+    console.error('Error updating process metrics:', error)
+  }
 }
-setInterval(updateProcessMetrics, 10000)
+processMetricsInterval = setInterval(updateProcessMetrics, 10000)
 updateProcessMetrics()
 
 export async function GET() {

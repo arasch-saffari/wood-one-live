@@ -964,7 +964,7 @@ export default function AdminDashboard() {
                               </TableCell>
                             </TableRow>
                           )}
-                          {cron?.crons?.map((c: any, i: number) => (
+                          {cron?.crons?.map((c: { name: string; schedule: string; lastRun?: string; nextRun?: string }, i: number) => (
                             <TableRow key={i}>
                               <TableCell>{c.name}</TableCell>
                               <TableCell>{c.schedule}</TableCell>
@@ -1275,8 +1275,9 @@ export default function AdminDashboard() {
                             const res = await fetch('/api/admin/rebuild-db', { method: 'POST' })
                             const data = await res.json()
                             toast({ title: data.success ? 'Datenbank neu aufgebaut' : 'Fehler beim Neuaufbau', description: data.message, variant: data.success ? 'default' : 'destructive' })
-                          } catch (e: any) {
-                            toast({ title: 'Fehler beim Neuaufbau', description: e?.message, variant: 'destructive' })
+                          } catch (e: unknown) {
+                            const errorMessage = e instanceof Error ? e.message : 'Fehler beim Neuaufbau'
+                            toast({ title: 'Fehler beim Neuaufbau', description: errorMessage, variant: 'destructive' })
                           } finally {
                             setLoading(false)
                           }
@@ -1295,8 +1296,9 @@ export default function AdminDashboard() {
                             const res = await fetch('/api/weather?station=global', { method: 'POST' })
                             const data = await res.json()
                             toast({ title: data.success ? 'Wetterdaten aktualisiert' : 'Fehler beim Wetter-Update', description: data.success ? JSON.stringify(data) : data.error, variant: data.success ? 'default' : 'destructive' })
-                          } catch (e: any) {
-                            toast({ title: 'Fehler beim Wetter-Update', description: e?.message, variant: 'destructive' })
+                          } catch (e: unknown) {
+                            const errorMessage = e instanceof Error ? e.message : 'Fehler beim Wetter-Update'
+                            toast({ title: 'Fehler beim Wetter-Update', description: errorMessage, variant: 'destructive' })
                           } finally {
                             setLoading(false)
                           }

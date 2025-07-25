@@ -15,7 +15,9 @@ try {
   db.pragma('temp_store = MEMORY')
   db.pragma('synchronous = NORMAL')
 } catch (e) {
-  console.warn('Warnung: Konnte SQLite-Pragmas nicht setzen:', e)
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('Warnung: Konnte SQLite-Pragmas nicht setzen:', e)
+  }
 }
 
 db.profiledQuery = function(sql: string, params?: unknown, thresholdMs: number = 200) {
@@ -25,6 +27,49 @@ db.profiledQuery = function(sql: string, params?: unknown, thresholdMs: number =
   const duration = Date.now() - start
   logQueryPerformance(sql, duration, thresholdMs)
   return result
+}
+
+// Database connection cleanup
+let isShuttingDown = false
+
+export function closeDatabase() {
+  if (isShuttingDown) return
+  isShuttingDown = true
+  
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔒 Schließe SQLite-Datenbankverbindung...')
+    }
+    db.close()
+  } catch (error) {
+    console.error('❌ Fehler beim Schließen der Datenbank:', error)
+  }
+}
+
+// Singleton-Pattern für Cleanup-Handler
+declare global {
+  var dbCleanupRegistered: boolean | undefined
+}
+
+if (typeof process !== 'undefined' && process.on && !global.dbCleanupRegistered) {
+  global.dbCleanupRegistered = true
+  
+  const shutdown = (signal: string) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📡 ${signal} empfangen, fahre System herunter...`)
+    }
+    closeDatabase()
+    process.exit(0)
+  }
+
+  process.on('SIGINT', () => shutdown('SIGINT'))
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
+  process.on('beforeExit', () => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 Prozess beendet sich, schließe Datenbank...')
+    }
+    closeDatabase()
+  })
 }
 
 export default db 

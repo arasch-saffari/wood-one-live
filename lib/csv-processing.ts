@@ -26,7 +26,12 @@ function readMeta(csvPath: string): { lastLine: number } {
 function writeMeta(csvPath: string, meta: { lastLine: number }) {
   const metaPath = getMetaPath(csvPath)
   fs.writeFileSync(metaPath, JSON.stringify(meta))
-  // Crash-sicher: fsync
+}
+
+function writeMetaSync(csvPath: string, meta: { lastLine: number }) {
+  const metaPath = getMetaPath(csvPath)
+  fs.writeFileSync(metaPath, JSON.stringify(meta))
+  // Crash-sicher: fsync nur bei explizitem Sync
   const fd = fs.openSync(metaPath, 'r')
   fs.fsyncSync(fd)
   fs.closeSync(fd)
@@ -48,6 +53,9 @@ export async function processCSVFile(station: string, csvPath: string) {
       const lastLine = meta.lastLine || 0
       let currentLine = 0
       let insertedCount = 0
+      let batchCount = 0
+      const BATCH_SIZE = 100 // Batch-Größe für Meta-Updates
+      
       try {
         db.exec('BEGIN TRANSACTION')
         await new Promise<void>((resolve, reject) => {
@@ -55,6 +63,7 @@ export async function processCSVFile(station: string, csvPath: string) {
             .pipe(csvParser({ separator: ';', skipLines: lastLine, mapHeaders: ({ header }) => header.trim() }))
             .on('data', (row) => {
               currentLine++
+              batchCount++
               // Zeilenzähler bezieht sich auf alle Zeilen inkl. Header
               const realLine = lastLine + currentLine
               try {
@@ -114,7 +123,9 @@ export async function processCSVFile(station: string, csvPath: string) {
                     break
                   } catch (err: unknown) {
                     if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'SQLITE_BUSY') {
-                      console.warn(`⚠️  DB locked (Insert measurements), Versuch ${attempt}/5, warte 200ms...`)
+                      if (process.env.NODE_ENV === 'development') {
+                        console.warn(`⚠️  DB locked (Insert measurements), Versuch ${attempt}/5, warte 200ms...`)
+                      }
                       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200)
                       continue
                     } else {
@@ -125,8 +136,12 @@ export async function processCSVFile(station: string, csvPath: string) {
                 if (insertResult && insertResult.changes > 0) {
                   insertedCount++
                 }
-                // Nach jeder Zeile Offset speichern
-                writeMeta(csvPath, { lastLine: realLine })
+                
+                // Batch-Offset-Persistenz: Nur alle BATCH_SIZE Zeilen speichern
+                if (batchCount >= BATCH_SIZE) {
+                  writeMeta(csvPath, { lastLine: realLine })
+                  batchCount = 0
+                }
               } catch (err) {
                 console.error(`❌ Fehler in Zeile ${lastLine + currentLine}:`, err)
               }
@@ -134,6 +149,10 @@ export async function processCSVFile(station: string, csvPath: string) {
             .on('end', () => {
                 try {
                   db.exec('COMMIT')
+                  // Finales Meta-Update mit fsync für Crash-Sicherheit
+                  if (currentLine > 0) {
+                    writeMetaSync(csvPath, { lastLine: lastLine + currentLine })
+                  }
                 } catch (e: unknown) {
                   const msg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e)
                   if (!msg.includes('no transaction is active')) {
@@ -165,13 +184,28 @@ export async function processCSVFile(station: string, csvPath: string) {
       }
       const durationSec = (Date.now() - startTime) / 1000
       importDuration.set(durationSec)
+      
       if (insertedCount > 0) {
         triggerDeltaUpdate()
+        
+        // Trigger 15-Min-Aggregation nach erfolgreichem Import
+        try {
+          const { update15MinAggregates } = await import('./db')
+          await update15MinAggregates()
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`📊 15-Min-Aggregation nach Import von ${insertedCount} Messwerten aktualisiert`)
+          }
+        } catch (aggError) {
+          console.error('❌ Fehler bei 15-Min-Aggregation nach Import:', aggError)
+        }
       }
+      
       return insertedCount
     } catch (e) {
       if (attempts < MAX_ATTEMPTS) {
-        console.log(`⚠️  Versuch ${attempts + 1}/${MAX_ATTEMPTS} fehlgeschlagen, wiederhole...`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`⚠️  Versuch ${attempts + 1}/${MAX_ATTEMPTS} fehlgeschlagen, wiederhole...`)
+        }
         continue
       } else {
         const msg = e instanceof Error ? e.message : String(e)
