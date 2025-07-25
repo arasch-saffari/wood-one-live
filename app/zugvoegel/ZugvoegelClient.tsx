@@ -6,21 +6,30 @@ import { Wind, AlertTriangle, Speaker, MapPin, Music, Volume2, Thermometer, Drop
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useStationData } from "@/hooks/useStationData"
 import { useConfig } from "@/hooks/useConfig"
-import { ChartPlayground } from '@/components/ChartPlayground'
+import ChartPlayground from '@/components/ChartPlayground'
+import type { StationDataPoint } from '@/hooks/useStationData';
 import { useWeatherData } from '@/hooks/useWeatherData'
 import { STATION_META } from '@/lib/stationMeta'
-import { cn } from '@/lib/utils'
 import { AllStationsTable } from "@/components/AllStationsTable"
 
-export default function ZugvoegelClient({ ortData: initialOrt, technoData: initialTechno, bandData: initialBand, config: initialConfig }) {
+type StationKey = "ort" | "techno" | "band" | "heuballern";
+
+interface ZugvoegelClientProps {
+  ortData: StationDataPoint[];
+  technoData: StationDataPoint[];
+  bandData: StationDataPoint[];
+  config?: Record<string, unknown> | null;
+}
+
+export default function ZugvoegelClient({ ortData: initialOrt, technoData: initialTechno, bandData: initialBand, config: initialConfig }: ZugvoegelClientProps) {
   const { config } = useConfig();
+  const pageSize = 1000;
   const ortDataObj = useStationData("ort", "24h", 60000, 1, pageSize, "15min")
   const technoDataObj = useStationData("techno", "24h", 60000, 1, pageSize, "15min")
   const bandDataObj = useStationData("band", "24h", 60000, 1, pageSize, "15min")
-  const heuballernDataObj = useStationData("heuballern", "24h", 60000, 1, pageSize, "15min")
-  const ortData = ortDataObj.data.length ? ortDataObj.data : initialOrt ?? []
-  const technoData = technoDataObj.data.length ? technoDataObj.data : initialTechno ?? []
-  const bandData = bandDataObj.data.length ? bandDataObj.data : initialBand ?? []
+  const ortData: StationDataPoint[] = ortDataObj.data.length ? ortDataObj.data : initialOrt ?? []
+  const technoData: StationDataPoint[] = technoDataObj.data.length ? technoDataObj.data : initialTechno ?? []
+  const bandData: StationDataPoint[] = bandDataObj.data.length ? bandDataObj.data : initialBand ?? []
   const { weather: latestWeather } = useWeatherData("global", "now", 60000)
   const [weatherLastUpdate, setWeatherLastUpdate] = useState<{ time: string|null } | null>(null)
   useEffect(() => {
@@ -32,15 +41,15 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
   const effectiveConfig = config || initialConfig
   if (!effectiveConfig) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
   const chartTimes = Array.from(new Set([
-    ...ortData.map(d => d.time),
-    ...bandData.map(d => d.time),
-    ...technoData.map(d => d.time),
+    ...ortData.map((d: StationDataPoint) => d.time),
+    ...bandData.map((d: StationDataPoint) => d.time),
+    ...technoData.map((d: StationDataPoint) => d.time),
   ])).sort();
-  const chartData = chartTimes.map(time => {
-    const ort = ortData.find((d) => d.time === time)
-    const techno = technoData.find((d) => d.time === time)
-    const band = bandData.find((d) => d.time === time)
-    const windVals = [ort, techno, band].map(d => d?.ws).filter((v): v is number => typeof v === 'number')
+  const chartData = chartTimes.map((time: string | undefined) => {
+    const ort = ortData.find((d: StationDataPoint) => d.time === time)
+    const techno = technoData.find((d: StationDataPoint) => d.time === time)
+    const band = bandData.find((d: StationDataPoint) => d.time === time)
+    const windVals = [ort, techno, band].map(d => d && typeof d.ws === 'number' ? d.ws : undefined).filter((v): v is number => typeof v === 'number')
     const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
     return {
       time,
@@ -51,21 +60,28 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
     }
   })
   // Helper: get latest las value by datetime desc
-  function getLatestLevel(data) {
-    if (!data || data.length === 0) return null;
-    const sorted = [...data].sort((a, b) => {
-      const da = a.datetime ? new Date(a.datetime.replace(' ', 'T')).getTime() : 0;
-      const db = b.datetime ? new Date(b.datetime.replace(' ', 'T')).getTime() : 0;
+  function getLatestLevel(data: { datetime?: string; las?: number }[]): number {
+    if (!data || data.length === 0) return 0;
+    return [...data].sort((a, b) => {
+      const da = new Date(a.datetime ?? '').getTime();
+      const db = new Date(b.datetime ?? '').getTime();
       return db - da;
-    });
-    return sorted[0]?.las ?? null;
+    })[0]?.las ?? 0;
   }
   const currentLevels = {
     ort: getLatestLevel(ortData),
     techno: getLatestLevel(technoData),
     band: getLatestLevel(bandData),
   }
-  const WIND_COLOR = effectiveConfig?.chartColors?.wind || "#06b6d4"
+  let WIND_COLOR = "#06b6d4";
+  if (effectiveConfig && typeof effectiveConfig.chartColors === 'object' && effectiveConfig.chartColors !== null) {
+    const colors = effectiveConfig.chartColors as Record<string, unknown>;
+    if (typeof colors.wind === 'string') {
+      WIND_COLOR = colors.wind;
+    } else if (typeof colors.windSpeed === 'string') {
+      WIND_COLOR = colors.windSpeed;
+    }
+  }
   const STATION_ICONS: Record<string, JSX.Element> = {
     "Ort": <MapPin className="w-6 h-6 text-emerald-500" />, 
     "Techno Floor": <Volume2 className="w-6 h-6 text-pink-500" />, 
@@ -209,47 +225,49 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
           </CardHeader>
           <CardContent className="pt-0 pb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {effectiveConfig && Object.entries(effectiveConfig.thresholdsByStationAndTime).filter(([station]) => ["ort","techno","band"].includes(station)).map(([station, blocks]) => {
-                let showBlocks: Array<any> = blocks as any[];
-                if (station === "ort" && Array.isArray(blocks) && blocks.length > 2) {
-                  showBlocks = blocks.slice(0, 2);
-                }
-                return (
-                  <Card key={station} className="rounded-xl bg-white/90 dark:bg-gray-900/70 border-0 shadow-md p-4">
-                    <CardHeader className="pb-2 flex flex-col items-center gap-2 text-center">
-                      <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300 w-full text-center">
-                        {station.charAt(0).toUpperCase() + station.slice(1)}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 pt-0">
-                      {showBlocks.map((block: any, i: number) => (
-                        <div
-                          key={i}
-                          className={
-                            `flex flex-col gap-1 p-2 rounded-lg mb-2 last:mb-0 transition-all ` +
-                            `hover:shadow-lg hover:ring-2 hover:ring-yellow-300/40 dark:hover:ring-yellow-500/30 `
-                          }
-                        >
-                          <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-1 text-center w-full">
-                            <Calendar className="w-4 h-4 text-blue-400" />
-                            <span>{block.from} - {block.to}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-2">
-                            <Badge className="bg-yellow-400/20 text-yellow-700 border-yellow-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-yellow-400/80 hover:text-yellow-900 hover:shadow-md justify-center">
-                              <AlertTriangle className="w-4 h-4" /> Warnung: ≥ {block.warning} dB
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-center gap-2">
-                            <Badge className="bg-red-400/20 text-red-700 border-red-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-red-400/80 hover:text-red-900 hover:shadow-md justify-center">
-                              <AlertTriangle className="w-4 h-4" /> Alarm: ≥ {block.alarm} dB
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                )
-              })}
+              {effectiveConfig && Object.entries(effectiveConfig.thresholdsByStationAndTime as Record<string, {from: string, to: string, warning: number, alarm: number}[]>)
+                 .filter(([station]) => ["ort","techno","band"].includes(station as StationKey))
+                 .map(([station, blocks]) => {
+                   let showBlocks = blocks;
+                   if (station === "ort" && Array.isArray(blocks) && blocks.length > 2) {
+                     showBlocks = showBlocks.slice(0, 2);
+                   }
+                   return (
+                     <Card key={station} className="rounded-xl bg-white/90 dark:bg-gray-900/70 border-0 shadow-md p-4">
+                       <CardHeader className="pb-2 flex flex-col items-center gap-2 text-center">
+                         <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300 w-full text-center">
+                           {station.charAt(0).toUpperCase() + station.slice(1)}
+                         </CardTitle>
+                       </CardHeader>
+                       <CardContent className="space-y-2 pt-0">
+                         {showBlocks.map((block, i) => (
+                           <div
+                             key={i}
+                             className={
+                               `flex flex-col gap-1 p-2 rounded-lg mb-2 last:mb-0 transition-all ` +
+                               `hover:shadow-lg hover:ring-2 hover:ring-yellow-300/40 dark:hover:ring-yellow-500/30 `
+                             }
+                           >
+                             <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-1 text-center w-full">
+                               <Calendar className="w-4 h-4 text-blue-400" />
+                               <span>{block.from} - {block.to}</span>
+                             </div>
+                             <div className="flex items-center justify-center gap-2">
+                               <Badge className="bg-yellow-400/20 text-yellow-700 border-yellow-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-yellow-400/80 hover:text-yellow-900 hover:shadow-md justify-center">
+                                 <AlertTriangle className="w-4 h-4" /> Warnung: ≥ {block.warning} dB
+                               </Badge>
+                             </div>
+                             <div className="flex items-center justify-center gap-2">
+                               <Badge className="bg-red-400/20 text-red-700 border-red-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-red-400/80 hover:text-red-900 hover:shadow-md justify-center">
+                                 <AlertTriangle className="w-4 h-4" /> Alarm: ≥ {block.alarm} dB
+                               </Badge>
+                             </div>
+                           </div>
+                         ))}
+                       </CardContent>
+                     </Card>
+                   )
+                 })}
             </div>
           </CardContent>
         </Card>

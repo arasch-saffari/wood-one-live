@@ -38,6 +38,7 @@ export function triggerDeltaUpdate() {
       try {
         sub.controller.enqueue(encoder.encode(data))
       } catch (error) {
+        sub.closed = true // Mark as closed to avoid repeated errors
         console.error('Fehler beim Senden von SSE-Update:', error)
       }
     }

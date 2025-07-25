@@ -247,7 +247,7 @@ export default function AllLocationsPage() {
   })
 
   // Compose current levels for KPI cards (latest by datetime DESC, not last array element!)
-  function getLatestLevel(data) {
+  function getLatestLevel(data: TableRowType[]): number | null {
     if (!data || data.length === 0) return null;
     const sorted = [...data].sort((a, b) => {
       const da = a.datetime ? new Date(a.datetime.replace(' ', 'T')).getTime() : 0;
@@ -256,15 +256,20 @@ export default function AllLocationsPage() {
     });
     return sorted[0]?.las ?? null;
   }
+  // Map all data to TableRowType (with .station) for correct typing
+  const mappedOrtData: TableRowType[] = ortData.map(row => ({ ...row, station: "Ort" }));
+  const mappedTechnoData: TableRowType[] = technoData.map(row => ({ ...row, station: "Techno Floor" }));
+  const mappedBandData: TableRowType[] = bandData.map(row => ({ ...row, station: "Band Bühne" }));
+  const mappedHeuballernData: TableRowType[] = heuballernData.map(row => ({ ...row, station: "Heuballern" }));
   const currentLevels = {
-    ort: getLatestLevel(ortData),
-    techno: getLatestLevel(technoData),
-    band: getLatestLevel(bandData),
-    heuballern: getLatestLevel(heuballernData),
+    ort: getLatestLevel(mappedOrtData),
+    techno: getLatestLevel(mappedTechnoData),
+    band: getLatestLevel(mappedBandData),
+    heuballern: getLatestLevel(mappedHeuballernData),
   };
 
   // Für jede Station aktuelle Zeit und Schwellenwerte bestimmen
-  const getThresholds = (station: StationKey, data: Array<{ datetime?: string }>): ThresholdBlock | undefined => {
+  const getThresholds = (station: StationKey, data: Array<{ datetime?: string }>) => {
     const now = data.length > 0 ? data[data.length - 1].datetime?.slice(11,16) : undefined
     if (!config || !now) return undefined;
     const blocks = config?.thresholdsByStationAndTime?.[station];
@@ -360,27 +365,47 @@ export default function AllLocationsPage() {
   });
 
   // Alarm-Zeilen für alle Stationen zusammenstellen
+  const ortAlarmRows = ortData.map(row => ({
+    ...row,
+    station: "Ort",
+    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time?.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/))?.[1]
+  })).filter(row => {
+    if (row.las === undefined || !config) return false;
+    const alarmThreshold = getAlarmThresholdForRow(row, config);
+    return alarmThreshold !== undefined && row.las >= alarmThreshold;
+  });
+  const heuballernAlarmRows = heuballernData.map(row => ({
+    ...row,
+    station: "Heuballern",
+    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time?.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/))?.[1]
+  })).filter(row => {
+    if (row.las === undefined || !config) return false;
+    const alarmThreshold = getAlarmThresholdForRow(row, config);
+    return alarmThreshold !== undefined && row.las >= alarmThreshold;
+  });
+  const technoAlarmRows = technoData.map(row => ({
+    ...row,
+    station: "Techno Floor",
+    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time?.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/))?.[1]
+  })).filter(row => {
+    if (row.las === undefined || !config) return false;
+    const alarmThreshold = getAlarmThresholdForRow(row, config);
+    return alarmThreshold !== undefined && row.las >= alarmThreshold;
+  });
+  const bandAlarmRows = bandData.map(row => ({
+    ...row,
+    station: "Band Bühne",
+    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time?.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/))?.[1]
+  })).filter(row => {
+    if (row.las === undefined || !config) return false;
+    const alarmThreshold = getAlarmThresholdForRow(row, config);
+    return alarmThreshold !== undefined && row.las >= alarmThreshold;
+  });
   const allAlarmRows = [
-    ...ortData.map(row => ({
-      ...row,
-      station: "Ort",
-      time: row.time?.match(/^\d{2}:\d{2}/) ? row.time?.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
-    })).filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
-    ...heuballernData.map(row => ({
-      ...row,
-      station: "Heuballern",
-      time: row.time?.match(/^\d{2}:\d{2}/) ? row.time?.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
-    })).filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
-    ...technoData.map(row => ({
-      ...row,
-      station: "Techno Floor",
-      time: row.time?.match(/^\d{2}:\d{2}/) ? row.time?.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
-    })).filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
-    ...bandData.map(row => ({
-      ...row,
-      station: "Band Bühne",
-      time: row.time?.match(/^\d{2}:\d{2}/) ? row.time?.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
-    })).filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
+    ...ortAlarmRows,
+    ...heuballernAlarmRows,
+    ...technoAlarmRows,
+    ...bandAlarmRows
   ];
 
   return (
@@ -420,11 +445,11 @@ export default function AllLocationsPage() {
                       <span className="text-lg font-bold text-gray-900 dark:text-white mb-1">{meta.name}</span>
                       <UITooltip>
                         <TooltipTrigger asChild>
-                          {getStatusBadge(level, location as StationKey, ortData)}
+                          {typeof level === "number" && !isNaN(level) ? getStatusBadge(level, location as StationKey, ortData) : <Badge className="bg-gray-300/20 text-gray-400 border-gray-300/30">keine daten</Badge>}
                         </TooltipTrigger>
                         <TooltipContent>Status: {typeof level === "number" && !isNaN(level) ? Math.round(level) : "keine daten"} dB</TooltipContent>
                       </UITooltip>
-                      <span className={`text-2xl font-bold mt-2 mb-1 ${getStatusColor(level, location as StationKey, ortData)}`}>{typeof level === "number" && !isNaN(level) ? Math.round(level) : "keine daten"} <span className="text-base font-normal text-gray-500">dB</span></span>
+                      <span className={`text-2xl font-bold mt-2 mb-1 ${typeof level === "number" && !isNaN(level) ? getStatusColor(level, location as StationKey, ortData) : "text-gray-400"}`}>{typeof level === "number" && !isNaN(level) ? Math.round(level) : "keine daten"} <span className="text-base font-normal text-gray-500">dB</span></span>
                       <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">Klicken für Details →</span>
                     </CardHeader>
                   </Card>
@@ -483,10 +508,13 @@ export default function AllLocationsPage() {
             ]}
             title={STATION_META.ort.name}
             icon={null}
-            thresholds={getThresholds('ort', ortData) ? [
-              { value: getThresholds('ort', ortData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
-              { value: getThresholds('ort', ortData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
-            ] : []}
+            thresholds={(() => {
+              const t = getThresholds('ort', mappedOrtData);
+              return t ? [
+                { value: t.warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+                { value: t.alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+              ] : [];
+            })()}
             granularity={undefined}
           />
           <ChartPlayground
@@ -499,10 +527,13 @@ export default function AllLocationsPage() {
             ]}
             title={STATION_META.heuballern.name}
             icon={null}
-            thresholds={getThresholds('heuballern', heuballernData) ? [
-              { value: getThresholds('heuballern', heuballernData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
-              { value: getThresholds('heuballern', heuballernData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
-            ] : []}
+            thresholds={(() => {
+              const t = getThresholds('heuballern', mappedHeuballernData);
+              return t ? [
+                { value: t.warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+                { value: t.alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+              ] : [];
+            })()}
             granularity={undefined}
           />
           <ChartPlayground
@@ -515,10 +546,13 @@ export default function AllLocationsPage() {
             ]}
             title={STATION_META.techno.name}
             icon={null}
-            thresholds={getThresholds('techno', technoData) ? [
-              { value: getThresholds('techno', technoData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
-              { value: getThresholds('techno', technoData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
-            ] : []}
+            thresholds={(() => {
+              const t = getThresholds('techno', mappedTechnoData);
+              return t ? [
+                { value: t.warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+                { value: t.alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+              ] : [];
+            })()}
             granularity={undefined}
           />
           <ChartPlayground
@@ -531,10 +565,13 @@ export default function AllLocationsPage() {
             ]}
             title={STATION_META.band.name}
             icon={null}
-            thresholds={getThresholds('band', bandData) ? [
-              { value: getThresholds('band', bandData).warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
-              { value: getThresholds('band', bandData).alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
-            ] : []}
+            thresholds={(() => {
+              const t = getThresholds('band', mappedBandData);
+              return t ? [
+                { value: t.warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+                { value: t.alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+              ] : [];
+            })()}
             granularity={undefined}
           />
         </div>
@@ -562,8 +599,7 @@ export default function AllLocationsPage() {
               if (match) time = match[1];
             }
             if (typeof window !== 'undefined') {
-              // eslint-disable-next-line no-console
-              console.log('[AllStationsTable-Mapping] Ort:', { origTime: row.time, origDatetime: row.datetime, mappedTime: time });
+              //
             }
             return {
               ...row,
@@ -580,8 +616,7 @@ export default function AllLocationsPage() {
               if (match) time = match[1];
             }
             if (typeof window !== 'undefined') {
-              // eslint-disable-next-line no-console
-              console.log('[AllStationsTable-Mapping] Heuballern:', { origTime: row.time, origDatetime: row.datetime, mappedTime: time });
+              //
             }
             return {
               ...row,
@@ -598,8 +633,7 @@ export default function AllLocationsPage() {
               if (match) time = match[1];
             }
             if (typeof window !== 'undefined') {
-              // eslint-disable-next-line no-console
-              console.log('[AllStationsTable-Mapping] Techno:', { origTime: row.time, origDatetime: row.datetime, mappedTime: time });
+              //
             }
             return {
               ...row,
@@ -616,8 +650,7 @@ export default function AllLocationsPage() {
               if (match) time = match[1];
             }
             if (typeof window !== 'undefined') {
-              // eslint-disable-next-line no-console
-              console.log('[AllStationsTable-Mapping] Band:', { origTime: row.time, origDatetime: row.datetime, mappedTime: time });
+              //
             }
             return {
               ...row,

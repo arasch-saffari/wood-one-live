@@ -1,6 +1,4 @@
-"use client"
-
-import React, { useState, useEffect, useMemo } from "react"
+import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Wind, AlertTriangle, Speaker, MapPin, Music, Volume2, Thermometer, Droplets, Calendar, Clock, Info } from "lucide-react"
@@ -12,7 +10,7 @@ import { useWeatherData } from '@/hooks/useWeatherData'
 import { STATION_META } from '@/lib/stationMeta'
 import { cn } from '@/lib/utils'
 import { AllStationsTable } from "@/components/AllStationsTable"
-import { getAlarmThresholdForRow, TableRowType } from "@/components/AllStationsTable";
+import { getAlarmThresholdForRow } from "@/components/AllStationsTable";
 
 function windDirectionText(dir: number | string | null | undefined): string {
   if (dir === null || dir === undefined) return '–';
@@ -37,9 +35,65 @@ function windDirectionText(dir: number | string | null | undefined): string {
   return directions[idx];
 }
 
+type TableRowType = {
+  datetime?: string;
+  time?: string;
+  las?: number;
+  ws?: number;
+  wd?: number | string;
+  rh?: number;
+  station: string;
+};
+type StationKey = "ort" | "techno" | "band" | "heuballern";
+
+type ThresholdBlock = {
+  from: string;
+  to: string;
+  warning: number;
+  alarm: number;
+  las: number;
+  laf: number;
+};
+type ChartColors = {
+  primary: string;
+  wind: string;
+  humidity: string;
+  temperature: string;
+  warning: string;
+  danger: string;
+  alarm: string;
+  reference: string;
+  gradients: Record<string, { from: string; to: string }>;
+};
+type ConfigType = {
+  warningThreshold: number;
+  alarmThreshold: number;
+  lasThreshold: number;
+  lafThreshold: number;
+  stations: StationKey[];
+  enableNotifications: boolean;
+  csvAutoProcess: boolean;
+  backupRetentionDays: number;
+  uiTheme: string;
+  calculationMode: string;
+  adminEmail: string;
+  weatherApiKey: string;
+  apiCacheDuration: number;
+  pollingIntervalSeconds: number;
+  chartLimit: number;
+  pageSize: number;
+  defaultInterval: string;
+  defaultGranularity: string;
+  allowedIntervals: string[];
+  allowedGranularities: string[];
+  chartColors: ChartColors;
+  thresholdsByStationAndTime: Record<StationKey, ThresholdBlock[]>;
+  chartVisibleLines: Record<string, string[]>;
+};
+
 export default function ZugvoegelDashboard() {
   // ALLE HOOKS GANZ OBEN!
-  const { config } = useConfig();
+  const { config } = useConfig() as { config: ConfigType | null };
   // Paging-States für jede Station
   const pageSize = 50;
   // Pagination state for AllStationsTable
@@ -53,8 +107,8 @@ export default function ZugvoegelDashboard() {
   const technoData = technoDataObj.data ?? [];
   const bandData = bandDataObj.data ?? [];
   const { weather: latestWeather } = useWeatherData("global", "now", 60000)
-  const [weatherLastUpdate, setWeatherLastUpdate] = useState<{ time: string|null } | null>(null)
-  useEffect(() => {
+  const [weatherLastUpdate, setWeatherLastUpdate] = React.useState<{ time: string|null } | null>(null)
+  React.useEffect(() => {
     fetch('/api/weather/last-update')
       .then(res => res.json())
       .then(data => setWeatherLastUpdate(data))
@@ -81,7 +135,7 @@ export default function ZugvoegelDashboard() {
   })
 
   // Helper: get latest las value by datetime desc
-  function getLatestLevel(data) {
+  function getLatestLevel(data: TableRowType[]): number | null {
     if (!data || data.length === 0) return null;
     const sorted = [...data].sort((a, b) => {
       const da = a.datetime ? new Date(a.datetime.replace(' ', 'T')).getTime() : 0;
@@ -90,45 +144,45 @@ export default function ZugvoegelDashboard() {
     });
     return sorted[0]?.las ?? null;
   }
+  // Map all data to TableRowType (with .station) for correct typing
+  const mappedOrtData: TableRowType[] = ortData.map(row => ({ ...row, station: "Ort" }));
+  const mappedTechnoData: TableRowType[] = technoData.map(row => ({ ...row, station: "Techno Floor" }));
+  const mappedBandData: TableRowType[] = bandData.map(row => ({ ...row, station: "Band Bühne" }));
   const currentLevels = {
-    ort: getLatestLevel(ortData),
-    techno: getLatestLevel(technoData),
-    band: getLatestLevel(bandData),
-  };
+    ort: getLatestLevel(mappedOrtData),
+    techno: getLatestLevel(mappedTechnoData),
+    band: getLatestLevel(mappedBandData),
+  }
 
-  const WIND_COLOR = config?.chartColors?.wind || "#06b6d4"
+  const WIND_COLOR = config && config.chartColors && config.chartColors.wind ? config.chartColors.wind : "#06b6d4";
 
   // Export-Funktionen entfernt (Export-Button entfällt)
 
   // Icon-Mapping für Stationen
-  const STATION_ICONS: Record<string, JSX.Element> = {
+  const STATION_ICONS: Record<string, React.ReactNode> = {
     "Ort": <MapPin className="w-6 h-6 text-emerald-500" />, 
     "Techno Floor": <Volume2 className="w-6 h-6 text-pink-500" />, 
     "Band Bühne": <Music className="w-6 h-6 text-purple-500" />
   }
 
-  const [showOnlyAlarms, setShowOnlyAlarms] = useState(false);
-
-  const mappedOrtData = ortData.map(row => ({
-    ...row,
-    station: "Ort",
-    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
-  }));
-  const mappedTechnoData = technoData.map(row => ({
-    ...row,
-    station: "Techno Floor",
-    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
-  }));
-  const mappedBandData = bandData.map(row => ({
-    ...row,
-    station: "Band Bühne",
-    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
-  }));
+  const [showOnlyAlarms, setShowOnlyAlarms] = React.useState(false);
 
   const allAlarmRows = [
-    ...mappedOrtData.filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
-    ...mappedTechnoData.filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
-    ...mappedBandData.filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
+    ...mappedOrtData.filter(row => {
+      if (row.las === undefined || !config) return false;
+      const alarmThreshold = getAlarmThresholdForRow(row, config);
+      return alarmThreshold !== undefined && row.las >= alarmThreshold;
+    }),
+    ...mappedTechnoData.filter(row => {
+      if (row.las === undefined || !config) return false;
+      const alarmThreshold = getAlarmThresholdForRow(row, config);
+      return alarmThreshold !== undefined && row.las >= alarmThreshold;
+    }),
+    ...mappedBandData.filter(row => {
+      if (row.las === undefined || !config) return false;
+      const alarmThreshold = getAlarmThresholdForRow(row, config);
+      return alarmThreshold !== undefined && row.las >= alarmThreshold;
+    }),
   ];
 
   if (!config) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
@@ -243,7 +297,7 @@ export default function ZugvoegelDashboard() {
             bandData={mappedBandData}
             alarmRows={showOnlyAlarms ? allAlarmRows : undefined}
             showOnlyAlarms={showOnlyAlarms}
-            config={config}
+            config={{ ...config!, stations: ["ort", "techno", "band", "heuballern"] }}
             granularity={"15min"}
             filterStation={"__all__"}
             page={tablePage}
@@ -259,10 +313,10 @@ export default function ZugvoegelDashboard() {
           </CardHeader>
           <CardContent className="pt-0 pb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {config && Object.entries(config.thresholdsByStationAndTime).filter(([station]) => ["ort","techno","band"].includes(station)).map(([station, blocks]) => {
-                let showBlocks: Array<any> = blocks as any[];
+              {config && Object.entries(config.thresholdsByStationAndTime).filter(([station]) => ["ort","techno","band"].includes(station as StationKey)).map(([station, blocks]) => {
+                let showBlocks: Array<{from: string, to: string, warning: number, alarm: number}> = blocks as Array<{from: string, to: string, warning: number, alarm: number}>;
                 if (station === "ort" && Array.isArray(blocks) && blocks.length > 2) {
-                  showBlocks = blocks.slice(0, 2);
+                  showBlocks = showBlocks.slice(0, 2);
                 }
                 return (
                   <Card key={station} className="rounded-xl bg-white/90 dark:bg-gray-900/70 border-0 shadow-md p-4">
@@ -272,7 +326,7 @@ export default function ZugvoegelDashboard() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 pt-0">
-                      {showBlocks.map((block: any, i: number) => (
+                      {showBlocks.map((block, i: number) => (
                         <div
                           key={i}
                           className={

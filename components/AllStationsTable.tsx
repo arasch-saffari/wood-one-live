@@ -232,9 +232,6 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
   // Sortier-Logik
   const [sortKey, setSortKey] = useState<string>('datetime')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [userSorted, setUserSorted] = useState(false);
-  // Reset sortKey/sortDir auf 'datetime'/'desc', wenn sich die Datenquelle ändert
-  // Sortiere nur, wenn der User explizit sortiert hat
   const tableColumns: DataTableColumn<TableRowType>[] = [
     { label: "Datum", key: "datetime", sortable: true, 
       sortFn: (a: TableRowType, b: TableRowType, dir: 'asc' | 'desc') => {
@@ -334,41 +331,15 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
   const effectivePage = page ?? 1
   const effectiveSetPage = setPage ?? (() => {})
   const effectivePageSize = pageSize ?? 25
-  const effectiveTotalCount = totalCount ?? filteredRows.length
-  const filteredAndSearchedRows = useMemo(() => {
-    let rows = filteredRows;
-    // Filter nach Datum
-    if (filterDate) {
-      rows = rows.filter(r => {
-        const d = parseDate(r.datetime);
-        return d && d.toLocaleDateString('de-DE') === filterDate;
-      });
-    }
-    // Filter nach Station (from prop or UI)
-    if (effectiveFilterStation && effectiveFilterStation !== "__all__") {
-      rows = rows.filter(r => r.station === effectiveFilterStation);
-    }
-    // Suche
-    if (search) {
-      const s = search.toLowerCase();
-      rows = rows.filter(r =>
-        Object.values(r).some(val =>
-          typeof val === 'string' && val.toLowerCase().includes(s)
-        )
-      );
-    }
-    return rows;
-  }, [filteredRows, filterDate, effectiveFilterStation, search]);
-  const effectiveTotalFiltered = filteredAndSearchedRows.length;
-  const pageCount = Math.ceil(effectiveTotalFiltered / effectivePageSize);
+  const pageCount = Math.ceil(filteredRows.length / effectivePageSize);
   const pagedRows = useMemo<TableRowType[]>(() => {
     // Wenn serverseitiges Paging: ortData, technoData, ... sind schon die aktuelle Seite
     if (page !== undefined && pageSize !== undefined && totalCount !== undefined) {
-      return filteredAndSearchedRows // filteredRows ist schon die aktuelle Seite
+      return filteredRows // filteredRows ist schon die aktuelle Seite
     }
     // Fallback: clientseitiges Paging
-    return filteredAndSearchedRows.slice((effectivePage-1)*effectivePageSize, effectivePage*effectivePageSize)
-  }, [filteredAndSearchedRows, effectivePage, effectivePageSize, page, pageSize, totalCount])
+    return filteredRows.slice((effectivePage-1)*effectivePageSize, effectivePage*effectivePageSize)
+  }, [filteredRows, effectivePage, effectivePageSize, page, pageSize, totalCount])
 
   // Notify parent of the top row (first visible row) whenever pagedRows changes
   React.useEffect(() => {
@@ -386,13 +357,8 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
   }, [onTopRowChange, pagedRows, filterStationProp]);
 
   function handleSort(key: string) {
-    setUserSorted(true);
-    if (sortKey === key) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDir(key === 'datetime' ? 'desc' : 'asc')
-    }
+    setSortKey(key)
+    setSortDir(key === 'datetime' ? 'desc' : 'asc')
   }
 
   function getSortIcon(key: string) {
