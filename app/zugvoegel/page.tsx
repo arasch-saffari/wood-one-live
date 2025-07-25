@@ -10,7 +10,7 @@ import ChartPlayground from '@/components/ChartPlayground'
 import { useWeatherData } from '@/hooks/useWeatherData'
 import { STATION_META } from '@/lib/stationMeta'
 import { cn } from '@/lib/utils'
-import { AllStationsTable } from "@/components/AllStationsTable"
+import { AllStationsTable, normalizeTableRow, TableRowType, StationKey, ConfigType } from '@/components/AllStationsTable';
 import { getAlarmThresholdForRow } from "@/components/AllStationsTable";
 
 function windDirectionText(dir: number | string | null | undefined): string {
@@ -35,62 +35,6 @@ function windDirectionText(dir: number | string | null | undefined): string {
   const idx = Math.round(((deg % 360) / 22.5));
   return directions[idx];
 }
-
-type TableRowType = {
-  datetime?: string;
-  time?: string;
-  las?: number;
-  ws?: number;
-  wd?: number | string;
-  rh?: number;
-  station: string;
-};
-type StationKey = "ort" | "techno" | "band" | "heuballern";
-
-type ThresholdBlock = {
-  from: string;
-  to: string;
-  warning: number;
-  alarm: number;
-  las: number;
-  laf: number;
-};
-type ChartColors = {
-  primary: string;
-  wind: string;
-  humidity: string;
-  temperature: string;
-  warning: string;
-  danger: string;
-  alarm: string;
-  reference: string;
-  gradients: Record<string, { from: string; to: string }>;
-};
-type ConfigType = {
-  warningThreshold: number;
-  alarmThreshold: number;
-  lasThreshold: number;
-  lafThreshold: number;
-  stations: StationKey[];
-  enableNotifications: boolean;
-  csvAutoProcess: boolean;
-  backupRetentionDays: number;
-  uiTheme: string;
-  calculationMode: string;
-  adminEmail: string;
-  weatherApiKey: string;
-  apiCacheDuration: number;
-  pollingIntervalSeconds: number;
-  chartLimit: number;
-  pageSize: number;
-  defaultInterval: string;
-  defaultGranularity: string;
-  allowedIntervals: string[];
-  allowedGranularities: string[];
-  chartColors: ChartColors;
-  thresholdsByStationAndTime: Record<StationKey, ThresholdBlock[]>;
-  chartVisibleLines: Record<string, string[]>;
-};
 
 export default function ZugvoegelDashboard() {
   // ALLE HOOKS GANZ OBEN!
@@ -292,10 +236,10 @@ export default function ZugvoegelDashboard() {
             </label>
           </div>
           <AllStationsTable
-            ortData={mappedOrtData}
+            ortData={mappedOrtData.map(row => normalizeTableRow(row, 'ort'))}
             heuballernData={[]}
-            technoData={mappedTechnoData}
-            bandData={mappedBandData}
+            technoData={mappedTechnoData.map(row => normalizeTableRow(row, 'techno'))}
+            bandData={mappedBandData.map(row => normalizeTableRow(row, 'band'))}
             alarmRows={showOnlyAlarms ? allAlarmRows : undefined}
             showOnlyAlarms={showOnlyAlarms}
             config={{ ...config!, stations: ["ort", "techno", "band", "heuballern"] }}

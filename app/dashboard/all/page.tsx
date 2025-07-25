@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Wind, AlertTriangle, Table as TableIcon, Activity, Droplets, Thermometer, Calendar, Database as DbIcon } from "lucide-react"
 import { cn } from '@/lib/utils'
-import { AllStationsTable } from "@/components/AllStationsTable"
+import { AllStationsTable, normalizeTableRow, TableRowType, StationKey, ConfigType, ThresholdBlock } from '@/components/AllStationsTable';
 import { useStationData } from "@/hooks/useStationData"
 import { GlobalLoader } from "@/components/GlobalLoader"
 import Link from "next/link"
@@ -22,7 +22,6 @@ import { useConfig } from "@/hooks/useConfig"
 import ChartPlayground from '@/components/ChartPlayground'
 import { useHealth } from "@/hooks/useHealth"
 import { useCsvWatcherStatus } from "@/hooks/useCsvWatcherStatus"
-import type { TableRowType } from '@/components/AllStationsTable';
 // ChartAxis inline definieren
 type ChartAxis = {
   id: string;
@@ -30,52 +29,6 @@ type ChartAxis = {
   domain: [number, number];
   label: string;
 }
-
-// Add these types at the top after imports:
-type StationKey = "ort" | "techno" | "band" | "heuballern";
-type ThresholdBlock = {
-  from: string;
-  to: string;
-  warning: number;
-  alarm: number;
-  las: number;
-  laf: number;
-};
-type ConfigType = {
-  warningThreshold: number;
-  alarmThreshold: number;
-  lasThreshold: number;
-  lafThreshold: number;
-  stations: StationKey[];
-  enableNotifications: boolean;
-  csvAutoProcess: boolean;
-  backupRetentionDays: number;
-  uiTheme: string;
-  calculationMode: string;
-  adminEmail: string;
-  weatherApiKey: string;
-  apiCacheDuration: number;
-  pollingIntervalSeconds: number;
-  chartLimit: number;
-  pageSize: number;
-  defaultInterval: string;
-  defaultGranularity: string;
-  allowedIntervals: string[];
-  allowedGranularities: string[];
-  chartColors: {
-    primary: string;
-    wind: string;
-    humidity: string;
-    temperature: string;
-    warning: string;
-    danger: string;
-    alarm: string;
-    reference: string;
-    gradients: Record<string, { from: string; to: string }>;
-  };
-  thresholdsByStationAndTime: Record<StationKey, ThresholdBlock[]>;
-  chartVisibleLines: Record<StationKey, string[]>;
-};
 
 // Hilfsfunktion: Windrichtung (Grad oder Abkürzung) in ausgeschriebenen Text umwandeln
 function windDirectionText(dir: number | string | null | undefined): string {
@@ -605,74 +558,10 @@ export default function AllLocationsPage() {
 
         {/* Tabellenansicht */}
         <AllStationsTable
-          ortData={ortData.map(row => {
-            let time = undefined;
-            if (row.time?.match(/^\d{2}:\d{2}/)) {
-              time = row.time?.slice(0, 5);
-            } else if (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)) {
-              const match = row.datetime?.match(/(?:T| )(\d{2}:\d{2})/);
-              if (match) time = match[1];
-            }
-            if (typeof window !== 'undefined') {
-              //
-            }
-            return {
-              ...row,
-              station: "Ort",
-              time
-            };
-          })}
-          heuballernData={heuballernData.map(row => {
-            let time = undefined;
-            if (row.time?.match(/^\d{2}:\d{2}/)) {
-              time = row.time?.slice(0, 5);
-            } else if (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)) {
-              const match = row.datetime?.match(/(?:T| )(\d{2}:\d{2})/);
-              if (match) time = match[1];
-            }
-            if (typeof window !== 'undefined') {
-              //
-            }
-            return {
-              ...row,
-              station: "Heuballern",
-              time
-            };
-          })}
-          technoData={technoData.map(row => {
-            let time = undefined;
-            if (row.time?.match(/^\d{2}:\d{2}/)) {
-              time = row.time?.slice(0, 5);
-            } else if (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)) {
-              const match = row.datetime?.match(/(?:T| )(\d{2}:\d{2})/);
-              if (match) time = match[1];
-            }
-            if (typeof window !== 'undefined') {
-              //
-            }
-            return {
-              ...row,
-              station: "Techno Floor",
-              time
-            };
-          })}
-          bandData={bandData.map(row => {
-            let time = undefined;
-            if (row.time?.match(/^\d{2}:\d{2}/)) {
-              time = row.time?.slice(0, 5);
-            } else if (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)) {
-              const match = row.datetime?.match(/(?:T| )(\d{2}:\d{2})/);
-              if (match) time = match[1];
-            }
-            if (typeof window !== 'undefined') {
-              //
-            }
-            return {
-              ...row,
-              station: "Band Bühne",
-              time
-            };
-          })}
+          ortData={ortData.map(row => normalizeTableRow(row, 'ort'))}
+          heuballernData={heuballernData.map(row => normalizeTableRow(row, 'heuballern'))}
+          technoData={technoData.map(row => normalizeTableRow(row, 'techno'))}
+          bandData={bandData.map(row => normalizeTableRow(row, 'band'))}
           config={config}
           granularity={"15min"}
           alarmRows={allAlarmRows}

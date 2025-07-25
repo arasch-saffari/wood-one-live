@@ -2,54 +2,9 @@
 
 import React, { useState, useEffect } from "react"
 import { StationDashboardPage } from "@/components/StationDashboardPage"
-import { AllStationsTable } from "@/components/AllStationsTable"
+import { AllStationsTable, normalizeTableRow, TableRowType, StationKey, ConfigType } from '@/components/AllStationsTable';
 import { useStationData } from "@/hooks/useStationData"
 import { useConfig } from "@/hooks/useConfig"
-
-type StationKey = "ort" | "techno" | "band" | "heuballern";
-type ThresholdBlock = {
-  from: string;
-  to: string;
-  warning: number;
-  alarm: number;
-  las: number;
-  laf: number;
-};
-type ConfigType = {
-  warningThreshold: number;
-  alarmThreshold: number;
-  lasThreshold: number;
-  lafThreshold: number;
-  stations: StationKey[];
-  enableNotifications: boolean;
-  csvAutoProcess: boolean;
-  backupRetentionDays: number;
-  uiTheme: string;
-  calculationMode: string;
-  adminEmail: string;
-  weatherApiKey: string;
-  apiCacheDuration: number;
-  pollingIntervalSeconds: number;
-  chartLimit: number;
-  pageSize: number;
-  defaultInterval: string;
-  defaultGranularity: string;
-  allowedIntervals: string[];
-  allowedGranularities: string[];
-  chartColors: {
-    primary: string;
-    wind: string;
-    humidity: string;
-    temperature: string;
-    warning: string;
-    danger: string;
-    alarm: string;
-    reference: string;
-    gradients: Record<string, { from: string; to: string }>;
-  };
-  thresholdsByStationAndTime: Record<StationKey, ThresholdBlock[]>;
-  chartVisibleLines: Record<StationKey, string[]>;
-};
 
 export default function HeuballernPage() {
   const [page, setPage] = useState(1)
@@ -103,11 +58,7 @@ export default function HeuballernPage() {
       <StationDashboardPage station="heuballern" />
       <AllStationsTable
         ortData={[]}
-        heuballernData={(showOnlyAlarms ? [] : heuballernData).map(row => ({
-          ...row,
-          station: "Heuballern",
-          time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-        }))}
+        heuballernData={(showOnlyAlarms ? [] : heuballernData).map(row => normalizeTableRow(row, 'heuballern'))}
         technoData={[]}
         bandData={[]}
         config={config as ConfigType}
@@ -116,11 +67,7 @@ export default function HeuballernPage() {
         setPage={showOnlyAlarms ? setAlarmPage : setPage}
         pageSize={pageSize}
         totalCount={showOnlyAlarms ? alarmTotal : heuballernDataObj.totalCount}
-        alarmRows={showOnlyAlarms ? alarmRows.map(row => ({
-          ...row,
-          station: "heuballern",
-          time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-        })) : undefined}
+        alarmRows={showOnlyAlarms ? alarmRows.map(row => normalizeTableRow(row, 'heuballern')) : undefined}
         showOnlyAlarms={showOnlyAlarms}
         onAlarmToggle={handleAlarmToggle}
         sortBy={sortBy}

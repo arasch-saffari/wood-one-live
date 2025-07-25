@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { STATION_META } from "@/lib/stationMeta"
 // Typen lokal definieren, statt aus page.tsx zu importieren
-type StationKey = "ort" | "techno" | "band" | "heuballern";
-type ThresholdBlock = {
+export type StationKey = "ort" | "techno" | "band" | "heuballern";
+export type ThresholdBlock = {
   from: string;
   to: string;
   warning: number;
@@ -20,7 +20,7 @@ type ThresholdBlock = {
   las: number;
   laf: number;
 };
-type ConfigType = {
+export type ConfigType = {
   warningThreshold: number;
   alarmThreshold: number;
   lasThreshold: number;
@@ -89,26 +89,30 @@ export type TableRowType = {
   station: string;
 }
 
-type AllStationsTableProps = {
-  ortData: TableRowType[];
-  heuballernData: TableRowType[];
-  technoData: TableRowType[];
-  bandData: TableRowType[];
-  config: Record<string, unknown>;
-  granularity?: string;
-  page?: number;
-  setPage?: (page: number) => void;
-  pageSize?: number;
-  totalCount?: number;
-  alarmRows?: TableRowType[];
-  showOnlyAlarms?: boolean;
-  onAlarmToggle?: (val: boolean) => void;
-  onTopRowChange?: (row: TableRowType | null) => void;
-  filterStation?: string;
-  // Neue Props für Sortierung
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  onSortChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
+export function normalizeTableRow(row: any, station: StationKey): TableRowType {
+  // time: bevorzugt row.time (falls HH:MM), sonst aus row.datetime extrahieren
+  let time: string | undefined = undefined;
+  if (typeof row.time === 'string' && /^\d{2}:\d{2}/.test(row.time)) {
+    time = row.time.slice(0, 5);
+  } else if (typeof row.datetime === 'string') {
+    const match = row.datetime.match(/(?:T| )(\d{2}:\d{2})/);
+    if (match) time = match[1];
+  }
+  // station: immer normalisiert
+  let stationLabel: string = station;
+  if (station === 'techno') stationLabel = 'Techno Floor';
+  if (station === 'band') stationLabel = 'Band Bühne';
+  if (station === 'heuballern') stationLabel = 'Heuballern';
+  if (station === 'ort') stationLabel = 'Ort';
+  return {
+    datetime: row.datetime,
+    time,
+    las: typeof row.las === 'number' ? row.las : undefined,
+    ws: typeof row.ws === 'number' ? row.ws : undefined,
+    wd: row.wd,
+    rh: typeof row.rh === 'number' ? row.rh : undefined,
+    station: stationLabel,
+  };
 }
 
 // Hilfsfunktion: robustes Datum-Parsing für verschiedene Formate

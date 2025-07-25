@@ -2,54 +2,9 @@
 
 import React, { useState, useEffect } from "react"
 import { StationDashboardPage } from "@/components/StationDashboardPage"
-import { AllStationsTable } from "@/components/AllStationsTable"
+import { AllStationsTable, normalizeTableRow, TableRowType, StationKey, ConfigType } from '@/components/AllStationsTable';
 import { useStationData } from "@/hooks/useStationData"
 import { useConfig } from "@/hooks/useConfig"
-
-type StationKey = "ort" | "techno" | "band" | "heuballern";
-type ThresholdBlock = {
-  from: string;
-  to: string;
-  warning: number;
-  alarm: number;
-  las: number;
-  laf: number;
-};
-type ConfigType = {
-  warningThreshold: number;
-  alarmThreshold: number;
-  lasThreshold: number;
-  lafThreshold: number;
-  stations: StationKey[];
-  enableNotifications: boolean;
-  csvAutoProcess: boolean;
-  backupRetentionDays: number;
-  uiTheme: string;
-  calculationMode: string;
-  adminEmail: string;
-  weatherApiKey: string;
-  apiCacheDuration: number;
-  pollingIntervalSeconds: number;
-  chartLimit: number;
-  pageSize: number;
-  defaultInterval: string;
-  defaultGranularity: string;
-  allowedIntervals: string[];
-  allowedGranularities: string[];
-  chartColors: {
-    primary: string;
-    wind: string;
-    humidity: string;
-    temperature: string;
-    warning: string;
-    danger: string;
-    alarm: string;
-    reference: string;
-    gradients: Record<string, { from: string; to: string }>;
-  };
-  thresholdsByStationAndTime: Record<StationKey, ThresholdBlock[]>;
-  chartVisibleLines: Record<StationKey, string[]>;
-};
 
 export default function BandPage() {
   const [page, setPage] = useState(1)
@@ -105,22 +60,14 @@ export default function BandPage() {
         ortData={[]}
         heuballernData={[]}
         technoData={[]}
-        bandData={(showOnlyAlarms ? [] : bandData).map(row => ({
-          ...row,
-          station: "Band Bühne",
-          time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-        }))}
+        bandData={(showOnlyAlarms ? [] : bandData).map(row => normalizeTableRow(row, 'band'))}
         config={config as ConfigType}
         granularity={"15min"}
         page={showOnlyAlarms ? alarmPage : page}
         setPage={showOnlyAlarms ? setAlarmPage : setPage}
         pageSize={pageSize}
         totalCount={showOnlyAlarms ? alarmTotal : bandDataObj.totalCount}
-        alarmRows={showOnlyAlarms ? alarmRows.map(row => ({
-          ...row,
-          station: "band",
-          time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-        })) : undefined}
+        alarmRows={showOnlyAlarms ? alarmRows.map(row => normalizeTableRow(row, 'band')) : undefined}
         showOnlyAlarms={showOnlyAlarms}
         onAlarmToggle={handleAlarmToggle}
         sortBy={sortBy}

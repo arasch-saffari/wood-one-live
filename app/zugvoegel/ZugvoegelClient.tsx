@@ -10,14 +10,12 @@ import ChartPlayground from '@/components/ChartPlayground'
 import type { StationDataPoint } from '@/hooks/useStationData';
 import { useWeatherData } from '@/hooks/useWeatherData'
 import { STATION_META } from '@/lib/stationMeta'
-import { AllStationsTable } from "@/components/AllStationsTable"
-
-type StationKey = "ort" | "techno" | "band" | "heuballern";
+import { AllStationsTable, normalizeTableRow, TableRowType, StationKey, ConfigType, ThresholdBlock } from '@/components/AllStationsTable';
 
 interface ZugvoegelClientProps {
-  ortData: StationDataPoint[];
-  technoData: StationDataPoint[];
-  bandData: StationDataPoint[];
+  ortData: any[];
+  technoData: any[];
+  bandData: any[];
   config?: Record<string, unknown> | null;
 }
 
@@ -27,9 +25,9 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
   const ortDataObj = useStationData("ort", "24h", 60000, 1, pageSize, "15min")
   const technoDataObj = useStationData("techno", "24h", 60000, 1, pageSize, "15min")
   const bandDataObj = useStationData("band", "24h", 60000, 1, pageSize, "15min")
-  const ortData: StationDataPoint[] = ortDataObj.data.length ? ortDataObj.data : initialOrt ?? []
-  const technoData: StationDataPoint[] = technoDataObj.data.length ? technoDataObj.data : initialTechno ?? []
-  const bandData: StationDataPoint[] = bandDataObj.data.length ? bandDataObj.data : initialBand ?? []
+  const ortData: TableRowType[] = ortDataObj.data.length ? ortDataObj.data : (initialOrt[0]?.station ? initialOrt : initialOrt.map(row => normalizeTableRow(row, 'ort')));
+  const technoData: TableRowType[] = technoDataObj.data.length ? technoDataObj.data : (initialTechno[0]?.station ? initialTechno : initialTechno.map(row => normalizeTableRow(row, 'techno')));
+  const bandData: TableRowType[] = bandDataObj.data.length ? bandDataObj.data : (initialBand[0]?.station ? initialBand : initialBand.map(row => normalizeTableRow(row, 'band')));
   const { weather: latestWeather } = useWeatherData("global", "now", 60000)
   const [weatherLastUpdate, setWeatherLastUpdate] = useState<{ time: string|null } | null>(null)
   useEffect(() => {
@@ -41,14 +39,14 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
   const effectiveConfig = config || initialConfig
   if (!effectiveConfig) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
   const chartTimes = Array.from(new Set([
-    ...ortData.map((d: StationDataPoint) => d.time),
-    ...bandData.map((d: StationDataPoint) => d.time),
-    ...technoData.map((d: StationDataPoint) => d.time),
+    ...ortData.map((d: TableRowType) => d.time),
+    ...bandData.map((d: TableRowType) => d.time),
+    ...technoData.map((d: TableRowType) => d.time),
   ])).sort();
   const chartData = chartTimes.map((time: string | undefined) => {
-    const ort = ortData.find((d: StationDataPoint) => d.time === time)
-    const techno = technoData.find((d: StationDataPoint) => d.time === time)
-    const band = bandData.find((d: StationDataPoint) => d.time === time)
+    const ort = ortData.find((d: TableRowType) => d.time === time)
+    const techno = technoData.find((d: TableRowType) => d.time === time)
+    const band = bandData.find((d: TableRowType) => d.time === time)
     const windVals = [ort, techno, band].map(d => d && typeof d.ws === 'number' ? d.ws : undefined).filter((v): v is number => typeof v === 'number')
     const windSpeed = windVals.length > 0 ? (windVals.reduce((a, b) => a + b, 0) / windVals.length) : undefined
     return {
@@ -199,21 +197,9 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
         </div>
         {/* Tabellenansicht */}
         <AllStationsTable 
-          ortData={ortData.map(row => ({
-            ...row,
-            station: "Ort",
-            time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-          }))}
-          technoData={technoData.map(row => ({
-            ...row,
-            station: "Techno Floor",
-            time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-          }))}
-          bandData={bandData.map(row => ({
-            ...row,
-            station: "Band Bühne",
-            time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-          }))}
+          ortData={ortData.map(row => normalizeTableRow(row, 'ort'))}
+          technoData={technoData.map(row => normalizeTableRow(row, 'techno'))}
+          bandData={bandData.map(row => normalizeTableRow(row, 'band'))}
           heuballernData={[]}
           config={effectiveConfig}
         />

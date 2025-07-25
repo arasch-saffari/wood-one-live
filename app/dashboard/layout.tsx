@@ -104,7 +104,7 @@ export default function DashboardLayout({
               <div className="flex h-24 items-center justify-between px-8">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Speaker className="w-5 h-5 text-white" />
+                    <Speaker className="w-5 h-5 text-white" suppressHydrationWarning={true} />
                   </div>
                   <span className="text-lg font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
                     Wood-One Live
@@ -190,7 +190,7 @@ export default function DashboardLayout({
           <div className="flex h-24 items-center px-6">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-                <Speaker className="w-5 h-5 text-white" />
+                <Speaker className="w-5 h-5 text-white" suppressHydrationWarning={true} />
               </div>
               {sidebarOpen && (
                 <motion.div
@@ -259,7 +259,7 @@ export default function DashboardLayout({
             </div>
             <div className="mt-10 mb-2 flex flex-col items-center gap-3">
               <a href="/admin" className="w-full mt-2 px-3 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm shadow-md hover:from-violet-700 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 border border-violet-700 dark:border-violet-400">
-                <Settings className="w-4 h-4 mr-2 flex-shrink-0" />
+                <Settings className="w-4 h-4 mr-2 flex-shrink-0" suppressHydrationWarning={true} />
                 <span className="flex-1 text-left">Admin-Bereich</span>
               </a>
               <TooltipProvider>
@@ -272,7 +272,7 @@ export default function DashboardLayout({
                     >
                       {mounted && theme === "dark"
                         ? <Sun className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                        : <Moon className="w-4 h-4 text-blue-500 flex-shrink-0" />}
+                        : <Moon className="w-4 h-4 text-blue-500 flex-shrink-0" suppressHydrationWarning={true} />}
                       <span className="flex-1 text-left">{mounted && theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
                     </Button>
                   </TooltipTrigger>
@@ -298,7 +298,7 @@ export default function DashboardLayout({
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/50 rounded-xl hidden lg:flex transition-all duration-200"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5" suppressHydrationWarning={true} />
             </Button>
             {/* Mobile Menu Toggle */}
             <Button
@@ -307,7 +307,7 @@ export default function DashboardLayout({
               onClick={() => setMobileMenuOpen(true)}
               className="p-3 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/50 rounded-xl lg:hidden transition-all duration-200"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5" suppressHydrationWarning={true} />
             </Button>
             {/* Titel und Beschreibung */}
             <div className="flex flex-col">
