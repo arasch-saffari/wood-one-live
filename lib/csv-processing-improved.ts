@@ -360,7 +360,7 @@ export class CSVProcessor {
           const realLine = lastLine + currentLine;
 
           try {
-            const validation = this.validateAndNormalizeRow(row, station, fileName);
+            const validation = CSVProcessor.validateAndNormalizeRow(row, station, fileName);
             
             if (!validation.isValid) {
               logger.debug({
@@ -419,8 +419,8 @@ export class CSVProcessor {
             }
 
             // Batch metadata updates for performance
-            if (batchCount >= this.BATCH_SIZE) {
-              this.writeMetadata(csvPath, { 
+            if (batchCount >= CSVProcessor.BATCH_SIZE) {
+              CSVProcessor.writeMetadata(csvPath, { 
                 lastLine: realLine,
                 lastProcessed: TimeUtils.nowUtc()
               });
@@ -442,7 +442,7 @@ export class CSVProcessor {
           try {
             // Final metadata update with fsync for crash safety
             if (currentLine > 0) {
-              this.writeMetadataSync(csvPath, {
+              CSVProcessor.writeMetadataSync(csvPath, {
                 lastLine: lastLine + currentLine,
                 lastProcessed: TimeUtils.nowUtc()
               });

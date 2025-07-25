@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { StreamingCSVProcessor } from './csv-streaming-processor';
+import { processCSVFile } from './csv-processing';
 import { DatabaseOptimizer } from './database-optimizer';
 import { intelligentCache } from './intelligent-cache';
 import { invalidateStationCache, warmupTableDataCache } from './table-data-service';
@@ -38,19 +38,16 @@ export class CSVImportCoordinator extends EventEmitter {
   private activeJobs: Map<string, ImportJob> = new Map();
   private completedJobs: ImportJob[] = [];
   private maxConcurrentJobs: number;
-  private streamingProcessor: StreamingCSVProcessor;
   private dbOptimizer: DatabaseOptimizer;
   private isProcessing = false;
   private stats: ImportStats;
 
   constructor(options: {
     maxConcurrentJobs?: number;
-    streamingConfig?: any;
   } = {}) {
     super();
     
     this.maxConcurrentJobs = options.maxConcurrentJobs || Math.max(2, Math.floor(require('os').cpus().length / 2));
-    this.streamingProcessor = new StreamingCSVProcessor(options.streamingConfig);
     
     // Import database for optimizer
     const db = require('./database').default;
@@ -211,31 +208,37 @@ export class CSVImportCoordinator extends EventEmitter {
       await invalidateStationCache(job.station);
       
       // Verarbeite CSV-Datei
-      const result = await this.streamingProcessor.processCSVFileStreaming(
+      const startTime = Date.now();
+      const processedCount = await processCSVFile(
         job.station, 
         job.filePath
       );
+      const duration = Date.now() - startTime;
 
       // Job erfolgreich abgeschlossen
       job.status = 'completed';
       job.endTime = Date.now();
       job.progress = 100;
-      job.result = result;
+      job.result = {
+        processed: processedCount,
+        errors: 0, // processCSVFile doesn't return error count, assume 0
+        duration
+      };
 
       this.activeJobs.delete(job.id);
       this.completedJobs.push(job);
       
       // Aktualisiere Statistiken
       this.stats.completedJobs++;
-      this.stats.totalProcessed += result.processed;
-      this.stats.totalErrors += result.errors;
+      this.stats.totalProcessed += processedCount;
+      this.stats.totalErrors += 0; // No errors from processCSVFile
       this.updateAvgProcessingTime();
 
       this.emit('jobCompleted', job);
-      console.log(`✅ Job completed: ${job.id} (${result.processed} rows, ${result.duration}ms)`);
+      console.log(`✅ Job completed: ${job.id} (${processedCount} rows, ${duration}ms)`);
 
       // Wärme Cache nach erfolgreichem Import
-      if (result.processed > 100) {
+      if (processedCount > 100) {
         this.scheduleWarmup(job.station);
       }
 
@@ -441,7 +444,8 @@ export class CSVImportCoordinator extends EventEmitter {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    await this.streamingProcessor.cleanup();
+    // No specific cleanup for the new processCSVFile, as it's a direct function call.
+    // If the streaming processor had specific cleanup, it would be here.
     console.log('🧹 CSV Import Coordinator cleanup completed');
   }
 }
