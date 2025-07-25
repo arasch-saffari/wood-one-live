@@ -81,7 +81,18 @@ export interface Config {
 }
 
 function ThresholdsAuditTable() {
-  const [rows, setRows] = useState<any[]>([])
+  const [rows, setRows] = useState<Array<{
+    id: number
+    station: string
+    from_time: string
+    to_time: string
+    old_warning?: number
+    old_alarm?: number
+    new_warning?: number
+    new_alarm?: number
+    changed_at: string
+    changed_by?: string
+  }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [station, setStation] = useState<string>('')
@@ -177,9 +188,9 @@ function ThresholdsAuditTable() {
           <label className="block text-xs font-semibold mb-1">Suche</label>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Zeitblock, Wert..." className="border rounded px-2 py-1 text-xs w-full" />
         </div>
-        <button onClick={fetchAudit} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-1 rounded text-xs font-semibold">Filtern</button>
-        <button onClick={exportCSV} className="ml-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-3 py-1 rounded text-xs font-semibold">Export CSV</button>
-        <button onClick={exportJSON} className="ml-2 bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-1 rounded text-xs font-semibold">Export JSON</button>
+        <button onClick={fetchAudit} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-1 rounded text-xs font-semibold" aria-label="Audit-Daten filtern">Filtern</button>
+        <button onClick={exportCSV} className="ml-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-3 py-1 rounded text-xs font-semibold" aria-label="Audit-Daten als CSV exportieren">Export CSV</button>
+        <button onClick={exportJSON} className="ml-2 bg-gradient-to-r from-gray-500 to-gray-700 text-white px-3 py-1 rounded text-xs font-semibold" aria-label="Audit-Daten als JSON exportieren">Export JSON</button>
       </div>
       {/* ... bestehende Tabelle ... */}
       {/* ... existing code ... */}

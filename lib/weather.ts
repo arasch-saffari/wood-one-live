@@ -58,6 +58,7 @@ export async function addInitialWeather() {
       if (typeof live.relHumidity === 'number') relHumidity = live.relHumidity
       if (typeof live.temperature === 'number') temperature = live.temperature
     } catch (e) {
+      console.error('[Weather] Fehler beim Laden der Live-Wetterdaten:', e)
     }
     db.prepare('INSERT OR IGNORE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
       .run('global', time, windSpeed, windDir, relHumidity, temperature, createdAt)
@@ -80,6 +81,7 @@ export function addWeatherCron() {
       const stmt = db.prepare('INSERT OR REPLACE INTO weather (station, time, windSpeed, windDir, relHumidity, temperature, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
       const result = stmt.run('global', blockTime, windSpeed ?? 0, windDir ?? '', relHumidity ?? 0, temperature ?? null)
     } catch (e) {
+      console.error('[Weather Cron] Fehler beim Wetter-Update:', e)
     }
   }, 10 * 60 * 1000) // alle 10 Minuten
 } 

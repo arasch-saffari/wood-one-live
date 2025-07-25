@@ -66,7 +66,7 @@ export function getAllStationsTableData(options: TableDataOptions = {}): TableDa
   `
 
   let whereConditions: string[] = []
-  let queryParams: any[] = []
+  let queryParams: (string | number | boolean)[] = []
 
   // Station-Filter
   if (station && station !== '__all__') {

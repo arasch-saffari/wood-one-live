@@ -124,10 +124,11 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
     fetchKpi()
     // SSE-Integration für Delta-Updates
     const es = new EventSource('/api/updates')
-    es.addEventListener('update', () => {
-      fetchKpi()
-    })
+    const handler = () => fetchKpi()
+    es.addEventListener('update', handler)
+    
     return () => {
+      es.removeEventListener('update', handler)
       es.close()
     }
   }, [station])

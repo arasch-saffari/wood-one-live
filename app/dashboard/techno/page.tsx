@@ -58,7 +58,15 @@ export default function TechnoPage() {
   const technoDataObj = useStationData("techno", "24h", 60000, page, pageSize, "15min")
   const { config } = useConfig();
   const technoData = technoDataObj.data?.map(row => ({ ...row, station: "Techno Floor" })) ?? [];
-  const [alarmRows, setAlarmRows] = useState<any[]>([])
+  const [alarmRows, setAlarmRows] = useState<Array<{
+    datetime?: string
+    time?: string
+    las?: number
+    ws?: number
+    wd?: number | string
+    rh?: number
+    station: string
+  }>>([])
   const [showOnlyAlarms, setShowOnlyAlarms] = useState(false)
   const [alarmTotal, setAlarmTotal] = useState(0)
 

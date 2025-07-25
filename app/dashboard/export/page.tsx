@@ -105,7 +105,15 @@ export default function ExportPage() {
 
     if (format === "csv") {
       const headers = Object.keys(allData[0] || {})
-      const csvContent = [headers.join(","), ...allData.map((row: Record<string, string | number | boolean | null | undefined>) => headers.map((header) => String(row[header] ?? "")).join(","))].join("\n")
+      const csvRows = [headers.join(",")]
+      
+      // Optimiert: Einzelne Schleife statt nested map()
+      for (const row of allData) {
+        const values = headers.map(header => String(row[header] ?? ""))
+        csvRows.push(values.join(","))
+      }
+      
+      const csvContent = csvRows.join("\n")
 
       const blob = new Blob([csvContent], { type: "text/csv" })
       const url = URL.createObjectURL(blob)

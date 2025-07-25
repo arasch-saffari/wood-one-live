@@ -58,7 +58,15 @@ export default function BandPage() {
   const bandDataObj = useStationData("band", "24h", 60000, page, pageSize, "15min")
   const { config } = useConfig();
   const bandData = bandDataObj.data?.map(row => ({ ...row, station: "Band Bühne" })) ?? [];
-  const [alarmRows, setAlarmRows] = useState<any[]>([])
+  const [alarmRows, setAlarmRows] = useState<Array<{
+    datetime?: string
+    time?: string
+    las?: number
+    ws?: number
+    wd?: number | string
+    rh?: number
+    station: string
+  }>>([])
   const [showOnlyAlarms, setShowOnlyAlarms] = useState(false)
   const [alarmTotal, setAlarmTotal] = useState(0)
 

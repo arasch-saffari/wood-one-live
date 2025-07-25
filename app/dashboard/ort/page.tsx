@@ -57,7 +57,15 @@ export default function OrtPage() {
   const pageSize = 25
   const ortDataObj = useStationData("ort", "24h", 60000, page, pageSize, "15min")
   const { config } = useConfig();
-  const [alarmRows, setAlarmRows] = useState<any[]>([])
+  const [alarmRows, setAlarmRows] = useState<Array<{
+    datetime?: string
+    time?: string
+    las?: number
+    ws?: number
+    wd?: number | string
+    rh?: number
+    station: string
+  }>>([])
   const ortData = ortDataObj.data?.map(row => ({ ...row, station: "Ort" })) ?? [];
   // State für Alarmdaten und Modus
   const [showOnlyAlarms, setShowOnlyAlarms] = useState(false)

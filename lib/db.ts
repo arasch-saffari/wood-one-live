@@ -471,7 +471,7 @@ if (process.env.ENABLE_BACKGROUND_JOBS === 'true') {
         )
       ])
       
-      const { weather, result } = await weatherPromise as { weather: any, result: any }
+      const { weather, result } = await weatherPromise as { weather: { windSpeed: number, windDir: string, relHumidity: number, temperature: number | null }, result: { changes: number } }
       
       const duration = Date.now() - startTime
       if (process.env.NODE_ENV === 'development') {
