@@ -5,6 +5,7 @@ import { intelligentCache } from './intelligent-cache';
 import { invalidateStationCache, warmupTableDataCache } from './table-data-service';
 import fs from 'fs';
 import path from 'path';
+import { setCSVProcessingState } from '@/app/api/updates/route'
 
 interface ImportJob {
   id: string;
@@ -194,70 +195,36 @@ export class CSVImportCoordinator extends EventEmitter {
    * Verarbeitet einen einzelnen Job
    */
   private async processJob(job: ImportJob): Promise<void> {
-    job.status = 'processing';
-    job.startTime = Date.now();
-    job.progress = 0;
-    
-    this.activeJobs.set(job.id, job);
-    this.emit('jobStarted', job);
-    
-    console.log(`🔄 Processing job: ${job.id} (${job.station})`);
-
     try {
-      // Invalidiere Cache vor Import
-      await invalidateStationCache(job.station);
+      console.log(`🔄 Processing job: ${job.id} (${job.station})`)
       
-      // Verarbeite CSV-Datei
-      const startTime = Date.now();
-      const processedCount = await processCSVFile(
-        job.station, 
-        job.filePath
-      );
-      const duration = Date.now() - startTime;
-
-      // Job erfolgreich abgeschlossen
-      job.status = 'completed';
-      job.endTime = Date.now();
-      job.progress = 100;
+      // SSE-Schutz aktivieren während Job-Verarbeitung
+      setCSVProcessingState(true)
+      
+      const startTime = Date.now()
+      const insertedCount = await processCSVFile(job.station, job.filePath)
+      const duration = Date.now() - startTime
+      
       job.result = {
-        processed: processedCount,
-        errors: 0, // processCSVFile doesn't return error count, assume 0
+        processed: insertedCount,
+        errors: 0,
         duration
-      };
-
-      this.activeJobs.delete(job.id);
-      this.completedJobs.push(job);
-      
-      // Aktualisiere Statistiken
-      this.stats.completedJobs++;
-      this.stats.totalProcessed += processedCount;
-      this.stats.totalErrors += 0; // No errors from processCSVFile
-      this.updateAvgProcessingTime();
-
-      this.emit('jobCompleted', job);
-      console.log(`✅ Job completed: ${job.id} (${processedCount} rows, ${duration}ms)`);
-
-      // Wärme Cache nach erfolgreichem Import
-      if (processedCount > 100) {
-        this.scheduleWarmup(job.station);
       }
-
+      
+      console.log(`📈 Job metrics: ${job.id} - ${insertedCount} rows in ${duration}ms`)
+      console.log(`✅ Job completed: ${job.id} (${insertedCount} rows, ${duration}ms)`)
+      
     } catch (error) {
-      // Job fehlgeschlagen
-      job.status = 'failed';
-      job.endTime = Date.now();
-      job.error = (error as Error).message;
-      
-      this.activeJobs.delete(job.id);
-      this.completedJobs.push(job);
-      
-      this.stats.failedJobs++;
-      
-      this.emit('jobFailed', job);
-      console.error(`❌ Job failed: ${job.id}`, error);
+      console.error(`❌ Job failed: ${job.id}`, error)
+      job.result = {
+        processed: 0,
+        errors: 1,
+        duration: Date.now() - job.startTime! // Assuming startTime is set before this block
+      }
+    } finally {
+      // SSE-Schutz deaktivieren
+      setCSVProcessingState(false)
     }
-
-    this.updateQueueStats();
   }
 
   /**

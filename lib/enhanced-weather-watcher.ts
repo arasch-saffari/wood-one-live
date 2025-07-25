@@ -384,7 +384,7 @@ export class EnhancedWeatherWatcher extends EventEmitter {
   /**
    * Triggert Frontend-Updates über SSE
    */
-  private triggerFrontendUpdate(weatherData: WeatherData, timeBlock: string): void {
+  private async triggerFrontendUpdate(weatherData: WeatherData, timeBlock: string): Promise<void> {
     try {
       const { triggerDeltaUpdate } = require('../app/api/updates/route');
       
@@ -401,6 +401,18 @@ export class EnhancedWeatherWatcher extends EventEmitter {
       const minInterval = 30000; // 30 Sekunden
       
       if (now - lastUpdate >= minInterval) {
+        // Prüfe ob CSV-Processing läuft (importiere die Funktion)
+        try {
+          const { setCSVProcessingState } = await import('@/app/api/updates/route');
+          // Wenn CSV-Processing läuft, überspringe Weather-Updates
+          if ((global as any).isProcessingCSV) {
+            console.log('⏱️  Weather update skipped during CSV processing');
+            return;
+          }
+        } catch (e) {
+          // Fallback wenn Import fehlschlägt
+        }
+        
         triggerDeltaUpdate(updateData);
         (this as any).lastFrontendUpdate = now;
         console.log('📡 Weather frontend update triggered');

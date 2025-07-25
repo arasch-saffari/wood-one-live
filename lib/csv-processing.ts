@@ -3,7 +3,7 @@ import path from 'path'
 import csvParser from 'csv-parser'
 import db from './database'
 import { importDuration } from '../app/api/metrics/route'
-import { triggerDeltaUpdate } from '../app/api/updates/route'
+import { triggerDeltaUpdate, setCSVProcessingState } from '@/app/api/updates/route'
 // Wetter-Imports entfernt
 // import { fetchWeather } from './weather'
 // import { insertWeather } from './db-helpers'
@@ -224,49 +224,41 @@ export async function processCSVFile(station: string, csvPath: string) {
   return 0
 }
 
-export async function processAllCSVFiles() {
-  const stations = ['ort', 'techno', 'heuballern', 'band']
-  let totalInserted = 0
-
+export async function processAllCSVFiles(): Promise<number> {
   console.log('🔍 Starte CSV-Verarbeitung für alle Stationen...')
-
-  // Stationen parallel verarbeiten
-  const stationResults = await Promise.all(stations.map(async (station) => {
-    const csvDir = path.join(process.cwd(), "public", "csv", station)
-    console.log(`📁 Überprüfe Verzeichnis: ${csvDir}`)
-
-    try {
+  
+  // SSE-Schutz aktivieren
+  setCSVProcessingState(true)
+  
+  try {
+    const stations = ['ort', 'techno', 'heuballern', 'band']
+    let totalInserted = 0
+    
+    for (const station of stations) {
+      const csvDir = path.join(process.cwd(), 'public', 'csv', station)
+      console.log(`📁 Überprüfe Verzeichnis: ${csvDir}`)
+      
       if (!fs.existsSync(csvDir)) {
-        console.log(`⚠️  Verzeichnis existiert nicht: ${csvDir}`)
-        return 0
+        console.log(`📁 Verzeichnis nicht gefunden: ${csvDir}`)
+        continue
       }
-
+      
       const csvFiles = fs.readdirSync(csvDir).filter(file => file.endsWith('.csv'))
       console.log(`📊 Gefunden: ${csvFiles.length} CSV-Dateien in ${station}`)
-
-      // Dateien strikt seriell verarbeiten
-      let stationSum = 0
+      
       for (const csvFile of csvFiles) {
         const csvPath = path.join(csvDir, csvFile)
-        console.log(`🔄 Verarbeite: ${csvFile}`)
-        try {
-          const inserted = await processCSVFile(station, csvPath)
-          console.log(`✅ ${inserted} Messwerte aus ${csvFile} importiert`)
-          stationSum += inserted
-        } catch (fileError) {
-          console.error(`❌ Fehler beim Verarbeiten von ${csvFile}:`, fileError)
-        }
+        const insertedCount = await processCSVFile(station, csvPath)
+        totalInserted += insertedCount
       }
-      return stationSum
-    } catch (e) {
-      console.error(`❌ Fehler beim Verarbeiten von ${station}:`, e)
-      return 0
     }
-  }))
-
-  totalInserted = stationResults.reduce((a, b) => a + b, 0)
-  console.log(`📊 Insgesamt ${totalInserted} Messwerte importiert`)
-  return totalInserted
+    
+    console.log(`📊 Insgesamt ${totalInserted} Messwerte importiert`)
+    return totalInserted
+  } finally {
+    // SSE-Schutz deaktivieren
+    setCSVProcessingState(false)
+  }
 }
 
 if (require.main === module) {

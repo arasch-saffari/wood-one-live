@@ -17,10 +17,17 @@ const controllerStates = new Map<string, boolean>()
 
 // Global rate limiting für SSE-Updates
 let lastGlobalUpdate = 0
-const MIN_GLOBAL_UPDATE_INTERVAL = 10000 // 10 Sekunden zwischen globalen Updates (erhöht von 5s)
-const MAX_UPDATES_PER_MINUTE = 6 // Maximal 6 Updates pro Minute
-let updatesThisMinute = 0
-let minuteStart = Date.now()
+const MIN_GLOBAL_UPDATE_INTERVAL = 10000 // 10 Sekunden zwischen globalen Updates
+
+// Aggressive SSE-Schutz während CSV-Processing
+let isProcessingCSV = false
+
+// Circuit Breaker für SSE-Controller-Fehler
+let sseCircuitBreakerOpen = false
+let controllerErrorCount = 0
+const MAX_CONTROLLER_ERRORS = 3
+const CIRCUIT_BREAKER_TIMEOUT = 60000 // 1 Minute
+let lastControllerError = 0
 
 export async function GET() {
   // Initialize application on first API call
@@ -70,24 +77,29 @@ export async function GET() {
 }
 
 export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
-  // Global rate limiting check
+  // Circuit Breaker Check - komplett deaktivieren wenn zu viele Controller-Fehler
   const now = Date.now()
-  
-  // Reset minute counter if needed
-  if (now - minuteStart >= 60000) {
-    updatesThisMinute = 0
-    minuteStart = now
+  if (sseCircuitBreakerOpen) {
+    if (now - lastControllerError < CIRCUIT_BREAKER_TIMEOUT) {
+      console.debug('🛡️  SSE circuit breaker open - updates blocked')
+      return
+    } else {
+      // Circuit Breaker zurücksetzen nach Timeout
+      sseCircuitBreakerOpen = false
+      controllerErrorCount = 0
+      console.debug('🛡️  SSE circuit breaker reset')
+    }
   }
   
-  // Check global rate limiting
-  if (now - lastGlobalUpdate < MIN_GLOBAL_UPDATE_INTERVAL) {
-    console.debug('⏱️  Global SSE update rate limited (10s interval)')
+  // CSV-Processing-Schutz - komplett deaktivieren wenn CSV-Processing läuft
+  if (isProcessingCSV) {
+    console.debug('🛡️  SSE update blocked during CSV processing')
     return
   }
   
-  // Check per-minute rate limiting
-  if (updatesThisMinute >= MAX_UPDATES_PER_MINUTE) {
-    console.debug('⏱️  Global SSE update rate limited (6 per minute)')
+  // Global rate limiting check
+  if (now - lastGlobalUpdate < MIN_GLOBAL_UPDATE_INTERVAL) {
+    console.debug('⏱️  Global SSE update rate limited (10s interval)')
     return
   }
   
@@ -104,9 +116,18 @@ export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
   // Debounce updates - send after 100ms of inactivity (increased from 50ms)
   updateTimeout = setTimeout(() => {
     lastGlobalUpdate = Date.now()
-    updatesThisMinute++
     sendDebouncedUpdate()
   }, 100)
+}
+
+// Funktion zum Aktivieren des CSV-Processing-Schutzes
+export function setCSVProcessingState(processing: boolean) {
+  isProcessingCSV = processing
+  if (processing) {
+    console.debug('🛡️  SSE protection activated for CSV processing')
+  } else {
+    console.debug('🛡️  SSE protection deactivated')
+  }
 }
 
 function sendDebouncedUpdate() {
@@ -193,6 +214,15 @@ function sendDebouncedUpdate() {
             controllerStates.set(sub.id, false);
             errorCount++;
             console.debug('Controller became invalid during enqueue:', enqueueError)
+            
+            // Circuit Breaker Logic
+            controllerErrorCount++;
+            lastControllerError = Date.now()
+            
+            if (controllerErrorCount >= MAX_CONTROLLER_ERRORS) {
+              sseCircuitBreakerOpen = true
+              console.warn('🛡️  SSE circuit breaker opened due to controller errors')
+            }
           }
         } else {
           sub.closed = true;
@@ -209,6 +239,15 @@ function sendDebouncedUpdate() {
       controllerStates.set(sub.id, false);
       errorCount++;
       console.error('Fehler beim Senden von SSE-Update:', error)
+      
+      // Circuit Breaker Logic
+      controllerErrorCount++;
+      lastControllerError = Date.now()
+      
+      if (controllerErrorCount >= MAX_CONTROLLER_ERRORS) {
+        sseCircuitBreakerOpen = true
+        console.warn('🛡️  SSE circuit breaker opened due to controller errors')
+      }
     }
   }
   
