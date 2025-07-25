@@ -25,9 +25,12 @@ let isProcessingCSV = false
 // Circuit Breaker für SSE-Controller-Fehler
 let sseCircuitBreakerOpen = false
 let controllerErrorCount = 0
-const MAX_CONTROLLER_ERRORS = 3
+const MAX_CONTROLLER_ERRORS = 2 // Reduziert von 3 auf 2 für schnellere Reaktion
 const CIRCUIT_BREAKER_TIMEOUT = 60000 // 1 Minute
 let lastControllerError = 0
+
+// Globale SSE-Deaktivierung
+let sseGloballyDisabled = false
 
 export async function GET() {
   // Initialize application on first API call
@@ -77,6 +80,12 @@ export async function GET() {
 }
 
 export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
+  // Globale SSE-Deaktivierung Check
+  if (sseGloballyDisabled) {
+    console.debug('🛡️  SSE globally disabled - all updates blocked')
+    return
+  }
+  
   // Circuit Breaker Check - komplett deaktivieren wenn zu viele Controller-Fehler
   const now = Date.now()
   if (sseCircuitBreakerOpen) {
@@ -87,6 +96,7 @@ export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
       // Circuit Breaker zurücksetzen nach Timeout
       sseCircuitBreakerOpen = false
       controllerErrorCount = 0
+      sseGloballyDisabled = false // Globale Deaktivierung zurücksetzen
       console.debug('🛡️  SSE circuit breaker reset')
     }
   }
@@ -128,6 +138,14 @@ export function setCSVProcessingState(processing: boolean) {
   } else {
     console.debug('🛡️  SSE protection deactivated')
   }
+}
+
+// Funktion zum Zurücksetzen der globalen SSE-Deaktivierung
+export function resetGlobalSSEDisable() {
+  sseGloballyDisabled = false
+  sseCircuitBreakerOpen = false
+  controllerErrorCount = 0
+  console.debug('🛡️  Global SSE disable reset')
 }
 
 function sendDebouncedUpdate() {
@@ -221,7 +239,9 @@ function sendDebouncedUpdate() {
             
             if (controllerErrorCount >= MAX_CONTROLLER_ERRORS) {
               sseCircuitBreakerOpen = true
+              sseGloballyDisabled = true // Globale Deaktivierung
               console.warn('🛡️  SSE circuit breaker opened due to controller errors')
+              console.warn('🛡️  SSE globally disabled to prevent further errors')
             }
           }
         } else {
@@ -246,7 +266,9 @@ function sendDebouncedUpdate() {
       
       if (controllerErrorCount >= MAX_CONTROLLER_ERRORS) {
         sseCircuitBreakerOpen = true
+        sseGloballyDisabled = true // Globale Deaktivierung
         console.warn('🛡️  SSE circuit breaker opened due to controller errors')
+        console.warn('🛡️  SSE globally disabled to prevent further errors')
       }
     }
   }
