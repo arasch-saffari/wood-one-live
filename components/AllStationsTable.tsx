@@ -117,7 +117,6 @@ export function parseDate(dt: string | undefined): Date | null {
   const d = new Date(iso);
   if (isNaN(d.getTime())) {
     if (typeof window !== 'undefined') {
-      // eslint-disable-next-line no-console
       console.warn('[parseDate] Ungültiges Datum:', dt, '→', iso);
     }
     return null;
@@ -222,11 +221,8 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
 
   // Debug: Logge die eingehenden Daten für Analyse
   if (typeof window !== 'undefined') {
-    // eslint-disable-next-line no-console
     console.log('[AllStationsTable] ortData:', ortData.map(r => r.datetime));
-    // eslint-disable-next-line no-console
     console.log('[AllStationsTable] technoData:', technoData.map(r => r.datetime));
-    // eslint-disable-next-line no-console
     console.log('[AllStationsTable] bandData:', bandData.map(r => r.datetime));
   }
   // Sortier-Logik
@@ -345,7 +341,6 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
   React.useEffect(() => {
     if (onTopRowChange) {
       if (typeof window !== 'undefined') {
-        // eslint-disable-next-line no-console
         console.log('[AllStationsTable] onTopRowChange', {
           filterStation: filterStationProp,
           pagedRows: pagedRows.map(r => ({ station: r.station, datetime: r.datetime, las: r.las })),
@@ -375,11 +370,8 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
 
   // Debug: Logge die Datenmengen für Analyse
   if (typeof window !== 'undefined') {
-    // eslint-disable-next-line no-console
     console.log('[AllStationsTable] tableRows:', tableRows.length, tableRows[0]);
-    // eslint-disable-next-line no-console
     console.log('[AllStationsTable] filteredTableRows:', filteredRows.length, filteredRows[0]);
-    // eslint-disable-next-line no-console
     console.log('[AllStationsTable] filteredRows:', filteredRows.length, filteredRows[0]);
   }
 

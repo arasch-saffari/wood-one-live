@@ -433,6 +433,12 @@ export default function AllLocationsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 md:mb-10">
           {Object.entries(currentLevels).map(([location, level]) => {
             const meta = STATION_META[location as keyof typeof STATION_META]
+            // Use correct data for each station for status badge/color
+            let stationData: TableRowType[] = [];
+            if (location === 'ort') stationData = mappedOrtData;
+            else if (location === 'techno') stationData = mappedTechnoData;
+            else if (location === 'band') stationData = mappedBandData;
+            else if (location === 'heuballern') stationData = mappedHeuballernData;
             return (
               <motion.div key={location}
                 initial={{ opacity: 0, y: 20 }}
@@ -445,11 +451,11 @@ export default function AllLocationsPage() {
                       <span className="text-lg font-bold text-gray-900 dark:text-white mb-1">{meta.name}</span>
                       <UITooltip>
                         <TooltipTrigger asChild>
-                          {typeof level === "number" && !isNaN(level) ? getStatusBadge(level, location as StationKey, ortData) : <Badge className="bg-gray-300/20 text-gray-400 border-gray-300/30">keine daten</Badge>}
+                          {typeof level === "number" && !isNaN(level) ? getStatusBadge(level, location as StationKey, stationData) : <Badge className="bg-gray-300/20 text-gray-400 border-gray-300/30">keine daten</Badge>}
                         </TooltipTrigger>
                         <TooltipContent>Status: {typeof level === "number" && !isNaN(level) ? Math.round(level) : "keine daten"} dB</TooltipContent>
                       </UITooltip>
-                      <span className={`text-2xl font-bold mt-2 mb-1 ${typeof level === "number" && !isNaN(level) ? getStatusColor(level, location as StationKey, ortData) : "text-gray-400"}`}>{typeof level === "number" && !isNaN(level) ? Math.round(level) : "keine daten"} <span className="text-base font-normal text-gray-500">dB</span></span>
+                      <span className={`text-2xl font-bold mt-2 mb-1 ${typeof level === "number" && !isNaN(level) ? getStatusColor(level, location as StationKey, stationData) : "text-gray-400"}`}>{typeof level === "number" && !isNaN(level) ? Math.round(level) : "keine daten"} <span className="text-base font-normal text-gray-500">dB</span></span>
                       <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">Klicken für Details →</span>
                     </CardHeader>
                   </Card>
@@ -499,7 +505,7 @@ export default function AllLocationsPage() {
         {/* Einzelcharts für alle Standorte (max. 2 nebeneinander) */}
         <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-8">
           <ChartPlayground
-            data={ortChartData as unknown as Record<string, unknown>[]}
+            data={ortChartData.length > 0 ? ortChartData as unknown as Record<string, unknown>[] : []}
             lines={[
               { key: 'las', label: STATION_META.ort.name, color: STATION_META.ort.chartColor, yAxisId: 'left' },
             ]}
@@ -518,7 +524,7 @@ export default function AllLocationsPage() {
             granularity={undefined}
           />
           <ChartPlayground
-            data={heuballernChartData as unknown as Record<string, unknown>[]}
+            data={heuballernChartData.length > 0 ? heuballernChartData as unknown as Record<string, unknown>[] : []}
             lines={[
               { key: 'las', label: STATION_META.heuballern.name, color: STATION_META.heuballern.chartColor, yAxisId: 'left' },
             ]}
@@ -537,7 +543,7 @@ export default function AllLocationsPage() {
             granularity={undefined}
           />
           <ChartPlayground
-            data={technoChartData as unknown as Record<string, unknown>[]}
+            data={technoChartData.length > 0 ? technoChartData as unknown as Record<string, unknown>[] : []}
             lines={[
               { key: 'las', label: STATION_META.techno.name, color: STATION_META.techno.chartColor, yAxisId: 'left' },
             ]}
@@ -556,7 +562,7 @@ export default function AllLocationsPage() {
             granularity={undefined}
           />
           <ChartPlayground
-            data={bandChartData as unknown as Record<string, unknown>[]}
+            data={bandChartData.length > 0 ? bandChartData as unknown as Record<string, unknown>[] : []}
             lines={[
               { key: 'las', label: STATION_META.band.name, color: STATION_META.band.chartColor, yAxisId: 'left' },
             ]}
