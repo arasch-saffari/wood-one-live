@@ -2,6 +2,7 @@ import { setupGlobalErrorHandlers } from './middleware/error-handler';
 import { logger } from './logger';
 import { config } from './config';
 import { checkDatabaseHealth } from './database';
+import { runMigrations } from './db';
 
 // Initialize application with proper error handling and logging
 export function initializeApplication() {
@@ -15,6 +16,16 @@ export function initializeApplication() {
     dbPath: config.database.path,
     logLevel: config.logging.level
   }, 'Application initializing...');
+
+  // Run database migrations automatically
+  try {
+    logger.info('Running database migrations...');
+    runMigrations();
+    logger.info('Database migrations completed successfully');
+  } catch (error) {
+    logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Database migration failed');
+    // Don't exit on migration failure, just log the error
+  }
 
   // Check database health on startup
   const dbHealth = checkDatabaseHealth();

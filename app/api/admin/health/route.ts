@@ -4,10 +4,24 @@ import fs from 'fs'
 import os from 'os'
 // Optional: import diskusage from 'diskusage' (wenn installiert)
 import db from '@/lib/database'
+import { initializeApplication } from '@/lib/app-init'
+
+let initialized = false
 
 export const runtime = 'nodejs'
 
 export async function GET() {
+  // Initialize application on first API call
+  if (!initialized) {
+    try {
+      initializeApplication()
+      initialized = true
+    } catch (error) {
+      console.error('Application initialization failed:', error)
+      // Continue anyway, don't fail the health check
+    }
+  }
+
   try {
     // DB-Größe
     const dbPath = path.join(process.cwd(), 'data.sqlite')

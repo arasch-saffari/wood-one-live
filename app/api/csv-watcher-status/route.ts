@@ -1,8 +1,22 @@
 import { NextResponse } from "next/server"
 import fs from 'fs'
 import path from 'path'
+import { initializeApplication } from '@/lib/app-init'
+
+let initialized = false
 
 export async function GET() {
+  // Initialize application on first API call
+  if (!initialized) {
+    try {
+      initializeApplication()
+      initialized = true
+    } catch (error) {
+      console.error('Application initialization failed:', error)
+      // Continue anyway, don't fail the status check
+    }
+  }
+
   try {
     const stations = ['ort', 'techno', 'heuballern', 'band']
     const status = {

@@ -1,59 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { initializeApplication } from '@/lib/app-init'
 
-export async function GET(request: NextRequest) {
-  const startTime = Date.now();
-  
+let initialized = false
+
+export async function GET() {
+  // Initialize application on first API call
+  if (!initialized) {
+    try {
+      initializeApplication()
+      initialized = true
+    } catch (error) {
+      console.error('Application initialization failed:', error)
+      // Continue anyway, don't fail the health check
+    }
+  }
+
   try {
-    // Import database with fallback
-    let dbHealthy = false;
-    try {
-      const db = require('@/lib/database').default;
-      const dbCheck = db.prepare('SELECT 1 as test').get() as { test: number };
-      dbHealthy = dbCheck.test === 1;
-    } catch (dbError) {
-      console.warn('Database health check failed:', dbError);
-    }
-
-    // Get cache statistics if available
-    let cacheStats = null;
-    try {
-      const { CacheService } = require('@/lib/cache');
-      cacheStats = CacheService.getStats();
-    } catch (cacheError) {
-      console.warn('Cache stats not available:', cacheError);
-    }
-
-    // Get basic system info
-    const healthData = {
-      status: 'ok',
+    const startTime = Date.now()
+    
+    // Basic health check
+    const health = {
+      status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      database: {
-        connected: dbHealthy,
-        status: dbHealthy ? 'healthy' : 'unhealthy'
-      },
-      cache: cacheStats ? {
-        activeKeys: cacheStats.keys,
-        stats: cacheStats.stats
-      } : { status: 'not available' },
-      responseTime: Date.now() - startTime
-    };
-
-    console.log('Health check completed:', healthData.status);
-
-    return NextResponse.json({
-      success: true,
-      data: healthData
-    });
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0'
+    }
     
+    const responseTime = Date.now() - startTime
+    
+    return NextResponse.json({
+      ...health,
+      responseTime: `${responseTime}ms`
+    })
   } catch (error) {
-    console.error('Health check failed:', error);
-    
     return NextResponse.json({
-      success: false,
-      error: 'Health check failed',
-      message: (error as Error).message
-    }, { status: 503 });
+      status: 'unhealthy',
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    }, { status: 500 })
   }
 }

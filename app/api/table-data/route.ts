@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAllStationsTableData } from '@/lib/table-data-service'
 import { logger } from '@/lib/logger'
+import { initializeApplication } from '@/lib/app-init'
+
+let initialized = false
 
 // Import middleware with fallbacks
 let withErrorHandler: any = null;
@@ -41,6 +44,17 @@ try {
 }
 
 async function GET(req: NextRequest) {
+  // Initialize application on first API call
+  if (!initialized) {
+    try {
+      initializeApplication()
+      initialized = true
+    } catch (error) {
+      console.error('Application initialization failed:', error)
+      // Continue anyway, don't fail the table data request
+    }
+  }
+
   const apiLatencyEnd = apiLatency?.startTimer ? apiLatency.startTimer({ route: '/api/table-data' }) : () => {}
   
   try {

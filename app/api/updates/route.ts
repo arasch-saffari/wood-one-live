@@ -1,3 +1,7 @@
+import { initializeApplication } from '@/lib/app-init'
+
+let initialized = false
+
 let subscribers: { controller: ReadableStreamDefaultController, closed: boolean }[] = []
 
 // Singleton für Event-Listener-Registrierung
@@ -8,6 +12,17 @@ let updateTimeout: NodeJS.Timeout | null = null
 let pendingUpdates: Record<string, unknown>[] = []
 
 export async function GET() {
+  // Initialize application on first API call
+  if (!initialized) {
+    try {
+      initializeApplication()
+      initialized = true
+    } catch (error) {
+      console.error('Application initialization failed:', error)
+      // Continue anyway, don't fail the SSE connection
+    }
+  }
+
   let cleanup: (() => void) | undefined
   let subscriber: { controller: ReadableStreamDefaultController, closed: boolean }
   const stream = new ReadableStream({
