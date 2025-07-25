@@ -1,198 +1,172 @@
 import fs from 'fs'
 import path from 'path'
-import Papa from 'papaparse'
+import csvParser from 'csv-parser'
 import db from './database'
+import { importDuration } from '../app/api/metrics/route'
+import { triggerDeltaUpdate } from '../app/api/updates/route'
 // Wetter-Imports entfernt
 // import { fetchWeather } from './weather'
 // import { insertWeather } from './db-helpers'
 
-// CSV Processing Functions
+// Hilfsfunktion: Lese/Schreibe Offset-Metadaten für eine CSV-Datei
+function getMetaPath(csvPath: string) {
+  return csvPath + '.meta.json'
+}
+function readMeta(csvPath: string): { lastLine: number } {
+  const metaPath = getMetaPath(csvPath)
+  if (fs.existsSync(metaPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(metaPath, 'utf-8'))
+    } catch {
+      return { lastLine: 0 }
+    }
+  }
+  return { lastLine: 0 }
+}
+function writeMeta(csvPath: string, meta: { lastLine: number }) {
+  const metaPath = getMetaPath(csvPath)
+  fs.writeFileSync(metaPath, JSON.stringify(meta))
+  // Crash-sicher: fsync
+  const fd = fs.openSync(metaPath, 'r')
+  fs.fsyncSync(fd)
+  fs.closeSync(fd)
+}
+
+// Streaming-CSV-Verarbeitung mit inkrementellem Offset
 export async function processCSVFile(station: string, csvPath: string) {
   let attempts = 0
   const MAX_ATTEMPTS = 3
   while (attempts < MAX_ATTEMPTS) {
     try {
       attempts++
-      // Check if file was already processed by checking file modification time
+      const startTime = Date.now()
       const fileStat = fs.statSync(csvPath)
       const fileName = path.basename(csvPath)
-      
-      // Check if we already processed this file
-      const processedCheck = db.prepare(
-        'SELECT COUNT(*) as count FROM measurements WHERE station = ? AND source_file = ?'
-      ).get(station, fileName) as { count: number }
-      
-      if (processedCheck.count > 0) {
-        console.log(`📁 Datei ${fileName} bereits verarbeitet, überspringe...`)
-        return 0
-      }
-      
-      const csvContent = fs.readFileSync(csvPath, 'utf-8')
-      console.log(`📄 CSV-Inhalt (erste 200 Zeichen): ${csvContent.substring(0, 200)}`)
-      
-      const parsed = Papa.parse(csvContent, {
-        header: true,
-        delimiter: ";",
-        skipEmptyLines: true,
-      })
-      
-      console.log(`📊 Parsed CSV: ${parsed.data.length} Zeilen, Headers: ${Object.keys(parsed.data[0] || {}).join(', ')}`)
-      
-      const rows = parsed.data as Record<string, string>[]
-      if (!Array.isArray(rows) || rows.length < 2) {
-        console.log(`⚠️  Keine gültigen Daten in ${fileName}`)
-        return 0
-      }
-      
-      console.log(`📊 Verarbeite ${rows.length} Zeilen aus ${fileName} für Station ${station}`)
-      
-      // Erweiterte Validierung: Akzeptiere alle CSV-Felder dynamisch
-      const validRows = rows.filter((row) => {
-        let sysTime = row["Systemzeit "]?.trim()
-        console.log(`🔍 Validiere Zeile mit Zeit: ${sysTime}`)
-        
-        // Dynamische Spaltenwahl: Alle verfügbaren Lärmspalten prüfen
-        const noiseColumns = ["LAF", "LAS", "LAeq", "Lmax", "Lmin", "LAFT5s", "LAFTeq", "LAF5s", "LCFeq", "LCF5s"]
-        let lasRaw: string | null = null
-        let usedNoiseCol: string | null = null
-        
-        for (const col of noiseColumns) {
-          if (row[col] && row[col].trim()) {
-            lasRaw = row[col]
-            usedNoiseCol = col
-            console.log(`📊 Gefunden Lärmspalte: ${col} = ${lasRaw}`)
-            break
-          }
-        }
-        
-        if (!sysTime || !lasRaw) {
-          console.log(`⚠️  Zeile übersprungen: Keine Zeit (${sysTime}) oder Lärmdaten (${lasRaw})`)
-          return false
-        }
-        
-        // Zeitformat-Check: Akzeptiere auch HH:MM:SS:MS und extrahiere HH:MM:SS
-        const timeParts = sysTime.split(":")
-        if (timeParts.length < 3) {
-          console.log(`⚠️  Ungültiges Zeitformat: ${sysTime}`)
-          return false
-        }
-        
-        // Extrahiere nur HH:MM:SS, ignoriere Millisekunden
-        const hours = timeParts[0].padStart(2, "0")
-        const minutes = timeParts[1].padStart(2, "0")
-        const seconds = timeParts[2].padStart(2, "0")
-        sysTime = `${hours}:${minutes}:${seconds}`
-        console.log(`⏰ Normalisierte Zeit: ${sysTime}`)
-        
-        // Wertebereich-Check für Lärmdaten ENTFERNT!
-        const las = Number(lasRaw.replace(",", "."))
-        if (isNaN(las)) {
-          console.log(`⚠️  Ungültiger Lärmwert: ${lasRaw} -> ${las}`)
-          return false
-        }
-        
-        console.log(`✅ Zeile validiert: Zeit=${sysTime}, Lärm=${las} dB`)
-        
-        // Speichere das extrahierte HH:MM:SS zurück
-        row["Systemzeit "] = sysTime
-        // Speichere die verwendete Lärmspalte für später
-        row["_usedNoiseCol"] = usedNoiseCol || ''
-        row["_noiseValue"] = las.toString()
-        
-        // Alle CSV-Felder beibehalten (keine Filterung)
-        console.log(`📋 Alle CSV-Felder: ${Object.keys(row).join(', ')}`)
-        
-        return true
-      })
-      
-      console.log(`✅ ${validRows.length} gültige Zeilen gefunden`)
-      
-      // Jede Zeile als separaten Messwert speichern
+      // Entferne das Löschen aller alten Einträge für diese Datei/Station
+      // Lese Offset/Zeilennummer
+      const meta = readMeta(csvPath)
+      const lastLine = meta.lastLine || 0
+      let currentLine = 0
       let insertedCount = 0
-      
-      db.exec('BEGIN TRANSACTION')
       try {
-        const insertStmt = db.prepare(
-          'INSERT OR IGNORE INTO measurements (station, time, las, source_file, datetime, all_csv_fields) VALUES (?, ?, ?, ?, ?, ?)' 
-        )
-        
-        for (const row of validRows) {
-          const sysTime = row["Systemzeit "]
-          const las = Number(row["_noiseValue"])
-          
-          // Verbesserte Datum/Zeit-Verarbeitung
-          let dateStr = null
-          if (row['Datum']) {
-            const parts = row['Datum'].split('.')
-            if (parts.length === 3) {
-              dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`
-            }
-          } else if (row['Date']) {
-            dateStr = row['Date']
-          } else if (row['datetime']) {
-            // Falls bereits ein vollständiger DateTime vorhanden ist
-            const dt = new Date(row['datetime'])
-            if (!isNaN(dt.getTime())) {
-              dateStr = dt.toISOString().split('T')[0]
-            }
-          }
-          
-          if (!dateStr) {
-            const mtime = fileStat.mtime
-            dateStr = `${mtime.getFullYear()}-${String(mtime.getMonth()+1).padStart(2,'0')}-${String(mtime.getDate()).padStart(2,'0')}`
-          }
-          
-          const datetime = `${dateStr} ${sysTime}`
-          console.log(`📅 Datum: ${dateStr}, Zeit: ${sysTime}, DateTime: ${datetime}`)
-          
-          // Speichere auch den vollständigen DateTime in der CSV-Zeile
-          row['_fullDateTime'] = datetime
-          
-          // Alle CSV-Felder als JSON speichern
-          const allCsvFields = JSON.stringify(row)
-          console.log(`💾 Speichere Messwert: Station=${station}, Zeit=${sysTime}, LAS=${las}`)
-          
-          // time eindeutig machen: time = datetime
-          const time = datetime
-          // Retry-Logik für Insert in measurements
-          let insertResult = null
-          for (let attempt = 1; attempt <= 5; attempt++) {
-            try {
-              insertResult = insertStmt.run(station, time, las, path.basename(csvPath), datetime, allCsvFields)
-              break
-            } catch (err: unknown) {
-              if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'SQLITE_BUSY') {
-                console.warn(`⚠️  DB locked (Insert measurements), Versuch ${attempt}/5, warte 200ms...`)
-                await new Promise(res => setTimeout(res, 200))
-                continue
-              } else {
-                throw err
+        db.exec('BEGIN TRANSACTION')
+        await new Promise<void>((resolve, reject) => {
+          fs.createReadStream(csvPath)
+            .pipe(csvParser({ separator: ';', skipLines: lastLine, mapHeaders: ({ header }) => header.trim() }))
+            .on('data', (row) => {
+              currentLine++
+              // Zeilenzähler bezieht sich auf alle Zeilen inkl. Header
+              const realLine = lastLine + currentLine
+              try {
+                // Validierung wie bisher
+                let sysTime = row['Systemzeit']?.trim() || row['Systemzeit ']?.trim()
+                const noiseColumns = ["LAF", "LAS", "LAeq", "Lmax", "Lmin", "LAFT5s", "LAFTeq", "LAF5s", "LCFeq", "LCF5s"]
+                let lasRaw: string | null = null
+                let usedNoiseCol: string | null = null
+                for (const col of noiseColumns) {
+                  if (row[col] && row[col].trim()) {
+                    lasRaw = row[col]
+                    usedNoiseCol = col
+                    break
+                  }
+                }
+                if (!sysTime || !lasRaw) return
+                const timeParts = sysTime.split(":")
+                if (timeParts.length < 3) return
+                const hours = timeParts[0].padStart(2, "0")
+                const minutes = timeParts[1].padStart(2, "0")
+                const seconds = timeParts[2].padStart(2, "0")
+                sysTime = `${hours}:${minutes}:${seconds}`
+                const las = Number(lasRaw.replace(",", "."))
+                if (isNaN(las)) return
+                row['Systemzeit'] = sysTime
+                row['_usedNoiseCol'] = usedNoiseCol || ''
+                row['_noiseValue'] = las.toString()
+                // Datum bestimmen
+                let dateStr = null
+                if (row['Datum']) {
+                  const parts = row['Datum'].split('.')
+                  if (parts.length === 3) {
+                    dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`
+                  }
+                } else if (row['Date']) {
+                  dateStr = row['Date']
+                } else if (row['datetime']) {
+                  const dt = new Date(row['datetime'])
+                  if (!isNaN(dt.getTime())) {
+                    dateStr = dt.toISOString().split('T')[0]
+                  }
+                }
+                if (!dateStr) {
+                  const mtime = fileStat.mtime
+                  dateStr = `${mtime.getFullYear()}-${String(mtime.getMonth()+1).padStart(2,'0')}-${String(mtime.getDate()).padStart(2,'0')}`
+                }
+                const datetime = `${dateStr} ${sysTime}`
+                row['_fullDateTime'] = datetime
+                const allCsvFields = JSON.stringify(row)
+                const time = datetime
+                let insertResult = null
+                for (let attempt = 1; attempt <= 5; attempt++) {
+                  try {
+                    insertResult = db.prepare(
+                      'INSERT OR IGNORE INTO measurements (station, time, las, source_file, datetime, all_csv_fields) VALUES (?, ?, ?, ?, ?, ?)'
+                    ).run(station, time, las, fileName, datetime, allCsvFields)
+                    break
+                  } catch (err: unknown) {
+                    if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'SQLITE_BUSY') {
+                      console.warn(`⚠️  DB locked (Insert measurements), Versuch ${attempt}/5, warte 200ms...`)
+                      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200)
+                      continue
+                    } else {
+                      throw err
+                    }
+                  }
+                }
+                if (insertResult && insertResult.changes > 0) {
+                  insertedCount++
+                }
+                // Nach jeder Zeile Offset speichern
+                writeMeta(csvPath, { lastLine: realLine })
+              } catch (err) {
+                console.error(`❌ Fehler in Zeile ${lastLine + currentLine}:`, err)
               }
-            }
-          }
-          const result = insertResult
-          if (result && result.changes > 0) {
-            insertedCount++
-            console.log(`✅ Messwert erfolgreich gespeichert`)
-            // Wetterdaten werden NICHT mehr im Import gespeichert!
-          } else {
-            console.log(`⚠️  Messwert nicht gespeichert (wahrscheinlich Duplikat)`)
-          }
-        }
-        
-        db.exec('COMMIT')
-        console.log(`✅ ${insertedCount} Messwerte importiert`)
-        
+            })
+            .on('end', () => {
+                try {
+                  db.exec('COMMIT')
+                } catch (e: unknown) {
+                  const msg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e)
+                  if (!msg.includes('no transaction is active')) {
+                    console.error('COMMIT-Fehler:', e)
+                  }
+                }
+                resolve()
+            })
+            .on('error', (err) => {
+                try {
+                  db.exec('ROLLBACK')
+                } catch (e: unknown) {
+                  const msg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e)
+                  if (!msg.includes('no transaction is active')) {
+                    console.error('ROLLBACK-Fehler:', e)
+                  }
+                }
+                reject(err)
+            })
+        })
       } catch (batchErr) {
         db.exec('ROLLBACK')
-        console.error('❌ Fehler beim Batch-Insert:', batchErr)
         throw batchErr
       }
-      
       // Nach erfolgreichem Import: File-Cache für diese Station löschen
       const cacheFile = path.join(process.cwd(), 'cache', `stationdata-${station}.json`)
       if (fs.existsSync(cacheFile)) {
         fs.unlinkSync(cacheFile)
+      }
+      const durationSec = (Date.now() - startTime) / 1000
+      importDuration.set(durationSec)
+      if (insertedCount > 0) {
+        triggerDeltaUpdate()
       }
       return insertedCount
     } catch (e) {
@@ -209,43 +183,11 @@ export async function processCSVFile(station: string, csvPath: string) {
   return 0
 }
 
-export function parseCSVData(csvContent: string, station: string) {
-  const parsed = Papa.parse(csvContent, {
-    header: true,
-    delimiter: ";",
-    skipEmptyLines: true,
-  })
-  const rows = parsed.data as Record<string, string>[]
-  if (!Array.isArray(rows) || rows.length < 1) return []
-  const noiseColumn = station === "heuballern" ? "LAF" : "LAS"
-  const validRows = rows.filter(
-    (row) =>
-      row["Systemzeit "] &&
-      row[noiseColumn] &&
-      !isNaN(Number(row[noiseColumn].replace(",", ".")))
-  )
-  return validRows.map(row => ({
-    time: row["Systemzeit "]?.trim(),
-    las: Number(row[noiseColumn].replace(",", ".")),
-  }))
-}
-
 export async function processAllCSVFiles() {
   const stations = ['ort', 'techno', 'heuballern', 'band']
   let totalInserted = 0
 
   console.log('🔍 Starte CSV-Verarbeitung für alle Stationen...')
-
-  // Hilfsfunktion für parallele Limitierung
-  const pLimit = (max: number) => {
-    let active = 0; const queue: (() => void)[] = []
-    const next = () => { if (queue.length && active < max) { active++; queue.shift()!() } }
-    return async <T>(fn: () => Promise<T>): Promise<T> => {
-      if (active >= max) await new Promise<void>(resolve => queue.push(resolve))
-      active++
-      try { return await fn() } finally { active--; next() }
-    }
-  }
 
   // Stationen parallel verarbeiten
   const stationResults = await Promise.all(stations.map(async (station) => {
@@ -261,23 +203,19 @@ export async function processAllCSVFiles() {
       const csvFiles = fs.readdirSync(csvDir).filter(file => file.endsWith('.csv'))
       console.log(`📊 Gefunden: ${csvFiles.length} CSV-Dateien in ${station}`)
 
-      // Dateien parallel verarbeiten (max. 4 gleichzeitig pro Station)
-      const limit = pLimit(4)
-      const results = await Promise.all(csvFiles.map(csvFile =>
-        limit(async () => {
-          const csvPath = path.join(csvDir, csvFile)
-          console.log(`🔄 Verarbeite: ${csvFile}`)
-          try {
-            const inserted = await processCSVFile(station, csvPath)
-            console.log(`✅ ${inserted} Messwerte aus ${csvFile} importiert`)
-            return inserted
-          } catch (fileError) {
-            console.error(`❌ Fehler beim Verarbeiten von ${csvFile}:`, fileError)
-            return 0
-          }
-        })
-      ))
-      const stationSum = results.reduce((a, b) => a + b, 0)
+      // Dateien strikt seriell verarbeiten
+      let stationSum = 0
+      for (const csvFile of csvFiles) {
+        const csvPath = path.join(csvDir, csvFile)
+        console.log(`🔄 Verarbeite: ${csvFile}`)
+        try {
+          const inserted = await processCSVFile(station, csvPath)
+          console.log(`✅ ${inserted} Messwerte aus ${csvFile} importiert`)
+          stationSum += inserted
+        } catch (fileError) {
+          console.error(`❌ Fehler beim Verarbeiten von ${csvFile}:`, fileError)
+        }
+      }
       return stationSum
     } catch (e) {
       console.error(`❌ Fehler beim Verarbeiten von ${station}:`, e)
@@ -288,4 +226,14 @@ export async function processAllCSVFiles() {
   totalInserted = stationResults.reduce((a, b) => a + b, 0)
   console.log(`📊 Insgesamt ${totalInserted} Messwerte importiert`)
   return totalInserted
+}
+
+if (require.main === module) {
+  processAllCSVFiles().then(count => {
+    console.log(`CSV-Import abgeschlossen. Gesamt: ${count}`)
+    process.exit(0)
+  }).catch(e => {
+    console.error('Fehler beim CSV-Import:', e)
+    process.exit(1)
+  })
 }

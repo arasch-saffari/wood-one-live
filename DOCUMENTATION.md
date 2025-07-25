@@ -20,6 +20,7 @@
 14. [Glossary](#14-glossary)
 15. [Automated Testing & Quality Assurance](#15-automated-testing--quality-assurance)
 16. [Robustness & Monitoring](#16-robustness--monitoring)
+17. [Delta-Updates, Monitoring & Prometheus](#17-delta-updates--monitoring--prometheus)
 
 ---
 
@@ -336,6 +337,30 @@ noise-monitoring-dashboard/
 
 ---
 
+## 17. Delta-Updates, Monitoring & Prometheus (Juli 2024)
+
+- **Delta-Update-Architektur:**
+  - Server-Sent-Events (SSE) für alle Kernbereiche (Messwerte, Wetter, Health, Logs, KPIs).
+  - Frontend lädt Daten automatisch bei neuen Events nach, Polling bleibt als Fallback.
+  - Optionale Erweiterung: WebSocket für bidirektionale Features.
+
+- **Admin Monitoring Panel:**
+  - Live-Status-Badges (OK/Warnung/Alarm) für Importdauer, API-Latenz, Fehlerzähler.
+  - Mini-Linecharts für die letzten 10 Werte jeder Metrik.
+  - Übersichtliche Prometheus-Metriken direkt im Admin-Dashboard.
+
+- **Prometheus-Integration:**
+  - Export von Importdauer, API-Latenz, Fehlerzähler, DB-Größe als /api/metrics (prom-client).
+  - Einbindung in Grafana und Alerting möglich.
+
+- **Fehlerbehebung SSE:**
+  - Initialisierungsfehler im SSE-Stream (ReferenceError bei stream.cancel) behoben, robustes Cleanup implementiert.
+
+- **Optionale Architektur:**
+  - Prometheus-Alerting, gezielte Delta-Updates, automatisierte Tests und weitere Visualisierungen vorbereitet.
+
+---
+
 # API- und Fehlerdokumentation (Update Juli 2024)
 
 ## Wetterdaten-Handling
@@ -397,3 +422,53 @@ noise-monitoring-dashboard/
 **Documentation Version**: 2.2
 **Last Updated**: December 2024
 **Maintained By**: Development Team 
+
+## Performance- und Robustheits-Optimierungen (2025-07)
+
+### SQLite
+- WAL-Modus, `cache_size = 50000` (ca. 50MB), `temp_store = MEMORY`, `synchronous = NORMAL` für bessere Performance bei großen Datenmengen.
+
+### Monitoring
+- Prometheus-Metriken für Importdauer, API-Latenz, DB-Größe, Fehler, RAM (`memory_rss_bytes`), CPU (`cpu_user_seconds_total`, `cpu_system_seconds_total`).
+
+### Memory-Leak-Prävention
+- Cleanup-Hooks für CSV-Watcher und SSE-Subscriber (SIGINT/SIGTERM, regelmäßiges Aufräumen).
+
+### Wetter-API
+- Gibt jetzt immer konsistente Objekte zurück, auch wenn keine Wetterdaten vorhanden sind (`time=now`).
+- Frontend zeigt wieder korrekt Wetterdaten oder "keine Daten verfügbar" an.
+
+### Frontend-Optimierungen
+- Memoization für große Tabellen und Charts (React.memo)
+- Hinweise und Vorbereitungen für virtuelles Scrolling (react-window)
+- Ladeindikatoren und Fehlerbehandlung verbessert 
+
+# Chart-Komponenten
+
+## Multi-Line-Support
+- Die Komponente `GenericChart` unterstützt jetzt beliebig viele Linien (lines[]), nicht mehr nur `las`.
+- Für Multi-Station-Charts (z.B. Dashboard-Übersicht) können beliebige Messreihen als eigene Linien angezeigt werden.
+- Thresholds werden als zusätzliche Linien gerendert und unterstützen eigene y-Achsen.
+
+## Fehlerdiagnose
+- Wenn ein Chart nicht angezeigt wird, prüfe die Browser-Konsole auf `[GenericChart] Keine Linie mit key ...`.
+- Testcharts können einfach mit `<ChartPlayground data={[{...}]} lines={[...]} axes={[...]} />` eingefügt werden.
+
+# Performance & Ressourcen
+- SQLite ist mit WAL, `cache_size = 50000`, `temp_store = MEMORY`, `synchronous = NORMAL` konfiguriert.
+- Cleanup für CSV-Watcher, SSE-Subscriber, Event-Listener und In-Memory-Listen ist implementiert.
+- Prometheus-Metriken für RAM, CPU, DB-Größe, Importdauer, API-Latenz, Fehler sind aktiv.
+- Health-API und Admin-Monitoring-Panel prüfen Systemressourcen und zeigen Alerts an. 
+
+# 15min-Aggregation (Materialized View)
+
+- Die 15min-Aggregation wird regelmäßig per Skript (`scripts/update-15min-agg.ts`) aktualisiert.
+- Die API liest die Werte direkt aus der Tabelle `measurements_15min_agg`.
+- Vorteil: Dashboards und Unterseiten laden auch bei sehr großen Datenmengen in <1s.
+- Das Skript sollte per System-Cronjob alle 5 Minuten laufen (siehe README). 
+
+## Memory-Leak-Fixes (Juni 2024)
+
+- **EventSource-Singleton:** Alle Hooks (useStationData, useWeatherData, useHealth) verwenden jetzt eine gemeinsame EventSource-Instanz pro Seite. Listener werden gezählt und sauber entfernt. Dadurch werden Memory-Leaks und UI-Hänger verhindert.
+- **SIGINT/SIGTERM-Listener-Singleton:** Cleanup-Listener für Prozessende werden jetzt nur noch einmalig registriert (Singleton-Pattern), um MaxListenersExceededWarning zu vermeiden.
+- **Stabileres Hot-Reload:** Durch die Singleton-Pattern gibt es keine doppelten EventListener mehr bei Hot-Reload oder Navigation. Die Seite bleibt performant und stabil. 

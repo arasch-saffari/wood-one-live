@@ -10,6 +10,7 @@ export interface DataTableColumn<T = unknown> {
   key: string
   render?: (row: T) => ReactNode
   sortable?: boolean
+  sortFn?: (a: T, b: T, dir: 'asc' | 'desc') => number
 }
 
 export interface DataTableProps<T = unknown> {
@@ -26,7 +27,7 @@ export interface DataTableProps<T = unknown> {
   sortDirection?: 'asc' | 'desc'
 }
 
-export function DataTable<T = unknown>({
+export function DataTable({
   data,
   columns,
   statusFn,
@@ -38,7 +39,7 @@ export function DataTable<T = unknown>({
   onSort,
   sortKey,
   sortDirection,
-}: DataTableProps<T>) {
+}: DataTableProps<unknown>) {
   const [internalSortKey, setInternalSortKey] = useState<string | undefined>(sortKey)
   const [internalSortDir, setInternalSortDir] = useState<'asc' | 'desc'>(sortDirection || 'asc')
 
@@ -76,27 +77,11 @@ export function DataTable<T = unknown>({
               {statusFn && <TableHead>Status</TableHead>}
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length + (statusFn ? 1 : 0)}>
-                  <LoadingSpinner text="Daten werden geladen..." />
-                </TableCell>
-              </TableRow>
-            ) : data.length === 0 ? (
-              <TableRow><TableCell colSpan={columns.length + (statusFn ? 1 : 0)}>Keine Daten</TableCell></TableRow>
-            ) : data.map((row, i) => {
-              const status = statusFn ? statusFn(row) : null
-              return (
-                <TableRow key={i} className={status ? (status.label === "Alarm" ? "bg-red-50 dark:bg-red-900/30" : status.label === "Warnung" ? "bg-yellow-50 dark:bg-yellow-900/30" : "") : ""}>
-                  {columns.map(col => (
-                    <TableCell key={col.key}>{col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key])}</TableCell>
-                  ))}
-                  {status && <TableCell><StatusBadge status={status.label as "Alarm" | "Warnung" | "Normal"} color={status.color} /></TableCell>}
-                </TableRow>
-              )
-            })}
-          </TableBody>
+          <MemoizedTableBody data={data} columns={columns} statusFn={statusFn} loading={loading} />
+          {/*
+            Für sehr große Tabellen kann react-window für virtuelles Scrolling genutzt werden:
+            https://react-window.vercel.app/#/examples/list/fixed-size
+          */}
         </Table>
       </div>
       {onPageChange && pageCount > 1 && (
@@ -118,4 +103,28 @@ export function DataTable<T = unknown>({
       )}
     </div>
   )
-} 
+}
+
+const MemoizedTableBody = React.memo(function MemoizedTableBody({ data, columns, statusFn, loading }: { data: unknown[], columns: DataTableColumn<unknown>[], statusFn?: (row: unknown) => { label: string; color: string }, loading?: boolean }) {
+  if (loading) {
+    return <TableBody><TableRow><TableCell colSpan={columns.length + (statusFn ? 1 : 0)}><LoadingSpinner text="Daten werden geladen..." /></TableCell></TableRow></TableBody>
+  }
+  if (data.length === 0) {
+    return <TableBody><TableRow><TableCell colSpan={columns.length + (statusFn ? 1 : 0)}>Keine Daten</TableCell></TableRow></TableBody>
+  }
+  return (
+    <TableBody>
+      {data.map((row, i) => {
+        const status = statusFn ? statusFn(row) : null
+        return (
+          <TableRow key={i} className={status ? (status.label === "Alarm" ? "bg-red-50 dark:bg-red-900/30" : status.label === "Warnung" ? "bg-yellow-50 dark:bg-yellow-900/30" : "") : ""}>
+            {columns.map(col => (
+              <TableCell key={col.key}>{col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key])}</TableCell>
+            ))}
+            {status && <TableCell><StatusBadge status={status.label as "Alarm" | "Warnung" | "Normal"} color={status.color} /></TableCell>}
+          </TableRow>
+        )
+      })}
+    </TableBody>
+  )
+}) 

@@ -168,3 +168,35 @@
   - Prettier-Formatierung ist Pflicht
   - React-Hooks nur im Top-Level
 - Linting ist Pflicht vor jedem Commit/PR und wird in CI/CD geprüft. 
+
+## Juli 2024: Delta-Updates, Monitoring & Prometheus
+- SSE (Server-Sent-Events) für Messwerte, Wetter, Health, Logs, KPIs: Frontend lädt Daten automatisch bei neuen Events nach.
+- Admin-Monitoring-Panel: Live-Status-Badges (OK/Warnung/Alarm) und Mini-Linecharts für Importdauer, API-Latenz, Fehlerzähler.
+- Prometheus-Metriken: Importdauer, API-Latenz, Fehlerzähler, DB-Größe als /api/metrics (prom-client).
+- Fehlerbehebung SSE: ReferenceError bei stream.cancel behoben, robustes Cleanup.
+- Optionale Architektur: WebSocket-Upgrade, Prometheus-Alerting, gezielte Delta-Updates, automatisierte Tests, weitere Visualisierungen. 
+
+## Backend/Frontend-Optimierungen & Lessons Learned (2025-07)
+
+- SQLite-Performance-Pragmas (`cache_size`, `temp_store`, `synchronous`) bringen spürbare Performance bei großen Datenmengen, WAL bleibt Standard.
+- Prometheus-Metriken für RAM/CPU helfen bei der Früherkennung von Memory-Leaks und Bottlenecks.
+- Memory-Leak-Prävention: Cleanup-Hooks für CSV-Watcher und SSE-Subscriber sind Pflicht für lange laufende Prozesse.
+- Wetter-API: Fehlerfallbehandlung und konsistente Rückgabe (auch bei leerer DB) sind essenziell für robuste Frontends.
+- Frontend: Memoization für große Tabellen und Charts, react-window als Option für virtuelles Scrolling, Ladeindikatoren und Fehlerbehandlung verbessert.
+- Lessons Learned: 
+  - API-Objekte immer konsistent zurückgeben (nie null/undefined oder Fehlerobjekte ohne Felder).
+  - Cleanup bei SIGINT/SIGTERM verhindert Zombie-Handles und Memory-Leaks.
+  - Monitoring (Prometheus) frühzeitig einbauen, um Ressourcenprobleme zu erkennen. 
+
+# 2024-07-25
+
+- Multi-Line-Support für GenericChart: Alle übergebenen lines werden als eigene Datasets gerendert (nicht mehr nur las).
+- Fehlerursache für leere Charts: lines-Prop muss zu den Daten passen, sonst wird kein Chart angezeigt.
+- Testchart für Debugging empfohlen.
+- SQLite- und Node-Optimierungen: WAL, cache_size, temp_store, Prometheus-Metriken, Health-API.
+- Memory-Leak-Prävention: Cleanup für CSV-Watcher, SSE, Event-Listener, In-Memory-Listen. 
+
+Juni 2024: Memory-Leak-Fixes
+- EventSource-Singleton in allen Hooks (useStationData, useWeatherData, useHealth)
+- SIGINT/SIGTERM-Listener-Singleton in csv-watcher und api/updates
+- Keine MaxListenersExceededWarning mehr, Hot-Reload stabil 

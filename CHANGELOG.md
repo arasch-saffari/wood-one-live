@@ -1,9 +1,22 @@
 # Changelog
 
-## [Unreleased]
-- Weitere Testfälle und End-to-End-Tests geplant
-- Performance-Optimierungen für große Datenmengen
-- Erweiterte Export-Funktionen
+## [Unreleased] - 2024-06-XX
+### Fixed
+- Memory-Leak bei EventSource-Handling in allen React-Hooks (useStationData, useWeatherData, useHealth) behoben: Singleton-Pattern, Listener-Cleanup, keine doppelten Instanzen mehr.
+- SIGINT/SIGTERM-Listener werden jetzt nur noch einmalig pro Prozess registriert (Singleton), keine MaxListenersExceededWarning mehr.
+- Hot-Reload und Navigation führen nicht mehr zu Ressourcenlecks oder UI-Hängern.
+
+## [Unreleased] - 2024-07-25
+### Added
+- Multi-Line-Support für GenericChart: Mehrere Linien pro Chart, dynamische Datasets, Thresholds pro y-Achse.
+- Testchart und Debug-Logs für Chart-Diagnose.
+- Prometheus-Metriken für RAM, CPU, DB-Größe, Importdauer, API-Latenz, Fehler.
+- Health-API und Admin-Monitoring-Panel für Systemressourcen.
+### Fixed
+- Fehlerursache für leere Charts: lines-Prop und Datenstruktur müssen zusammenpassen.
+- Memory-Leak-Prävention: Cleanup für CSV-Watcher, SSE, Event-Listener, In-Memory-Listen.
+### Changed
+- SQLite- und Node-Optimierungen: WAL, cache_size, temp_store, bessere Ressourcenfreigabe.
 
 ## Dezember 2024
 - **Neuer Zugvoegel Dashboard**: Einheitliches Dashboard kombiniert Daten von mehreren Stationen
@@ -21,6 +34,13 @@
 - **Health-Check & Monitoring**: Automatischer täglicher Integritäts-Check der Datenbank
 - **System-Banner**: Integritätsprobleme werden prominent im Admin-UI angezeigt
 - **Teststrategie**: API-Tests prüfen jetzt auch Pagination und das neue Response-Format
+
+## Juli 2024 – Delta-Updates, Monitoring & Prometheus
+- **Delta-Update-Architektur:** Server-Sent-Events (SSE) für alle Kernbereiche (Messwerte, Wetter, Health, Logs, KPIs). Frontend lädt Daten automatisch bei neuen Events nach.
+- **Admin Monitoring Panel:** Live-Status-Badges (OK/Warnung/Alarm) und Mini-Linecharts für Importdauer, API-Latenz, Fehlerzähler. Übersichtliche Prometheus-Metriken im Admin-Dashboard.
+- **Prometheus-Integration:** Export von Importdauer, API-Latenz, Fehlerzähler, DB-Größe als /api/metrics (prom-client).
+- **Fehlerbehebung SSE:** Initialisierungsfehler im SSE-Stream (ReferenceError bei stream.cancel) behoben, robustes Cleanup implementiert.
+- **Optionale Architektur:** WebSocket-Upgrade, Prometheus-Alerting, gezielte Delta-Updates, automatisierte Tests und weitere Visualisierungen vorbereitet.
 
 ## Juni 2024
 - **Automatisierte Tests**: Einführung von Vitest, Testing Library

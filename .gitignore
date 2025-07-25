@@ -35,3 +35,6 @@ logs/system.log
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+backups/*.sqlite
+cache/*.json

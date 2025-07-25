@@ -10,12 +10,16 @@ export interface StationDataPoint {
   datetime?: string // vollständiger Zeitstempel
 }
 
+// EventSource-Singleton für Delta-Updates
+let globalEventSource: EventSource | null = null;
+let globalEventSourceListeners = 0;
+
 export function useStationData(
   station: string,
   interval: "24h" | "7d" = "24h",
   pollInterval: number = 60000, // 1 Minute Standard
   page: number = 1,
-  pageSize: number = 1000,
+  pageSize: number = 50,
   aggregate?: string
 ) {
   const [data, setData] = useState<StationDataPoint[]>([])
@@ -63,11 +67,29 @@ export function useStationData(
     pageRef.current = page
     pageSizeRef.current = pageSize
     fetchAndSetData()
+    let intervalId: NodeJS.Timeout | null = null
     if (pollInterval > 0) {
-      const intervalId = setInterval(() => {
+      intervalId = setInterval(() => {
         fetchAndSetData()
       }, pollInterval)
-      return () => clearInterval(intervalId)
+    }
+    // EventSource: Nur eine Instanz pro Seite, Listener zählen
+    if (!globalEventSource) {
+      globalEventSource = new EventSource('/api/updates')
+    }
+    const handler = () => fetchAndSetData()
+    globalEventSource.addEventListener('update', handler)
+    globalEventSourceListeners++
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+      if (globalEventSource) {
+        globalEventSource.removeEventListener('update', handler)
+        globalEventSourceListeners--
+        if (globalEventSourceListeners <= 0) {
+          globalEventSource.close()
+          globalEventSource = null
+        }
+      }
     }
   }, [station, interval, pollInterval, page, pageSize, aggregate])
   return { data, totalCount, loading, error, page: currentPage, pageSize: currentPageSize }

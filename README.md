@@ -223,3 +223,22 @@ pnpm tsx scripts/clear-logs.ts
 - Das Script entfernt alle *.log-Dateien im `logs/`-Verzeichnis.
 - Führe es vor jedem Deployment oder Server-Neustart aus, um einen sauberen Zustand zu gewährleisten.
 - Optional kannst du auch die Datenbank und Backups zurücksetzen, wenn du komplett neu starten möchtest (siehe Admin-Bereich: Factory Reset).
+
+# 15min-Aggregation für Dashboards
+
+Die 15min-Aggregation wird nicht mehr live in der API berechnet, sondern regelmäßig als materialisierte Tabelle aktualisiert.
+
+- Das Skript `scripts/update-15min-agg.ts` aggregiert alle Messwerte der letzten 7 Tage in 15min-Buckets.
+- Es sollte alle 5 Minuten per System-Cronjob ausgeführt werden, z.B.:
+
+```sh
+*/5 * * * * cd /Users/araschsaffari/code/cursor/wood-one-live && pnpm tsx scripts/update-15min-agg.ts >> logs/agg.log 2>&1
+```
+
+- Du kannst das Skript auch manuell ausführen:
+
+```sh
+pnpm tsx scripts/update-15min-agg.ts
+```
+
+- Die Dashboards und Unterseiten lesen die 15min-Werte direkt aus der Aggregationstabelle und sind dadurch extrem performant.

@@ -1,17 +1,18 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Wind, AlertTriangle, Speaker, MapPin, Music, Volume2, Thermometer, Droplets, Calendar, Clock, Info } from "lucide-react"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useStationData } from "@/hooks/useStationData"
 import { useConfig } from "@/hooks/useConfig"
-import { ChartPlayground } from '@/components/ChartPlayground'
+import ChartPlayground from '@/components/ChartPlayground'
 import { useWeatherData } from '@/hooks/useWeatherData'
 import { STATION_META } from '@/lib/stationMeta'
 import { cn } from '@/lib/utils'
 import { AllStationsTable } from "@/components/AllStationsTable"
+import { getAlarmThresholdForRow, TableRowType } from "@/components/AllStationsTable";
 
 function windDirectionText(dir: number | string | null | undefined): string {
   if (dir === null || dir === undefined) return '–';
@@ -39,12 +40,15 @@ function windDirectionText(dir: number | string | null | undefined): string {
 export default function ZugvoegelDashboard() {
   // ALLE HOOKS GANZ OBEN!
   const { config } = useConfig();
-  const ortDataObj = useStationData("ort", "24h", 60000);
-  const technoDataObj = useStationData("techno", "24h", 60000);
-  const bandDataObj = useStationData("band", "24h", 60000);
-  const ortData = ortDataObj.data ?? []
-  const technoData = technoDataObj.data ?? []
-  const bandData = bandDataObj.data ?? []
+  // Paging-States für jede Station
+  const pageSize = 50;
+  // Daten-Hooks
+  const ortDataObj = useStationData("ort", "24h", 60000, 1, pageSize, "15min");
+  const technoDataObj = useStationData("techno", "24h", 60000, 1, pageSize, "15min");
+  const bandDataObj = useStationData("band", "24h", 60000, 1, pageSize, "15min");
+  const ortData = ortDataObj.data ?? [];
+  const technoData = technoDataObj.data ?? [];
+  const bandData = bandDataObj.data ?? [];
   const { weather: latestWeather } = useWeatherData("global", "now", 60000)
   const [weatherLastUpdate, setWeatherLastUpdate] = useState<{ time: string|null } | null>(null)
   useEffect(() => {
@@ -89,6 +93,30 @@ export default function ZugvoegelDashboard() {
     "Techno Floor": <Volume2 className="w-6 h-6 text-pink-500" />, 
     "Band Bühne": <Music className="w-6 h-6 text-purple-500" />
   }
+
+  const [showOnlyAlarms, setShowOnlyAlarms] = useState(false);
+
+  const mappedOrtData = ortData.map(row => ({
+    ...row,
+    station: "Ort",
+    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
+  }));
+  const mappedTechnoData = technoData.map(row => ({
+    ...row,
+    station: "Techno Floor",
+    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
+  }));
+  const mappedBandData = bandData.map(row => ({
+    ...row,
+    station: "Band Bühne",
+    time: row.time?.match(/^\d{2}:\d{2}/) ? row.time.slice(0, 5) : (row.datetime?.match(/(?:T| )(\d{2}:\d{2})/)?.[1])
+  }));
+
+  const allAlarmRows = [
+    ...mappedOrtData.filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
+    ...mappedTechnoData.filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
+    ...mappedBandData.filter(row => row.las !== undefined && config && getAlarmThresholdForRow(row, config) !== undefined && row.las >= getAlarmThresholdForRow(row, config)),
+  ];
 
   if (!config) return <div className="flex items-center justify-center min-h-[300px] text-gray-400 text-sm">Lade Konfiguration ...</div>;
 
@@ -187,14 +215,25 @@ export default function ZugvoegelDashboard() {
             icon={null}
           />
         </div>
-        {/* Tabellenansicht */}
-        <AllStationsTable 
-          ortData={ortData.map(row => ({ ...row, station: "Ort" }))}
-          technoData={technoData.map(row => ({ ...row, station: "Techno Floor" }))}
-          bandData={bandData.map(row => ({ ...row, station: "Band Bühne" }))}
-          heuballernData={[]}
-          config={config}
-        />
+        {/* Tabellenansicht: Ersetze die drei Einzeltabellen durch eine AllStationsTable wie im All-Dashboard */}
+        <div className="mb-10 w-full">
+          <div className="flex items-center gap-4 mb-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" checked={showOnlyAlarms} onChange={e => setShowOnlyAlarms(e.target.checked)} className="accent-red-600 w-4 h-4" />
+              <span className="text-sm font-medium">Nur Alarme</span>
+            </label>
+          </div>
+          <AllStationsTable
+            ortData={mappedOrtData}
+            heuballernData={[]}
+            technoData={mappedTechnoData}
+            bandData={mappedBandData}
+            alarmRows={showOnlyAlarms ? allAlarmRows : undefined}
+            showOnlyAlarms={showOnlyAlarms}
+            config={config}
+            granularity={"15min"}
+          />
+        </div>
         {/* Grenzwert-Referenz */}
         <Card className="mb-10 rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800">
           <CardHeader className="flex flex-row items-center gap-4 p-6 pb-2">

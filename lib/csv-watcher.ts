@@ -72,6 +72,12 @@ class CSVWatcher {
     if (this.isRunning) return
     this.isRunning = true
     this.initializeWatchedDirectories()
+    // Initial-Import aller vorhandenen CSVs
+    this.processAllFiles().then(({ totalInserted, processedFiles }) => {
+      console.log(`📊 Initial-Import abgeschlossen: ${totalInserted} Messwerte aus ${processedFiles} Dateien importiert.`)
+    }).catch(e => {
+      console.error('❌ Fehler beim Initial-Import:', e)
+    })
     this.checkForNewFiles()
     this.writeHeartbeat()
     this.intervalHandle = setInterval(() => {
@@ -161,5 +167,33 @@ class CSVWatcher {
   }
 }
 
+// Singleton für Event-Listener-Registrierung
+let eventListenersRegistered = false
+
 const csvWatcher = new CSVWatcher()
-export default csvWatcher 
+export default csvWatcher
+
+// Cleanup-Funktion für Ressourcenfreigabe
+export function cleanupCsvWatcher() {
+  const watcher = (globalThis as Record<string, unknown>)['csvWatcherInstance']
+  if (watcher && typeof watcher === 'object' && typeof (watcher as { stop?: () => void }).stop === 'function') {
+    try {
+      (watcher as { stop: () => void }).stop()
+    } catch (error) {
+      console.error('Fehler beim Cleanup des CSV-Watchers:', error)
+    }
+  }
+}
+
+// Registriere Cleanup bei Prozessende (nur einmal)
+if (typeof process !== 'undefined' && process.on && !eventListenersRegistered) {
+  eventListenersRegistered = true
+  process.on('SIGINT', () => {
+    cleanupCsvWatcher()
+    process.exit(0)
+  })
+  process.on('SIGTERM', () => {
+    cleanupCsvWatcher()
+    process.exit(0)
+  })
+} 

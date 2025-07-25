@@ -42,7 +42,7 @@ interface ChartPlaygroundProps {
   tooltipFormatter?: (value: unknown, name: string) => [string, string];
 }
 
-export function ChartPlayground({
+function ChartPlayground({
   data,
   lines,
   axes,
@@ -84,4 +84,5 @@ export function ChartPlayground({
       </CardContent>
     </Card>
   );
-} 
+}
+export default ChartPlayground 

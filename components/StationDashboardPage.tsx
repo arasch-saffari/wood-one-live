@@ -1,10 +1,10 @@
 "use client";
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useStationData, StationDataPoint } from "@/hooks/useStationData"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Music, Volume2, BarChart3 } from "lucide-react"
 import { STATION_COLORS } from "@/lib/colors"
-import { ChartPlayground } from "@/components/ChartPlayground"
+import ChartPlayground from '@/components/ChartPlayground'
 import { useConfig } from "@/hooks/useConfig"
 import { KpiCard } from "@/components/KpiCard"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -113,6 +113,25 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
   }, [chartTotal])
   const { config: globalConfig } = useConfig();
   
+  const [kpi, setKpi] = useState<{ max?: number; avg?: number; trend?: number } | null>(null)
+  useEffect(() => {
+    async function fetchKpi() {
+      const res = await fetch(`/api/station-data?station=${station}&interval=24h&aggregate=kpi`)
+      if (res.ok) {
+        setKpi(await res.json())
+      }
+    }
+    fetchKpi()
+    // SSE-Integration für Delta-Updates
+    const es = new EventSource('/api/updates')
+    es.addEventListener('update', () => {
+      fetchKpi()
+    })
+    return () => {
+      es.close()
+    }
+  }, [station])
+
   // Show loading state while config or data is loading
   if (!globalConfig || dataLoading) {
     return (
@@ -123,12 +142,13 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
     )
   }
   // KPIs
-  const current = typeof chartData[chartData.length - 1]?.las === 'number' ? chartData[chartData.length - 1].las : 0
-  const avg24h = chartData.length > 0 ? (chartData.reduce((a, b) => a + (typeof b.las === 'number' ? b.las : 0), 0) / chartData.length).toFixed(1) : '–'
-  const max24h = chartData.length > 0 ? Math.max(...chartData.map(d => typeof d.las === 'number' ? d.las : 0)) : '–'
-  const trend = chartData.length > 1 && typeof chartData[chartData.length - 2]?.las === 'number'
-    ? (((current - chartData[chartData.length - 2].las) / chartData[chartData.length - 2].las) * 100).toFixed(1)
-    : '–'
+  const current: number = typeof chartData[chartData.length - 1]?.las === 'number' ? chartData[chartData.length - 1].las : 0
+  function safeInt(val: number | undefined): string {
+    return typeof val === 'number' && isFinite(val) ? String(Math.round(val)) : '–'
+  }
+  const avg24h = safeInt(kpi?.avg)
+  const max24h = safeInt(kpi?.max)
+  const trend = safeInt(kpi?.trend)
   const maxData = chartData.length > 0 ? chartData.reduce((max, d) => (typeof d.las === 'number' && d.las > max.las ? d : max), chartData[0]) : undefined
   const maxTime = maxData && maxData.datetime ? new Date(maxData.datetime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'
   const currentWind = typeof chartData[chartData.length - 1]?.ws === 'number' ? chartData[chartData.length - 1].ws : 'keine daten'
@@ -166,15 +186,15 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const statusBox = {
     normal: {
       title: 'Lärmpegel im Normalbereich',
-      text: `Aktueller Pegel: ${current.toFixed(1)} dB. Keine Grenzwertüberschreitung.`
+      text: `Aktueller Pegel: ${Math.round(Number(current))} dB. Keine Grenzwertüberschreitung.`
     },
     warn: {
       title: 'Warnung: Lärmpegel erhöht',
-      text: `Pegel liegt im Warnbereich (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind} km/h.`
+      text: `Pegel liegt im Warnbereich (${Math.round(Number(current))} dB). Windrichtung: ${windDirection} bei ${currentWind} km/h.`
     },
     alarm: {
       title: 'Alarm: Hoher Lärmpegel',
-      text: `Pegel überschreitet Alarmgrenzwert (${current.toFixed(1)} dB). Windrichtung: ${windDirection} bei ${currentWind} km/h.`
+      text: `Pegel überschreitet Alarmgrenzwert (${Math.round(Number(current))} dB). Windrichtung: ${windDirection} bei ${currentWind} km/h.`
     }
   }[status]
   const getStatusBadge = (level: number) => {
@@ -203,7 +223,7 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 md:mb-10">
         <KpiCard
           icon={<BarChart3 className="w-5 h-5 text-blue-500" />}
-          value={typeof current === 'number' ? current.toFixed(1) : '–'}
+          value={typeof current === 'number' ? Math.round(current) : '–'}
           unit="dB"
           label="Aktueller Pegel"
           color="text-blue-500"
@@ -221,7 +241,7 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
         </KpiCard>
         <KpiCard
           icon={<BarChart3 className="w-5 h-5 text-red-400" />}
-          value={typeof max24h === 'number' ? max24h.toFixed(1) : '–'}
+          value={typeof max24h === 'number' ? max24h : '–'}
           unit="dB"
           label="24h Spitze"
           color="text-red-400"
@@ -264,14 +284,20 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
           title=""
           icon={null}
           tooltipFormatter={(value, name) => {
-            if (name === 'ws') return [`${value} km/h`, 'Windgeschwindigkeit']
-            if (name === 'rh') return [`${value} %`, 'Luftfeuchte']
-            if (name === 'las') return [`${value} dB`, 'Lärmpegel']
-            if (name === 'temp') return [`${value}°C`, 'Temperatur']
-            if (Number(value) === thresholds.warning) return [`${value} dB`, 'Warnung (Grenzwert)']
-            if (Number(value) === thresholds.alarm) return [`${value} dB`, 'Alarm (Grenzwert)']
-            if (!name) return [String(value), 'Wert']
-            return [String(value), name]
+            // Fange alle nicht-numerischen Fälle ab
+            if (value === undefined || value === null) return ['–', name || 'Wert'];
+            if (typeof value === 'object') return ['–', name || 'Wert'];
+            if (Array.isArray(value)) return ['–', name || 'Wert'];
+            if (typeof value === 'number' && !isFinite(value)) return ['–', name || 'Wert'];
+            const rounded = typeof value === 'number' ? Math.round(value) : value;
+            if (name === 'ws') return [`${rounded} km/h`, 'Windgeschwindigkeit'];
+            if (name === 'rh') return [`${rounded} %`, 'Luftfeuchte'];
+            if (name === 'las') return [`${rounded} dB`, 'Lärmpegel'];
+            if (name === 'temp') return [`${rounded}°C`, 'Temperatur'];
+            if (typeof rounded === 'number' && rounded === thresholds.warning) return [`${rounded} dB`, 'Warnung (Grenzwert)'];
+            if (typeof rounded === 'number' && rounded === thresholds.alarm) return [`${rounded} dB`, 'Alarm (Grenzwert)'];
+            if (!name) return [String(rounded), 'Wert'];
+            return [String(rounded), name];
           }}
         />
       </div>

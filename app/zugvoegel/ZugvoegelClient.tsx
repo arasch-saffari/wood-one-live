@@ -14,9 +14,10 @@ import { AllStationsTable } from "@/components/AllStationsTable"
 
 export default function ZugvoegelClient({ ortData: initialOrt, technoData: initialTechno, bandData: initialBand, config: initialConfig }) {
   const { config } = useConfig();
-  const ortDataObj = useStationData("ort", "24h", 60000);
-  const technoDataObj = useStationData("techno", "24h", 60000);
-  const bandDataObj = useStationData("band", "24h", 60000);
+  const ortDataObj = useStationData("ort", "24h", 60000, 1, pageSize, "15min")
+  const technoDataObj = useStationData("techno", "24h", 60000, 1, pageSize, "15min")
+  const bandDataObj = useStationData("band", "24h", 60000, 1, pageSize, "15min")
+  const heuballernDataObj = useStationData("heuballern", "24h", 60000, 1, pageSize, "15min")
   const ortData = ortDataObj.data.length ? ortDataObj.data : initialOrt ?? []
   const technoData = technoDataObj.data.length ? technoDataObj.data : initialTechno ?? []
   const bandData = bandDataObj.data.length ? bandDataObj.data : initialBand ?? []
@@ -157,9 +158,21 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
         </div>
         {/* Tabellenansicht */}
         <AllStationsTable 
-          ortData={ortData.map(row => ({ ...row, station: "Ort" }))}
-          technoData={technoData.map(row => ({ ...row, station: "Techno Floor" }))}
-          bandData={bandData.map(row => ({ ...row, station: "Band Bühne" }))}
+          ortData={ortData.map(row => ({
+            ...row,
+            station: "Ort",
+            time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
+          }))}
+          technoData={technoData.map(row => ({
+            ...row,
+            station: "Techno Floor",
+            time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
+          }))}
+          bandData={bandData.map(row => ({
+            ...row,
+            station: "Band Bühne",
+            time: row.time && /^\d{2}:\d{2}/.test(row.time) ? row.time.slice(0, 5) : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
+          }))}
           heuballernData={[]}
           config={effectiveConfig}
         />

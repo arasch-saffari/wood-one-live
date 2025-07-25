@@ -8,6 +8,10 @@ export interface WeatherData {
   noWeatherData?: boolean
 }
 
+// EventSource-Singleton für Delta-Updates
+let globalEventSource: EventSource | null = null;
+let globalEventSourceListeners = 0;
+
 export function useWeatherData(station: string = "global", time: string = "now", pollInterval = 60000) {
   const [weather, setWeather] = useState<WeatherData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -24,17 +28,32 @@ export function useWeatherData(station: string = "global", time: string = "now",
         if (!res.ok) throw new Error("Fehler beim Laden der Wetterdaten")
         const data = await res.json()
         if (mounted) setWeather(data)
-      } catch (e: any) {
-        if (mounted) setError(e.message || "Fehler beim Laden der Wetterdaten")
+      } catch (e: unknown) {
+        if (mounted) setError(e instanceof Error ? e.message : "Fehler beim Laden der Wetterdaten")
       } finally {
         if (mounted) setLoading(false)
       }
     }
     fetchWeather()
     interval = setInterval(fetchWeather, pollInterval)
+    // EventSource: Nur eine Instanz pro Seite, Listener zählen
+    if (!globalEventSource) {
+      globalEventSource = new EventSource('/api/updates')
+    }
+    const handler = () => fetchWeather()
+    globalEventSource.addEventListener('update', handler)
+    globalEventSourceListeners++
     return () => {
       mounted = false
       if (interval) clearInterval(interval)
+      if (globalEventSource) {
+        globalEventSource.removeEventListener('update', handler)
+        globalEventSourceListeners--
+        if (globalEventSourceListeners <= 0) {
+          globalEventSource.close()
+          globalEventSource = null
+        }
+      }
     }
   }, [station, time, pollInterval])
 

@@ -24,6 +24,7 @@ import { ErrorMessage } from "@/components/ErrorMessage"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { cn } from '@/lib/utils'
 import { useTheme } from "next-themes"
+import { AdminMonitoringPanel } from '@/components/AdminMonitoringPanel'
 
 interface CSVFile {
   name: string
@@ -1137,30 +1138,11 @@ export default function AdminDashboard() {
                           <div className="text-sm">Speicher gesamt: <b>{health.diskTotal ? (health.diskTotal/1024/1024/1024).toFixed(2) : '-'} GB</b></div>
                         </CardContent>
                       </Card>
-                      <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
-                        <CardHeader><CardTitle>API-Cache-Dauer</CardTitle></CardHeader>
+                      {/* Monitoring-Panel für Prometheus-Metriken */}
+                      <Card className="w-full max-w-6xl mx-auto mb-8 p-6 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                        <CardHeader><CardTitle>System Monitoring (Prometheus)</CardTitle></CardHeader>
                         <CardContent>
-                          <SettingsForm
-                            fields={[{
-                              name: "apiCacheDuration",
-                              label: "API-Cache-Dauer (Sekunden)",
-                              type: "number",
-                              value: config?.apiCacheDuration ?? 60,
-                              onChange: v => setConfig((prev: Config | null) => {
-                                const num = typeof v === 'number' ? v : Number(v);
-                                if (!prev) return { thresholdsByStationAndTime: {}, apiCacheDuration: num };
-                                return { ...prev, apiCacheDuration: num };
-                              }),
-                              min: 0,
-                              max: 3600,
-                              step: 1,
-                            }]}
-                            onSubmit={e => { e.preventDefault(); handleSave(); }}
-                            submitLabel="Speichern"
-                            loading={saving}
-                            error={configError}
-                          />
-                          <span className="ml-2 text-sm text-gray-500">(0 = kein Caching, Standard: 60)</span>
+                          <AdminMonitoringPanel />
                         </CardContent>
                       </Card>
                       <Card className="w-full max-w-6xl mx-auto mb-8 p-6 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Table as TableIcon, Wind, AlertTriangle, MapPin, Volume2, Droplets, Info, Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react"
+import { Table as TableIcon, Wind, AlertTriangle, Info, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react"
 import { Tooltip as UITooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { DataTableColumn } from "@/components/DataTable"
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select"
@@ -8,6 +8,53 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { STATION_META } from "@/lib/stationMeta"
+// Typen lokal definieren, statt aus page.tsx zu importieren
+type StationKey = "ort" | "techno" | "band" | "heuballern";
+type ThresholdBlock = {
+  from: string;
+  to: string;
+  warning: number;
+  alarm: number;
+  las: number;
+  laf: number;
+};
+type ConfigType = {
+  warningThreshold: number;
+  alarmThreshold: number;
+  lasThreshold: number;
+  lafThreshold: number;
+  stations: StationKey[];
+  enableNotifications: boolean;
+  csvAutoProcess: boolean;
+  backupRetentionDays: number;
+  uiTheme: string;
+  calculationMode: string;
+  adminEmail: string;
+  weatherApiKey: string;
+  apiCacheDuration: number;
+  pollingIntervalSeconds: number;
+  chartLimit: number;
+  pageSize: number;
+  defaultInterval: string;
+  defaultGranularity: string;
+  allowedIntervals: string[];
+  allowedGranularities: string[];
+  chartColors: {
+    primary: string;
+    wind: string;
+    humidity: string;
+    temperature: string;
+    warning: string;
+    danger: string;
+    alarm: string;
+    reference: string;
+    gradients: Record<string, { from: string; to: string }>;
+  };
+  thresholdsByStationAndTime: Record<StationKey, ThresholdBlock[]>;
+  chartVisibleLines: Record<StationKey, string[]>;
+};
 
 function windDirectionText(dir: number | string | null | undefined): string {
   if (dir === null || dir === undefined) return '–';
@@ -32,7 +79,7 @@ function windDirectionText(dir: number | string | null | undefined): string {
   return directions[idx];
 }
 
-type TableRowType = {
+export type TableRowType = {
   datetime?: string;
   time?: string;
   las?: number;
@@ -49,18 +96,44 @@ type AllStationsTableProps = {
   bandData: TableRowType[];
   config: Record<string, unknown>;
   granularity?: string;
+  page?: number;
+  setPage?: (page: number) => void;
+  pageSize?: number;
+  totalCount?: number;
+  alarmRows?: TableRowType[];
+  showOnlyAlarms?: boolean;
+  onAlarmToggle?: (val: boolean) => void;
+  onTopRowChange?: (row: TableRowType | null) => void;
+}
+
+// Hilfsfunktion: robustes Datum-Parsing für verschiedene Formate
+export function parseDate(dt: string | undefined): Date | null {
+  if (!dt) return null;
+  // Ersetze nur das Leerzeichen zwischen Datum und Zeit durch T
+  let iso = dt.replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/, '$1T$2');
+  // Hänge nur dann ein Z an, wenn keine Zeitzone vorhanden ist
+  if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(iso)) iso = iso + 'Z';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) {
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.warn('[parseDate] Ungültiges Datum:', dt, '→', iso);
+    }
+    return null;
+  }
+  return d;
 }
 
 // Hilfsfunktion: Hole den passenden Alarm-Schwellenwert für eine Tabellenzeile
-function getAlarmThresholdForRow(row: TableRowType, config: any): number | undefined {
+export function getAlarmThresholdForRow(row: TableRowType, config: ConfigType): number | undefined {
   if (!config?.thresholdsByStationAndTime || !row.station || !row.time) return undefined;
   // Station-Key normalisieren
-  let stationKey = row.station.toLowerCase();
+  let stationKey = typeof row.station === 'string' ? row.station.toLowerCase() : '';
   if (stationKey === "techno floor") stationKey = "techno";
   if (stationKey === "band bühne") stationKey = "band";
   // Zeit im Format HH:MM extrahieren
   const time = row.time.slice(0, 5);
-  const blocks = config.thresholdsByStationAndTime[stationKey];
+  const blocks = config.thresholdsByStationAndTime[stationKey as StationKey];
   if (!blocks) return undefined;
   // Zeit als Minuten seit Mitternacht
   const [h, m] = time.split(":").map(Number);
@@ -81,13 +154,13 @@ function getAlarmThresholdForRow(row: TableRowType, config: any): number | undef
 }
 
 // Hilfsfunktion: Hole den passenden Warn-Schwellenwert für eine Tabellenzeile
-function getWarningThresholdForRow(row: TableRowType, config: any): number | undefined {
+function getWarningThresholdForRow(row: TableRowType, config: ConfigType): number | undefined {
   if (!config?.thresholdsByStationAndTime || !row.station || !row.time) return undefined;
-  let stationKey = row.station.toLowerCase();
+  let stationKey = typeof row.station === 'string' ? row.station.toLowerCase() : '';
   if (stationKey === "techno floor") stationKey = "techno";
   if (stationKey === "band bühne") stationKey = "band";
   const time = row.time.slice(0, 5);
-  const blocks = config.thresholdsByStationAndTime[stationKey];
+  const blocks = config.thresholdsByStationAndTime[stationKey as StationKey];
   if (!blocks) return undefined;
   const [h, m] = time.split(":").map(Number);
   const minutes = h * 60 + m;
@@ -105,42 +178,94 @@ function getWarningThresholdForRow(row: TableRowType, config: any): number | und
   return blocks[0]?.warning;
 }
 
-export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity }: AllStationsTableProps) {
+export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity, page, setPage, pageSize, totalCount, alarmRows, showOnlyAlarms: showOnlyAlarmsProp, onAlarmToggle, onTopRowChange }: AllStationsTableProps) {
   const [showWeather, setShowWeather] = useState(false)
   const [search, setSearch] = useState("")
   const [filterStation, setFilterStation] = useState("")
   const [filterDate, setFilterDate] = useState("")
-  const [page, setPage] = useState(1)
-  const pageSize = 25
   // const [filter15min, setFilter15min] = useState(false) // Entfernt, da Aggregation jetzt über API
-  const [showOnlyAlarms, setShowOnlyAlarms] = useState(false)
+  // showOnlyAlarms: Entweder Prop oder lokaler State (Fallback)
+  const [showOnlyAlarmsState, setShowOnlyAlarmsState] = useState(false)
+  const showOnlyAlarms = showOnlyAlarmsProp !== undefined ? showOnlyAlarmsProp : showOnlyAlarmsState
+  const handleAlarmToggle = onAlarmToggle ?? setShowOnlyAlarmsState
 
-  const tableRows: TableRowType[] = [
+  // Gesamtdaten für Filter und Dropdowns
+  const allRawRows: TableRowType[] = [
     ...ortData.map(row => ({ ...row, station: "Ort" })),
     ...technoData.map(row => ({ ...row, station: "Techno Floor" })),
     ...bandData.map(row => ({ ...row, station: "Band Bühne" })),
     ...heuballernData.map(row => ({ ...row, station: "Heuballern" })),
-  ]
+  ];
+
+  // tableRows: Im Alarmmodus alarmRows, sonst wie bisher
+  const tableRows: TableRowType[] = showOnlyAlarms && alarmRows ? alarmRows : allRawRows;
+
+  // Dropdowns: Alle Daten (nicht nur aktuelle Seite)
+  const allStations = useMemo(() => Array.from(new Set(allRawRows.map(r => r.station))), [allRawRows])
+  // allDatesList: Alle Datumswerte aus dem gesamten, ungefilterten Datensatz (unabhängig von Pagination/Filter)
+  const allDatesList = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of allRawRows) {
+      const d = parseDate(r.datetime);
+      if (d) set.add(d.toLocaleDateString('de-DE'));
+    }
+    return Array.from(set).sort((a, b) => {
+      // Sortiere nach Datum absteigend
+      const da = a.split('.').reverse().join('-');
+      const db = b.split('.').reverse().join('-');
+      return db.localeCompare(da);
+    });
+  }, [allRawRows]);
+
+  // Debug: Logge die eingehenden Daten für Analyse
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[AllStationsTable] ortData:', ortData.map(r => r.datetime));
+    // eslint-disable-next-line no-console
+    console.log('[AllStationsTable] technoData:', technoData.map(r => r.datetime));
+    // eslint-disable-next-line no-console
+    console.log('[AllStationsTable] bandData:', bandData.map(r => r.datetime));
+  }
+  // Sortier-Logik
+  const [sortKey, setSortKey] = useState<string>('datetime')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [userSorted, setUserSorted] = useState(false);
+  // Reset sortKey/sortDir auf 'datetime'/'desc', wenn sich die Datenquelle ändert
+  // Sortiere nur, wenn der User explizit sortiert hat
   const tableColumns: DataTableColumn<TableRowType>[] = [
-    { label: "Datum", key: "datetime", sortable: true, render: (row: TableRowType) => {
-      if (!row.datetime) return "-"
-      // SSR-sicheres ISO-Format YYYY-MM-DD
-      const d = new Date(row.datetime)
-      return isNaN(d.getTime()) ? row.datetime : d.toISOString().slice(0, 10)
-    } },
+    { label: "Datum", key: "datetime", sortable: true, 
+      sortFn: (a: TableRowType, b: TableRowType, dir: 'asc' | 'desc') => {
+        const aDate = parseDate(a.datetime);
+        const bDate = parseDate(b.datetime);
+        if (!aDate || !bDate) return 0;
+        return dir === 'asc' ? aDate.getTime() - bDate.getTime() : bDate.getTime() - aDate.getTime();
+      },
+      render: (row: TableRowType) => {
+        if (!row.datetime) return "-"
+        const d = parseDate(row.datetime)
+        if (typeof window !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.log('Datum raw:', row.datetime, '→', d ? d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'INVALID');
+        }
+        return d ? d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : row.datetime
+      } },
     { label: "Zeit", key: "time", sortable: true, render: (row: TableRowType) => {
-      if (!row.time) return "-"
-      // Nur HH:mm anzeigen, egal ob row.time mit oder ohne Sekunden kommt
-      // Unterstützt Formate wie "04:45:59" oder "04:45"
-      const match = row.time.match(/^(\d{2}:\d{2})/)
-      return match ? match[1] : row.time.slice(0, 5)
+      if (row.time && /^\d{2}:\d{2}/.test(row.time)) return row.time.slice(0, 5);
+      if (row.datetime && row.datetime.length >= 16) return row.datetime.slice(11, 16);
+      return "-";
     } },
     { label: "dB", key: "las", sortable: true, render: (row: TableRowType) => {
       if (row.las === undefined) return "-";
-      const alarm = getAlarmThresholdForRow(row, config);
-      const warning = getWarningThresholdForRow(row, config);
+      const alarm = getAlarmThresholdForRow(row, config as ConfigType);
+      const warning = getWarningThresholdForRow(row, config as ConfigType);
+      // StationKey für Farblogik extrahieren
+      let stationKey = typeof row.station === 'string' ? row.station.toLowerCase() : '';
+      if (stationKey === "techno floor") stationKey = "techno";
+      if (stationKey === "band bühne") stationKey = "band";
+      // chartColor aus STATION_META
+      const chartColor = STATION_META[stationKey as StationKey]?.chartColor;
       let bg = "";
-      let badgeColor = "bg-emerald-200 dark:bg-emerald-900/30";
+      let badgeColor = chartColor ? `ring-2 ring-[${chartColor}]` : "bg-emerald-200 dark:bg-emerald-900/30";
       let badgeLabel = "Normalbereich";
       if (typeof alarm === 'number' && row.las >= alarm) {
         bg = "bg-red-100 dark:bg-red-900/30";
@@ -156,18 +281,18 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
           <TooltipTrigger asChild>
             <span className={`px-2 py-1 rounded inline-flex items-center gap-1 ${bg}`}
               tabIndex={0}
-              aria-label={`Lärmpegel: ${row.las.toFixed(1)} dB, Status: ${badgeLabel}, Warnung ab ${typeof warning === 'number' ? warning : '-'} dB, Alarm ab ${typeof alarm === 'number' ? alarm : '-'} dB`}
+              aria-label={`Lärmpegel: ${Math.round(row.las)} dB, Status: ${badgeLabel}, Warnung ab ${typeof warning === 'number' ? Math.round(warning) : '-'} dB, Alarm ab ${typeof alarm === 'number' ? Math.round(alarm) : '-'} dB`}
             >
               <span className={`inline-block w-2 h-2 rounded-full mr-1 ${badgeColor}`} aria-label={badgeLabel} />
-              {row.las.toFixed(1)}
+              {Math.round(row.las)}
               <Info className="w-3 h-3 text-gray-400 ml-1" aria-hidden="true" />
             </span>
           </TooltipTrigger>
           <TooltipContent>
             <div className="text-xs">
               <div><b>Status:</b> {badgeLabel}</div>
-              <div><b>Warnung ab:</b> {typeof warning === 'number' ? warning.toFixed(1) : '-'} dB</div>
-              <div><b>Alarm ab:</b> {typeof alarm === 'number' ? alarm.toFixed(1) : '-'} dB</div>
+              <div><b>Warnung ab:</b> {typeof warning === 'number' ? Math.round(warning) : '-'} dB</div>
+              <div><b>Alarm ab:</b> {typeof alarm === 'number' ? Math.round(alarm) : '-'} dB</div>
             </div>
           </TooltipContent>
         </UITooltip>
@@ -180,11 +305,81 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
     ] : []),
     { label: "Ort", key: "station", sortable: true },
   ]
-  // Sortier-Logik
-  const [sortKey, setSortKey] = useState<string>('datetime')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const filteredRows = useMemo(() => {
+    let rows = tableRows;
+    if (userSorted) {
+      const col = tableColumns.find(c => c.key === sortKey);
+      if (col && typeof col.sortFn === 'function') {
+        rows = [...rows].sort((a, b) => col.sortFn!(a, b, sortDir));
+      } else {
+        rows = [...rows].sort((a, b) => {
+          const aVal = a[sortKey as keyof TableRowType];
+          const bVal = b[sortKey as keyof TableRowType];
+          if (aVal == null && bVal == null) return 0;
+          if (aVal == null) return 1;
+          if (bVal == null) return -1;
+          if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+          }
+          return sortDir === 'asc'
+            ? String(aVal).localeCompare(String(bVal))
+            : String(bVal).localeCompare(String(aVal));
+        });
+      }
+    }
+    return rows;
+  }, [tableRows, sortKey, sortDir, userSorted, tableColumns]);
+
+  // Filterung: "Nur Alarme" zeigt ausschließlich Datensätze, die als Alarm eingestuft sind
+  const effectivePage = page ?? 1
+  const effectiveSetPage = setPage ?? (() => {})
+  const effectivePageSize = pageSize ?? 25
+  const effectiveTotalCount = totalCount ?? filteredRows.length
+  const filteredAndSearchedRows = useMemo(() => {
+    let rows = filteredRows;
+    // Filter nach Datum
+    if (filterDate) {
+      rows = rows.filter(r => {
+        const d = parseDate(r.datetime);
+        return d && d.toLocaleDateString('de-DE') === filterDate;
+      });
+    }
+    // Filter nach Station
+    if (filterStation) {
+      rows = rows.filter(r => r.station === filterStation);
+    }
+    // Suche
+    if (search) {
+      const s = search.toLowerCase();
+      rows = rows.filter(r =>
+        Object.values(r).some(val =>
+          typeof val === 'string' && val.toLowerCase().includes(s)
+        )
+      );
+    }
+    return rows;
+  }, [filteredRows, filterDate, filterStation, search]);
+  const effectiveTotalFiltered = filteredAndSearchedRows.length;
+  const pageCount = Math.ceil(effectiveTotalFiltered / effectivePageSize);
+  const pagedRows = useMemo<TableRowType[]>(() => {
+    // Wenn serverseitiges Paging: ortData, technoData, ... sind schon die aktuelle Seite
+    if (page !== undefined && pageSize !== undefined && totalCount !== undefined) {
+      return filteredAndSearchedRows // filteredRows ist schon die aktuelle Seite
+    }
+    // Fallback: clientseitiges Paging
+    return filteredAndSearchedRows.slice((effectivePage-1)*effectivePageSize, effectivePage*effectivePageSize)
+  }, [filteredAndSearchedRows, effectivePage, effectivePageSize, page, pageSize, totalCount])
+
+  // Notify parent of the top row (first visible row) whenever pagedRows changes
+  React.useEffect(() => {
+    if (onTopRowChange) {
+      onTopRowChange(pagedRows.length > 0 ? pagedRows[0] : null);
+    }
+  }, [onTopRowChange, pagedRows]);
 
   function handleSort(key: string) {
+    setUserSorted(true);
     if (sortKey === key) {
       setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
     } else {
@@ -205,75 +400,15 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
     )
   }
 
-  // Filtere auf echte 15-Minuten-Zeitpunkte (Minuten 0, 15, 30, 45, egal welche Sekunden), aber nur einen Wert pro Slot
-  const filteredTableRows = useMemo(() => {
-    // Zuerst: Nur Werte mit Minuten 0, 15, 30, 45
-    const candidates = tableRows.filter(row => {
-      if (!row.time) return false;
-      const match = row.time.match(/^([0-2][0-9]):([0-5][0-9])(:[0-5][0-9])?$/);
-      if (!match) return false;
-      const min = parseInt(match[2], 10);
-      return min % 15 === 0;
-    });
-    // Dann: Pro Datum+Stunde+Minute nur einen Wert behalten (z.B. den mit der höchsten/letzten Sekunde)
-    const seen = new Set<string>();
-    const unique = [];
-    for (let i = candidates.length - 1; i >= 0; i--) { // von hinten, damit der letzte Wert pro Slot bleibt
-      const row = candidates[i];
-      const date = row.datetime ? new Date(row.datetime).toLocaleDateString('de-DE') : '';
-      const hm = row.time ? row.time.slice(0,5) : '';
-      const key = `${date}|${hm}|${row.station}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push(row);
-      }
-    }
-    return unique.reverse(); // wieder chronologisch
-  }, [tableRows]);
-  const filteredRows = useMemo(() => {
-    let rows = filteredTableRows.filter((row: TableRowType) => {
-      if (filterStation && row.station !== filterStation) return false
-      if (filterDate && row.datetime && new Date(row.datetime).toLocaleDateString('de-DE') !== filterDate) return false
-      if (search) {
-        const s = search.toLowerCase()
-        return Object.values(row).some(val => (val ? String(val).toLowerCase().includes(s) : false))
-      }
-      if (showOnlyAlarms && config?.thresholdsByStationAndTime) {
-        if (typeof row.las !== 'number') return false
-        const alarm = getAlarmThresholdForRow(row, config)
-        if (typeof alarm !== 'number') return false
-        return row.las >= alarm
-      }
-      return true
-    })
-    rows = [...rows].sort((a, b) => {
-      const aVal = a[sortKey as keyof TableRowType]
-      const bVal = b[sortKey as keyof TableRowType]
-      if (aVal == null && bVal == null) return 0
-      if (aVal == null) return 1
-      if (bVal == null) return -1
-      if (sortKey === 'datetime') {
-        const aDate = new Date(aVal as string)
-        const bDate = new Date(bVal as string)
-        return sortDir === 'asc' ? aDate.getTime() - bDate.getTime() : bDate.getTime() - aDate.getTime()
-      }
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortDir === 'asc' ? aVal - bVal : bVal - aVal
-      }
-      return sortDir === 'asc'
-        ? String(aVal).localeCompare(String(bVal))
-        : String(bVal).localeCompare(String(aVal))
-    })
-    // filter15min entfernt
-    return rows
-  }, [filteredTableRows, filterStation, filterDate, search, sortKey, sortDir, showOnlyAlarms, config?.thresholdsByStationAndTime])
-  const pageCount = Math.ceil(filteredRows.length / pageSize)
-  const pagedRows = useMemo<TableRowType[]>(() => filteredRows.slice((page-1)*pageSize, page*pageSize), [filteredRows, page, pageSize])
-  const allStations = useMemo(() => Array.from(new Set(tableRows.map(r => r.station))), [tableRows])
-  const allDates = useMemo(() => {
-    const dateSet = new Set(tableRows.map(r => r.datetime ? new Date(r.datetime).toLocaleDateString('de-DE') : "-"));
-    return Array.from(dateSet).filter((d): d is string => d !== "-");
-  }, [tableRows])
+  // Debug: Logge die Datenmengen für Analyse
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[AllStationsTable] tableRows:', tableRows.length, tableRows[0]);
+    // eslint-disable-next-line no-console
+    console.log('[AllStationsTable] filteredTableRows:', filteredRows.length, filteredRows[0]);
+    // eslint-disable-next-line no-console
+    console.log('[AllStationsTable] filteredRows:', filteredRows.length, filteredRows[0]);
+  }
 
   return (
     <Card className="mb-10 rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800">
@@ -299,21 +434,23 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Alle Daten</SelectItem>
-                {allDates.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                {allDatesList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div className="w-full md:w-[150px]">
-            <Select value={filterStation || 'all'} onValueChange={v => setFilterStation(v === 'all' ? '' : v)}>
-              <SelectTrigger className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 transition">
-                <span>{filterStation ? filterStation : 'Ort'}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle Orte</SelectItem>
-                {allStations.map(st => <SelectItem key={st} value={st}>{st}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {allStations.length > 1 && (
+            <div className="w-full md:w-[150px]">
+              <Select value={filterStation || 'all'} onValueChange={v => setFilterStation(v === 'all' ? '' : v)}>
+                <SelectTrigger className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 transition">
+                  <span>{filterStation ? filterStation : 'Ort'}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Orte</SelectItem>
+                  {allStations.map(st => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="w-full md:w-[170px]">
             {/* Removed filter15min Select */}
           </div>
@@ -335,9 +472,9 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
               <UITooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className={"w-5 h-5 " + (showOnlyAlarms ? "text-red-600 dark:text-red-400" : "text-gray-400 dark:text-gray-600")} />
+                    <AlertTriangle className={"w-5 h-5 " + (showOnlyAlarms ? "text-red-600 dark:text-red-400" : "text-gray-400 dark:text-gray-600")}/>
                     <Label htmlFor="showOnlyAlarms" className="text-xs font-medium">Nur Alarme</Label>
-                    <Switch id="showOnlyAlarms" checked={showOnlyAlarms} onCheckedChange={setShowOnlyAlarms} />
+                    <Switch id="showOnlyAlarms" checked={!!showOnlyAlarms} onCheckedChange={handleAlarmToggle} />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>Nur Einträge mit Alarm anzeigen</TooltipContent>
@@ -345,7 +482,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
             </div>
           </div>
         </div>
-        <div className="w-full overflow-x-auto max-w-full pb-2 min-w-[320px]">
+        <ScrollArea className="w-full max-w-full pb-2 min-w-[320px]">
           <table className="min-w-full text-xs md:text-sm border-separate border-spacing-y-2 rounded-xl overflow-hidden">
             <thead className="bg-gray-100 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
               <tr>
@@ -356,51 +493,27 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
                     onClick={() => handleSort(col.key)}
                     scope="col"
                   >
-                    <div className="flex items-center gap-1 w-full">
-                      <span className="flex items-center gap-1">
-                        {col.key === 'datetime' && <UITooltip><TooltipTrigger asChild><Calendar className="w-4 h-4 text-blue-400" /></TooltipTrigger><TooltipContent>Datum</TooltipContent></UITooltip>}
-                        {col.key === 'ws' && <UITooltip><TooltipTrigger asChild><Wind className="w-4 h-4 text-cyan-500" /></TooltipTrigger><TooltipContent>Wind</TooltipContent></UITooltip>}
-                        {col.key === 'wd' && <UITooltip><TooltipTrigger asChild><Info className="w-4 h-4 text-purple-400" /></TooltipTrigger><TooltipContent>Windrichtung</TooltipContent></UITooltip>}
-                        {col.key === 'rh' && <UITooltip><TooltipTrigger asChild><Droplets className="w-4 h-4 text-blue-400" /></TooltipTrigger><TooltipContent>Luftfeuchte</TooltipContent></UITooltip>}
-                        {col.key === 'station' && <UITooltip><TooltipTrigger asChild><MapPin className="w-4 h-4 text-emerald-500" /></TooltipTrigger><TooltipContent>Ort</TooltipContent></UITooltip>}
-                        {col.key === 'las' && <UITooltip><TooltipTrigger asChild><Volume2 className="w-4 h-4 text-pink-500" /></TooltipTrigger><TooltipContent>dB</TooltipContent></UITooltip>}
-                        {col.key === 'time' && <UITooltip><TooltipTrigger asChild><Clock className="w-4 h-4 text-gray-400" /></TooltipTrigger><TooltipContent>Zeit</TooltipContent></UITooltip>}
-                      </span>
-                      {col.sortable && getSortIcon(col.key)}
-                    </div>
+                    {col.label}
+                    {getSortIcon(col.key)}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {filteredRows.length === 0 ? (
-                <tr><td colSpan={tableColumns.length} className="text-gray-400 text-center py-4">Keine Daten</td></tr>
-              ) : filteredRows.slice((page-1)*pageSize, page*pageSize).map((row: TableRowType, i: number) => (
-                <tr key={i} className={
-                  `transition rounded-xl shadow-sm ` +
-                  (i % 2 === 0 ? 'bg-white/90 dark:bg-gray-900/40' : 'bg-gray-50 dark:bg-gray-800/40') +
-                  ' hover:bg-blue-50/60 dark:hover:bg-blue-900/20'
-                }>
-                  {tableColumns.map((col: DataTableColumn<TableRowType>) => (
-                    <td key={col.key} className={
-                      `py-2 align-middle whitespace-nowrap ` +
-                      (col.key === 'wd' || col.key === 'rh' ? 'hidden xs:table-cell' : '') +
-                      ' px-1 md:px-3'
-                    }>
-                      {col.render ? col.render(row) : row[col.key as keyof TableRowType]}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
+            <MemoizedTableBody rows={pagedRows} tableColumns={tableColumns} />
           </table>
-          <Pagination className="mt-4 select-none min-w-[180px]">
+        </ScrollArea>
+        {/*
+          Für noch größere Tabellen kann react-window für virtuelles Scrolling genutzt werden:
+          https://react-window.vercel.app/#/examples/list/fixed-size
+          Die aktuelle Pagination bleibt dabei als Fallback erhalten.
+        */}
+        <Pagination className="mt-4 select-none min-w-[180px]">
             <PaginationContent>
               <PaginationItem>
                 <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
+                  onClick={() => effectiveSetPage(Math.max(1, effectivePage - 1))}
                   className="h-8 w-8 md:h-9 md:w-9 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900 transition disabled:opacity-50"
-                  disabled={page === 1}
+                  disabled={effectivePage === 1}
                   aria-label="Vorherige Seite"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -412,40 +525,40 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
                 const maxPages = pageCount;
                 const delta = 1;
                 const range = [];
-                for (let i = Math.max(2, page - delta); i <= Math.min(maxPages - 1, page + delta); i++) {
+                for (let i = Math.max(2, effectivePage - delta); i <= Math.min(maxPages - 1, effectivePage + delta); i++) {
                   range.push(i);
                 }
                 if (maxPages <= 7) {
                   for (let i = 1; i <= maxPages; i++) {
                     items.push(
                       <PaginationItem key={i}>
-                        <PaginationLink isActive={i === page} onClick={() => setPage(i)} className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-base font-semibold" >{i}</PaginationLink>
+                        <PaginationLink isActive={i === effectivePage} onClick={() => effectiveSetPage(i)} className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-base font-semibold" >{i}</PaginationLink>
                       </PaginationItem>
                     );
                   }
                 } else {
                   items.push(
                     <PaginationItem key={1}>
-                      <PaginationLink isActive={page === 1} onClick={() => setPage(1)}>1</PaginationLink>
+                      <PaginationLink isActive={effectivePage === 1} onClick={() => effectiveSetPage(1)}>1</PaginationLink>
                     </PaginationItem>
                   );
-                  if (page - delta > 2) {
+                  if (effectivePage - delta > 2) {
                     items.push(<PaginationItem key="start-ellipsis"><span className="px-2 text-lg">…</span></PaginationItem>);
                   }
                   range.forEach(i => {
                     items.push(
                       <PaginationItem key={i}>
-                        <PaginationLink isActive={i === page} onClick={() => setPage(i)} className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-base font-semibold">{i}</PaginationLink>
+                        <PaginationLink isActive={i === effectivePage} onClick={() => effectiveSetPage(i)} className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-base font-semibold">{i}</PaginationLink>
                       </PaginationItem>
                     );
                   });
-                  if (page + delta < maxPages - 1) {
+                  if (effectivePage + delta < maxPages - 1) {
                     items.push(<PaginationItem key="end-ellipsis"><span className="px-2 text-lg">…</span></PaginationItem>);
                   }
                   if (maxPages > 1) {
                     items.push(
                       <PaginationItem key={maxPages}>
-                        <PaginationLink isActive={page === maxPages} onClick={() => setPage(maxPages)} className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-base font-semibold">{maxPages}</PaginationLink>
+                        <PaginationLink isActive={effectivePage === maxPages} onClick={() => effectiveSetPage(maxPages)} className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-base font-semibold">{maxPages}</PaginationLink>
                       </PaginationItem>
                     );
                   }
@@ -454,9 +567,9 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
               })()}
               <PaginationItem>
                 <button
-                  onClick={() => setPage(Math.min(pageCount, page + 1))}
+                  onClick={() => effectiveSetPage(Math.min(pageCount, effectivePage + 1))}
                   className="h-8 w-8 md:h-9 md:w-9 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900 transition disabled:opacity-50"
-                  disabled={page === pageCount}
+                  disabled={effectivePage === pageCount}
                   aria-label="Nächste Seite"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -464,8 +577,37 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
               </PaginationItem>
             </PaginationContent>
           </Pagination>
-        </div>
       </CardContent>
     </Card>
   )
-} 
+}
+
+const MemoizedTableBody = React.memo(function MemoizedTableBody({ rows, tableColumns }: { rows: TableRowType[], tableColumns: DataTableColumn<TableRowType>[] }) {
+  if (rows.length === 0) {
+    return <tbody><tr><td colSpan={tableColumns.length} className="text-gray-400 text-center py-4">Keine Daten</td></tr></tbody>
+  }
+  return (
+    <tbody>
+      {rows.map((row, i) => (
+        <tr key={i} className={
+          `transition rounded-xl shadow-sm ` +
+          (i % 2 === 0 ? 'bg-white/90 dark:bg-gray-900/40' : 'bg-gray-50 dark:bg-gray-800/40') +
+          ' hover:bg-blue-50/60 dark:hover:bg-blue-900/20'
+        }>
+          {tableColumns.map((col: DataTableColumn<TableRowType>) => (
+            <td key={col.key} className={
+              `py-2 align-middle whitespace-nowrap ` +
+              (col.key === 'wd' || col.key === 'rh' ? 'hidden xs:table-cell' : '') +
+              ' px-1 md:px-3'
+            }>
+              {(() => {
+                const value = col.render ? col.render(row) : row[col.key as keyof TableRowType];
+                return typeof value === 'number' ? parseInt(String(value), 10) : value;
+              })()}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  )
+})

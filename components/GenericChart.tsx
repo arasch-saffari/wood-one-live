@@ -13,7 +13,6 @@ import {
   Chart,
   TooltipItem,
 } from "chart.js";
-// import zoomPlugin from "chartjs-plugin-zoom"; // Wird dynamisch importiert
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -36,33 +35,32 @@ interface GenericChartThreshold {
   color: string;
   yAxisId?: string;
 }
-interface GenericChartProps {
-  data: Array<Record<string, unknown>>;
-  lines: GenericChartLine[];
-  axes: GenericChartAxis[];
-  thresholds?: GenericChartThreshold[];
-  legend?: boolean;
-  height?: number;
+type GenericChartProps = {
+  data: any[]
+  lines: any[]
+  axes: any[]
+  thresholds?: any[]
+  legend?: boolean
+  height?: number
+  tooltipFormatter?: {
+    label?: (ctx: any) => string | string[]
+    [key: string]: any
+  }
 }
 
-export function GenericChart({
+const GenericChartInner = ({
   data,
   lines,
   axes,
   thresholds = [],
   legend = true,
   height = 400,
-}: GenericChartProps) {
+  tooltipFormatter,
+}: GenericChartProps) => {
   const chartRef = useRef<Chart<"line"> | null>(null);
-  // Dynamischer Import von chartjs-plugin-zoom nur im Client
-  useEffect(() => {
-    (async () => {
-      if (typeof window !== "undefined") {
-        const mod = await import("chartjs-plugin-zoom");
-        ChartJS.register(mod.default);
-      }
-    })();
-  }, []);
+  const zoomRegistered = { current: false };
+
+  // chartjs-plugin-zoom temporär entfernt
 
   // User-Auswahl: wie viele Datenpunkte anzeigen
   const [showAll, setShowAll] = useState(false);
@@ -86,40 +84,40 @@ export function GenericChart({
     if (d.time != null) return String(d.time);
     return "";
   });
-  // Y-Daten: Lärmpegel
-  const lasLine = lines.find((l) => l.key === "las");
-  if (!lasLine) return null;
-  const lasData = slicedData.map((d) => (typeof d.las === "number" ? d.las : null));
-  // Schwellenwerte als zusätzliche Dataset-Linien
+  // Multi-Line-Support: Erzeuge für jede line ein eigenes Dataset
+  const datasets = lines.map((line) => ({
+    label: line.label,
+    data: slicedData.map((d) => (typeof d[line.key] === "number" ? d[line.key] : null)),
+    borderColor: typeof line.color === 'string' ? line.color : '#6366f1',
+    backgroundColor: typeof line.color === 'string' ? line.color : '#6366f1',
+    borderWidth: 3,
+    pointRadius: 3,
+    fill: false,
+    yAxisID: line.yAxisId || "left",
+    tension: 0.35,
+    borderCapStyle: "round" as const,
+    cubicInterpolationMode: "monotone" as const,
+    borderDash: line.strokeDasharray ? line.strokeDasharray.split(' ').map(Number) : undefined,
+    hidden: line.visible === false,
+  }))
+  // Thresholds als zusätzliche Linien (immer auf yAxisId der ersten line oder "left")
   const thresholdDatasets = thresholds.map((thr) => ({
     label: thr.label,
     data: slicedData.map(() => thr.value),
     borderColor: typeof thr.color === 'string' ? thr.color : '#6366f1',
+    backgroundColor: typeof thr.color === 'string' ? thr.color : '#6366f1',
     borderDash: [6, 6],
     borderWidth: 2,
     pointRadius: 0,
     fill: false,
-    yAxisID: lasLine.yAxisId || "left",
+    yAxisID: thr.yAxisId || (lines[0]?.yAxisId || "left"),
     tension: 0,
     borderCapStyle: "round" as const,
-  }));
-  // Chart.js Dataset
-  const datasets = [
-    {
-      label: lasLine.label,
-      data: lasData,
-      borderColor: typeof lasLine.color === 'string' ? lasLine.color : '#6366f1',
-      backgroundColor: typeof lasLine.color === 'string' ? lasLine.color : '#6366f1',
-      borderWidth: 3,
-      pointRadius: 3,
-      fill: false,
-      yAxisID: lasLine.yAxisId || "left",
-      tension: 0.35,
-      borderCapStyle: "round" as const,
-      cubicInterpolationMode: "monotone" as const,
-    },
-    ...thresholdDatasets,
-  ];
+    cubicInterpolationMode: "monotone" as const,
+    hidden: false,
+    order: 100,
+  }))
+  datasets.push(...thresholdDatasets)
   // Achsen-Konfiguration
   const leftAxis = axes.find((a) => a.orientation === "left");
   // Farben für Light/Dark Mode
@@ -160,34 +158,22 @@ export function GenericChart({
         borderWidth: 1,
         padding: 12,
         cornerRadius: 8,
-        callbacks: {
+        callbacks: tooltipFormatter ? tooltipFormatter : {
           label: (ctx: TooltipItem<'line'>) => {
-            if (ctx.dataset.label === lasLine.label) {
-              return ` ${lasLine.label}: ${ctx.parsed.y} dB`;
+            const line = datasets.find(ds => ds.label === ctx.dataset.label);
+            const value = typeof ctx.parsed.y === 'number' ? Math.round(ctx.parsed.y) : ctx.parsed.y;
+            if (line) {
+              return ` ${line.label}: ${value} dB`;
             }
-            return ` ${ctx.dataset.label}: ${ctx.parsed.y} dB`;
+            return ` ${ctx.dataset.label}: ${value} dB`;
           },
         },
       },
       title: { display: false },
-      zoom: {
-        pan: {
-          enabled: true,
-          mode: 'x' as const,
-          modifierKey: 'ctrl' as const,
-        },
-        zoom: {
-          wheel: { enabled: true },
-          pinch: { enabled: true },
-          mode: 'x' as const,
-        },
-        limits: {
-          x: { minRange: 5 },
-        },
-      },
+      // zoom: chartjs-plugin-zoom temporär entfernt
     },
     scales: {
-      [lasLine.yAxisId || "left"]: {
+      [leftAxis?.id || "left"]: {
         type: "linear" as const,
         position: "left" as const,
         min: leftAxis?.domain?.[0] ?? 30,
@@ -231,15 +217,12 @@ export function GenericChart({
   }
   // Fallback: Kein Chart, wenn keine Daten
   const hasData = labels.length > 0 && datasets.some(ds => Array.isArray(ds.data) && ds.data.some(v => v !== null && v !== undefined));
-  // Nur Linien mit mindestens einem Wert ≠ null anzeigen
-  const linesWithData = lines.filter(line =>
-    Array.isArray(data) && data.some(d => typeof d[line.key] === 'number')
-  );
-  const linesWithoutData = lines.filter(line =>
-    !Array.isArray(data) || !data.some(d => typeof d[line.key] === 'number')
-  );
   return (
     <div style={{ height }} className="w-full bg-card rounded-xl shadow-lg p-4 md:p-8 relative flex flex-col">
+      {/*
+        Für sehr große Datenmengen (>2000 Punkte) empfiehlt sich echtes Downsampling oder Lazy Loading der Chartdaten.
+        Siehe z.B. https://github.com/leeoniya/uPlot oder serverseitiges Downsampling.
+      */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
           <button
@@ -290,4 +273,6 @@ export function GenericChart({
       </div>
     </div>
   );
-} 
+}
+
+export const GenericChart = React.memo(GenericChartInner) 

@@ -266,7 +266,28 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_measurements_source_file ON measurements(source_file);
   CREATE INDEX IF NOT EXISTS idx_measurements_datetime ON measurements(datetime);
   CREATE INDEX IF NOT EXISTS idx_weather_created_at ON weather(created_at);
+
+  -- Materialisierte 15min-Aggregation
+  CREATE TABLE IF NOT EXISTS measurements_15min_agg (
+    station TEXT NOT NULL,
+    bucket DATETIME NOT NULL,
+    avgLas REAL NOT NULL,
+    PRIMARY KEY (station, bucket)
+  );
 `)
+
+// Aktualisiert die 15min-Aggregate für die letzten 7 Tage
+export function update15MinAggregates() {
+  db.exec(`
+    INSERT OR REPLACE INTO measurements_15min_agg (station, bucket, avgLas)
+    SELECT station,
+           strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes') as bucket,
+           AVG(las) as avgLas
+    FROM measurements
+    WHERE datetime >= datetime('now', '-7 days')
+    GROUP BY station, bucket;
+  `)
+}
 
 export function insertMeasurement(station: string, time: string, las: number) {
   // time und datetime identisch setzen
@@ -327,12 +348,11 @@ export function get15MinAveragesForStation(station: string, interval: "24h" | "7
   } else if (interval === "7d") {
     since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ')
   }
-  // 15-Minuten-Bucket: strftime('%Y-%m-%d %H:%M:00', datetime, '-(CAST(strftime(\'%M\', datetime) AS INTEGER) % 15) minutes')
+  // Lies direkt aus der materialisierten Tabelle
   const stmt = db.prepare(`
-    SELECT strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes') as bucket, AVG(las) as avgLas
-    FROM measurements
-    WHERE station = ? AND datetime >= ?
-    GROUP BY bucket
+    SELECT bucket, avgLas
+    FROM measurements_15min_agg
+    WHERE station = ? AND bucket >= ?
     ORDER BY bucket ASC
   `)
   return stmt.all(station, since) as Array<{ bucket: string, avgLas: number }>
@@ -468,5 +488,15 @@ cron.schedule('30 3 * * *', () => {
     console.error('[Monitoring] Fehler bei der Fehleranalyse:', e)
   }
 })
+
+// Cronjob: Aktualisiere alle 5 Minuten die 15min-Aggregate
+// cron.schedule('*/5 * * * *', () => { // This line was removed as per the edit hint.
+//   try {
+//     update15MinAggregates()
+//     console.log('[15min-Aggregate] Tabelle aktualisiert')
+//   } catch (e) {
+//     console.error('[15min-Aggregate] Fehler bei Aktualisierung:', e)
+//   }
+// })
 
 export default db 

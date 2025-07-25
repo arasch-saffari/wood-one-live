@@ -17,26 +17,26 @@ export function StationKPIs({ current, avg24h, max24h, trend, currentWind, windD
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
       <KpiCard
         icon={<Volume2 className={`w-3 lg:w-4 h-3 lg:h-4 text-${kpiColor}`} />}
-        value={Number(current).toFixed(1)}
+        value={Math.round(Number(current))}
         unit="dB"
         label="Aktueller Pegel"
         color={`text-${kpiColor}`}
       />
       <KpiCard
         icon={<Volume2 className={`w-3 lg:w-4 h-3 lg:h-4 text-${kpiColor}`} />}
-        value={avg24h}
+        value={Math.round(Number(avg24h))}
         unit="dB"
         label="24h Durchschnitt"
         color={`text-${kpiColor}`}
       >
         <div className="flex items-center mt-1">
           <TrendingUp className={`w-2 lg:w-3 h-2 lg:h-3 text-${kpiColor} mr-1`} />
-          <span className={`text-xs text-${kpiColor}`}>{Number(trend) > 0 ? "+" : ""}{trend}% vs gestern</span>
+          <span className={`text-xs text-${kpiColor}`}>{Number(trend) > 0 ? "+" : ""}{Math.round(Number(trend))}% vs gestern</span>
         </div>
       </KpiCard>
       <KpiCard
         icon={<TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 text-red-400" />}
-        value={Number(max24h).toFixed(1)}
+        value={Math.round(Number(max24h))}
         unit="dB"
         label="24h Spitze"
         color="text-red-400"

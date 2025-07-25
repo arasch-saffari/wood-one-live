@@ -28,7 +28,7 @@ export async function getOrFetchWeather(station: string, time: string) {
         typeof live.temperature === 'number' ? live.temperature : undefined
       )
       weather = getWeatherForBlock(station, blockTime) as WeatherDB | null
-    } catch (e) {
+    } catch {
       // If fetch fails, return existing data if available
       if (!weather) {
         return { windSpeed: null, windDir: null, relHumidity: null, temperature: null, noWeatherData: true };
@@ -83,7 +83,7 @@ export async function GET(req: Request) {
     if (!time) {
       return NextResponse.json({ error: "Missing time parameter" }, { status: 400 })
     }
-    let weather: any
+    let weather: { [key: string]: unknown } | null
     if (time === 'now') {
       // Gib den letzten Wetterwert mit echten Daten zurück
       const row = db.prepare(`
@@ -93,8 +93,12 @@ export async function GET(req: Request) {
           AND relHumidity IS NOT NULL
           AND temperature IS NOT NULL
         ORDER BY created_at DESC LIMIT 1
-      `).get(station) as any
-      weather = row || null
+      `).get(station) as { [key: string]: unknown } | null
+      if (!row) {
+        weather = { windSpeed: null, windDir: null, relHumidity: null, temperature: null, noWeatherData: true }
+      } else {
+        weather = row
+      }
     } else {
       weather = await getOrFetchWeather(station, time)
     }
@@ -116,8 +120,8 @@ export async function GET(req: Request) {
       relHumidity: typeof weather.relHumidity === 'number' ? weather.relHumidity : 0,
       temperature: typeof weather.temperature === 'number' ? weather.temperature : null
     })
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err instanceof Error ? err.message : 'Unknown error') }, { status: 500 })
   }
 } 
 
@@ -137,7 +141,7 @@ export async function POST(req: Request) {
       typeof weather.temperature === 'number' ? weather.temperature : undefined
     )
     return NextResponse.json({ success: true, ...weather })
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: e?.message || 'Fehler beim Wetter-Update.' }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ success: false, error: (e instanceof Error ? e.message : 'Fehler beim Wetter-Update.') }, { status: 500 })
   }
 } 
