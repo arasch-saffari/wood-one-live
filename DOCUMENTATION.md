@@ -206,6 +206,9 @@ noise-monitoring-dashboard/
 - **System Monitoring**: Health checks, integrity monitoring, backup management
 - **Data Correction**: Edit and delete measurement and weather data
 - **CSV Management**: Upload and process CSV files
+- **Database Reset Options**: Two different reset functionalities for data management
+  - **Factory Reset**: Complete system reset (all data, weather, CSV files)
+  - **Measurement Reset**: Selective reset (only measurement data, keeps weather data)
 
 ---
 
@@ -388,7 +391,34 @@ noise-monitoring-dashboard/
 - `/api/admin/correction-stats` (GET): Statistiken zu Korrekturen
 - `/api/csv-watcher-status` (GET): Status des CSV-Watchers
 - `/api/admin/backup-db` (GET): Download der aktuellen Datenbank
-- `/api/admin/factory-reset` (POST): Zurücksetzen der Datenbank
+- `/api/admin/factory-reset` (POST): Vollständiger System-Reset (alle Daten, Wetter, CSV-Dateien)
+- `/api/admin/reset-measurements` (POST): Selektiver Reset (nur Messdaten, Wetterdaten bleiben erhalten)
+
+### Database Reset APIs
+
+#### Factory Reset (`/api/admin/factory-reset`)
+- **Zweck**: Vollständiger System-Reset für komplette Neuinstallation
+- **Aktionen**:
+  - Löscht alle Messdaten aus `measurements` Tabelle
+  - Löscht alle Wetterdaten aus `weather` Tabelle
+  - Löscht alle CSV-Dateien aus allen Station-Ordnern
+  - Führt einmalige Wetter-API-Abfrage durch
+  - Startet CSV-Reimport-Prozess
+- **Verwendung**: Nur bei kompletter Neuinstallation oder schweren Datenproblemen
+
+#### Measurement Reset (`/api/admin/reset-measurements`)
+- **Zweck**: Selektiver Reset für Tests und Entwicklung
+- **Aktionen**:
+  - Löscht nur Messdaten aus `measurements` Tabelle
+  - Behält Wetterdaten in `weather` Tabelle
+  - Löscht alle CSV-Dateien aus allen Station-Ordnern
+  - Startet CSV-Reimport-Prozess
+- **Vorteile**:
+  - Schneller als Factory Reset (keine Wetter-API-Abfrage)
+  - Wetterdaten bleiben erhalten
+  - Perfekt für wiederholte Tests
+  - Sichere Trennung zwischen Mess- und Wetterdaten
+- **Response**: `{ success: true, message, deletedFiles, processedFiles, weatherKept: true }`
 
 ## UI-Fehleranzeigen
 - Alle Fehler werden als Toast und (bei notify: true) als Push angezeigt

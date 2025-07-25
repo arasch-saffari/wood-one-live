@@ -35,7 +35,9 @@
 - **File Upload Security**: Secure CSV upload with type validation, size limits, and processing pipeline
 - **CI/CD Pipeline**: GitHub Actions with multi-Node testing, security audits, and coverage reporting
 - **Health Monitoring**: Comprehensive system status endpoint with database, cache, and performance metrics
+
 ### Added
+- **Messdaten-Reset-Funktion**: Neue Admin-Panel-Option zum selektiven Zurücksetzen nur der Messdaten (CSV-Daten) bei Beibehaltung der Wetterdaten
 - **Performance-Optimierungen**: Umfassende Frontend- und Backend-Optimierungen für bessere Ladezeiten
 - **SQL-Level-Pagination**: Alle API-Endpunkte nutzen jetzt LIMIT/OFFSET statt JavaScript-slice()
 - **Request-Timeout-Schutz**: 10s Timeout mit AbortController für alle API-Requests

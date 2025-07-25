@@ -188,6 +188,35 @@ Die Konfiguration ist unter `/admin` im Tab "Einstellungen" erreichbar.
 - Die Datei `config.json` enthält keine Schwellenwerte mehr, sondern nur noch andere globale Einstellungen.
 - Beim ersten Start werden alte Schwellenwerte aus der bisherigen `config.json` automatisch in die Datenbank übernommen (Migration).
 
+### 🔄 Datenbank-Reset-Optionen
+
+Das Admin-Panel bietet zwei verschiedene Reset-Optionen:
+
+#### **Factory Reset** (Vollständiger Reset)
+- Löscht alle Messdaten, Wetterdaten und CSV-Dateien unwiderruflich
+- Startet das System komplett neu
+- Verwendet für komplette Neuinstallation
+
+#### **Messdaten zurücksetzen** (Selektiver Reset)
+- Löscht nur Messdaten (CSV-Daten) aus der Datenbank
+- Behält Wetterdaten bei
+- Löscht alle CSV-Dateien aus den Ordnern
+- Perfekt für Tests und Entwicklung
+- Schneller als Factory Reset, da keine Wetter-API-Abfrage nötig
+
+**Verwendung:**
+1. Gehe zu `/admin` im Admin-Panel
+2. Scrolle zu "Messdaten zurücksetzen"
+3. Klicke den orangefarbenen Button "Messdaten zurücksetzen"
+4. Bestätige die Aktion
+5. Die Seite wird automatisch neu geladen
+
+**Vorteile für Tests:**
+- Schnelles Zurücksetzen der Testdaten
+- Wetterdaten bleiben erhalten (keine erneute API-Abfrage)
+- CSV-Dateien werden automatisch gelöscht
+- Perfekt für wiederholte Tests mit neuen Daten
+
 ## 🧹 Code-Qualität & Linting
 
 Dieses Projekt verwendet [ESLint](https://eslint.org/) mit einer modernen Konfiguration für Next.js, TypeScript, React und Prettier.

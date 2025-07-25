@@ -477,6 +477,56 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleResetMeasurements() {
+    setResetting(true)
+    try {
+      const res = await fetch('/api/admin/reset-measurements', { method: 'POST' })
+      const data = await res.json()
+      if (!data.success) {
+        toast({
+          title: 'Fehler beim Zurücksetzen der Messdaten',
+          description: data.message || 'Beim Zurücksetzen der Messdaten ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (data.notify && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Zurücksetzen der Messdaten', {
+            body: data.message || 'Beim Zurücksetzen der Messdaten ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      } else {
+        toast({
+          title: 'Messdaten zurückgesetzt',
+          description: `${data.message} Die Seite wird neu geladen...`,
+          variant: 'default',
+        })
+        setTimeout(() => window.location.reload(), 2000)
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        toast({
+          title: 'Fehler beim Zurücksetzen der Messdaten',
+          description: e.message || 'Beim Zurücksetzen der Messdaten ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Fehler beim Zurücksetzen der Messdaten', {
+            body: e.message || 'Beim Zurücksetzen der Messdaten ist ein Fehler aufgetreten.',
+            icon: '/alert-icon.png',
+          })
+        }
+      } else {
+        toast({
+          title: 'Fehler beim Zurücksetzen der Messdaten',
+          description: 'Beim Zurücksetzen der Messdaten ist ein Fehler aufgetreten.',
+          variant: 'destructive',
+        })
+      }
+    } finally {
+      setResetting(false)
+    }
+  }
+
   async function handleCsvUpload(station: string, file: File) {
     setCsvUploading(prev => ({ ...prev, [station]: true }))
     setCsvError(null)
@@ -1267,6 +1317,15 @@ export default function AdminDashboard() {
                         <Trash2 className="w-4 h-4 mr-2" /> {resetting ? 'Zurücksetzen...' : 'System zurücksetzen'}
                       </Button>
                       <div className="text-xs text-gray-500">Löscht alle Messwerte, Wetterdaten und CSV-Dateien unwiderruflich.</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
+                    <CardHeader><CardTitle>Messdaten zurücksetzen</CardTitle></CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                      <Button onClick={handleResetMeasurements} className="w-48 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold" size="lg" disabled={resetting}>
+                        <BarChart3 className="w-4 h-4 mr-2" /> {resetting ? 'Zurücksetzen...' : 'Messdaten zurücksetzen'}
+                      </Button>
+                      <div className="text-xs text-gray-500">Löscht nur Messwerte und CSV-Dateien. Wetterdaten bleiben erhalten.</div>
                     </CardContent>
                   </Card>
                   <Card className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl">
