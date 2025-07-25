@@ -1,12 +1,28 @@
 # Changelog
 
 ## [Unreleased] - 2025-01-25
+
+### 🚀 Production-Ready Improvements
+- **Enterprise-Grade Error Handling**: Global error middleware with structured API responses
+- **Input Validation & Sanitization**: Zod-based validation for all API endpoints with detailed error messages
+- **Rate Limiting & DoS Protection**: Intelligent rate limiting with IP-based tracking and configurable limits
+- **Structured Logging**: Pino-based JSON logging with performance monitoring and error context
+- **Multi-Level Caching**: In-memory caching with fallback implementation and cache-or-compute pattern
+- **Time & Timezone Handling**: Luxon-based UTC storage with timezone-aware display and validation
+- **Configuration Management**: Environment-based configuration with Zod validation and type safety
+- **Database Enhancements**: Connection pooling, health checks, transaction support, and query performance monitoring
+- **File Upload Security**: Secure CSV upload with type validation, size limits, and processing pipeline
+- **CI/CD Pipeline**: GitHub Actions with multi-Node testing, security audits, and coverage reporting
+- **Health Monitoring**: Comprehensive system status endpoint with database, cache, and performance metrics
 ### Added
 - **Performance-Optimierungen**: Umfassende Frontend- und Backend-Optimierungen für bessere Ladezeiten
 - **SQL-Level-Pagination**: Alle API-Endpunkte nutzen jetzt LIMIT/OFFSET statt JavaScript-slice()
 - **Request-Timeout-Schutz**: 10s Timeout mit AbortController für alle API-Requests
 - **React.memo-Optimierungen**: Memoized Components für teure Re-Renders
 - **CronOptimizer-Klasse**: Erweiterte Cron-Job-Verwaltung mit Überlappungsschutz und Retry-Mechanismus
+- **Serverseitige Tabellensortierung**: Neue API `/api/table-data` für korrekte Sortierung auf Datenbankebene
+- **Table-Data-Service**: Umfassender Service für Sortierung, Filterung und Pagination
+- **TypeScript-Interfaces**: Vollständige Typisierung aller Dashboard-States und API-Responses
 
 ### Fixed
 - **Node-Cron "missed execution" Warnungen**: Alle synchronen I/O-Operationen zu asynchronen umgewandelt
@@ -14,12 +30,21 @@
 - **Dashboard-Layout-Performance**: Von 4×50 auf 4×1 Datenpunkte für "Letzte Aktualisierung"
 - **API-Cache-Problem**: 50.000-Zeilen-Cache entfernt, direkte SQL-Pagination implementiert
 - **Blocking I/O in Cron-Jobs**: fs.copyFileSync/writeFileSync/readFileSync zu fs.promises.* umgewandelt
+- **Datenlücken in Datenbank**: INSERT OR IGNORE zu INSERT OR REPLACE geändert für konsistente Daten
+- **Sortierung in AllStationsTable**: Funktioniert jetzt korrekt auf gesamter Datenbank statt nur Frontend-Daten
+- **Memory Leaks**: EventSource-Cleanup in StationDashboardPage und anderen Komponenten
+- **Error Handling**: Alle leeren catch-Blöcke haben jetzt proper Error-Logging
+- **Type Safety**: Alle `any` Types durch spezifische TypeScript-Interfaces ersetzt
+- **CSV Export Performance**: Nested map() durch optimierte for-Schleife ersetzt (O(n²) → O(n))
+- **Accessibility**: ARIA-Labels für kritische Buttons und UI-Elemente hinzugefügt
 
 ### Changed
 - **Default PageSize**: Von 50 auf 25 Datenpunkte als Standard in useStationData
 - **Polling-Frequenz**: Von 60s auf 300s für Dashboard-Layout-Komponenten
 - **Cron-Job-Timeouts**: Alle Cron-Jobs haben jetzt 30-60s Timeout-Schutz
 - **API-Response-Format**: Konsistente Rückgabe mit totalPages und besserer Fehlerbehandlung
+- **Database Operations**: INSERT OR REPLACE statt INSERT OR IGNORE für bessere Datenkonsistenz
+- **Error Messages**: Spezifische Fehlermeldungen statt generische catch-Blöcke
 
 ## [Unreleased] - 2024-06-XX
 ### Fixed

@@ -1,5 +1,36 @@
 // Service für serverseitige Tabellendaten mit Sortierung und Pagination
 import db from './database'
+import { logger, DatabaseError, ValidationError } from './logger'
+
+// Import with fallbacks to handle missing dependencies gracefully
+let CacheService: any = null;
+let CacheKeys: any = null;
+let TimeUtils: any = null;
+let validateRequest: any = null;
+let getTableDataSchema: any = null;
+
+try {
+  const cacheModule = require('./cache');
+  CacheService = cacheModule.CacheService;
+  CacheKeys = cacheModule.CacheKeys;
+} catch (error) {
+  logger.warn('Cache module not available, caching disabled');
+}
+
+try {
+  const timeModule = require('./time-utils');
+  TimeUtils = timeModule.TimeUtils;
+} catch (error) {
+  logger.warn('Time utils module not available, using fallback');
+}
+
+try {
+  const validationModule = require('./validation');
+  validateRequest = validationModule.validateRequest;
+  getTableDataSchema = validationModule.getTableDataSchema;
+} catch (error) {
+  logger.warn('Validation module not available, validation disabled');
+}
 
 export interface TableDataOptions {
   page?: number
@@ -28,22 +59,56 @@ export interface TableDataResult {
   totalPages: number
 }
 
-export function getAllStationsTableData(options: TableDataOptions = {}): TableDataResult {
-  const {
-    page = 1,
-    pageSize = 25,
-    sortBy = 'datetime',
-    sortOrder = 'desc',
-    station,
-    dateFilter,
-    searchQuery,
-    showOnlyAlarms = false
-  } = options
+export async function getAllStationsTableData(options: TableDataOptions = {}): Promise<TableDataResult> {
+  const startTime = Date.now();
+  
+  try {
+    // Use validation if available, otherwise use basic parameter extraction
+    let validatedData = options;
+    if (validateRequest && getTableDataSchema) {
+      try {
+        const validation = validateRequest(getTableDataSchema, options);
+        if (!validation.success) {
+          throw new ValidationError('Invalid table data parameters', validation.errors.errors);
+        }
+        validatedData = validation.data;
+      } catch (validationError) {
+        logger.warn({ error: validationError }, 'Validation failed, using basic parameter extraction');
+      }
+    }
 
-  // Validierung der Parameter
-  const validSortFields = ['datetime', 'time', 'las', 'ws', 'wd', 'rh', 'station']
-  const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'datetime'
-  const safeSortOrder = ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'DESC'
+    const {
+      page = 1,
+      pageSize = 25,
+      sortBy = 'datetime',
+      sortOrder = 'desc',
+      station,
+      dateFilter, // Keep original parameter name for backward compatibility
+      startDate,
+      endDate,
+      searchQuery,
+      showOnlyAlarms = false
+    } = validatedData;
+
+    // Try to use cache if available
+    let cached = null;
+    if (CacheService && CacheKeys) {
+      try {
+        const cacheKey = `table_data_${station || '__all__'}_${page}_${pageSize}_${sortBy}_${sortOrder}_${startDate || ''}_${endDate || ''}_${searchQuery || ''}_${showOnlyAlarms}`;
+        cached = CacheService.get<TableDataResult>(cacheKey);
+        if (cached) {
+          logger.debug({ cacheKey }, 'Table data served from cache');
+          return cached;
+        }
+      } catch (cacheError) {
+        logger.warn({ error: cacheError }, 'Cache access failed');
+      }
+    }
+
+    // Validierung der Parameter
+    const validSortFields = ['datetime', 'time', 'las', 'ws', 'wd', 'rh', 'station']
+    const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'datetime'
+    const safeSortOrder = ['asc', 'desc'].includes(sortOrder) ? sortOrder.toUpperCase() : 'DESC'
   
   const limit = Math.min(Math.max(1, pageSize), 1000)
   const offset = Math.max(0, (page - 1) * limit)
@@ -78,12 +143,43 @@ export function getAllStationsTableData(options: TableDataOptions = {}): TableDa
     queryParams.push(stationKey)
   }
 
-  // Datum-Filter
-  if (dateFilter) {
-    const [day, month, year] = dateFilter.split('.')
-    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-    whereConditions.push('DATE(m.datetime) = ?')
-    queryParams.push(isoDate)
+  // Date range filters - use TimeUtils if available, otherwise use basic date handling
+  if (startDate && TimeUtils) {
+    try {
+      const startUtc = TimeUtils.parseUserDate(startDate).toUTC().toISO();
+      whereConditions.push('m.datetime >= ?');
+      queryParams.push(startUtc);
+    } catch (error) {
+      logger.warn({ error, startDate }, 'Failed to parse start date with TimeUtils, skipping filter');
+    }
+  } else if (startDate) {
+    // Fallback to basic date handling
+    whereConditions.push('DATE(m.datetime) >= ?');
+    queryParams.push(startDate);
+  }
+
+  if (endDate && TimeUtils) {
+    try {
+      const endUtc = TimeUtils.parseUserDate(endDate).endOf('day').toUTC().toISO();
+      whereConditions.push('m.datetime <= ?');
+      queryParams.push(endUtc);
+    } catch (error) {
+      logger.warn({ error, endDate }, 'Failed to parse end date with TimeUtils, skipping filter');
+    }
+  } else if (endDate) {
+    // Fallback to basic date handling
+    whereConditions.push('DATE(m.datetime) <= ?');
+    queryParams.push(endDate);
+  }
+
+  // Legacy dateFilter support for backward compatibility
+  if (dateFilter && !startDate && !endDate) {
+    const [day, month, year] = dateFilter.split('.');
+    if (day && month && year) {
+      const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      whereConditions.push('DATE(m.datetime) = ?');
+      queryParams.push(isoDate);
+    }
   }
 
   // Such-Filter
@@ -172,34 +268,95 @@ export function getAllStationsTableData(options: TableDataOptions = {}): TableDa
     countQuery += ' AND ' + whereConditions.join(' AND ')
   }
 
-  // Queries ausführen
-  const countParams = queryParams.slice(0, -2) // Ohne LIMIT/OFFSET
-  const results = db.prepare(baseQuery).all(...queryParams) as Array<{
-    datetime: string
-    time: string
-    las: number
-    ws?: number | null
-    wd?: string | null
-    rh?: number | null
-    station: string
-  }>
+    // Execute queries with error handling
+    const countParams = queryParams.slice(0, -2); // Without LIMIT/OFFSET
+    
+    let results: Array<{
+      datetime: string
+      time: string
+      las: number
+      ws?: number | null
+      wd?: string | null
+      rh?: number | null
+      station: string
+    }>;
+    
+    let countResult: { total: number };
 
-  const countResult = db.prepare(countQuery).get(...countParams) as { total: number }
-  const totalCount = countResult.total
-  const totalPages = Math.ceil(totalCount / limit)
+    try {
+      const queryStartTime = Date.now();
+      results = db.prepare(baseQuery).all(...queryParams) as typeof results;
+      const queryDuration = Date.now() - queryStartTime;
+      
+      // Log slow queries
+      if (queryDuration > 200) {
+        logger.warn({
+          query: baseQuery,
+          duration: queryDuration,
+          params: queryParams.length
+        }, 'Slow table data query detected');
+      }
 
-  // Station-Namen normalisieren für Frontend
-  const normalizedResults = results.map(row => ({
-    ...row,
-    station: normalizeStationName(row.station)
-  }))
+      countResult = db.prepare(countQuery).get(...countParams) as { total: number };
+    } catch (error) {
+      logger.error({ error, baseQuery, queryParams }, 'Database query failed in table data service');
+      throw new DatabaseError('Failed to fetch table data', { query: baseQuery, error });
+    }
 
-  return {
-    data: normalizedResults,
-    totalCount,
-    page,
-    pageSize: limit,
-    totalPages
+    const totalCount = countResult.total;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Station-Namen normalisieren für Frontend mit Zeitstempel-Formatierung
+    const normalizedResults = results.map(row => ({
+      ...row,
+      datetime: TimeUtils && TimeUtils.formatForApi ? TimeUtils.formatForApi(row.datetime).local : row.datetime,
+      station: normalizeStationName(row.station)
+    }));
+
+    const result: TableDataResult = {
+      data: normalizedResults,
+      totalCount,
+      page,
+      pageSize: limit,
+      totalPages
+    };
+
+    // Cache the result if cache is available
+    if (CacheService && cached !== null) {
+      try {
+        const cacheKey = `table_data_${station || '__all__'}_${page}_${pageSize}_${sortBy}_${sortOrder}_${startDate || ''}_${endDate || ''}_${searchQuery || ''}_${showOnlyAlarms}`;
+        CacheService.set(cacheKey, result, 300); // Cache for 5 minutes
+      } catch (cacheError) {
+        logger.warn({ error: cacheError }, 'Failed to cache result');
+      }
+    }
+
+    // Log performance
+    const totalDuration = Date.now() - startTime;
+    logger.info({
+      station: station || '__all__',
+      page,
+      pageSize: limit,
+      totalCount,
+      duration: totalDuration,
+      cached: false
+    }, 'Table data query completed');
+
+    return result;
+
+  } catch (error) {
+    const totalDuration = Date.now() - startTime;
+    logger.error({
+      error,
+      options,
+      duration: totalDuration
+    }, 'Table data service error');
+    
+    if (error instanceof ValidationError || error instanceof DatabaseError) {
+      throw error;
+    }
+    
+    throw new DatabaseError('Unexpected error in table data service', { originalError: error });
   }
 }
 

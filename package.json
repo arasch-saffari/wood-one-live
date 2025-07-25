@@ -8,10 +8,23 @@
     "lint": "next lint",
     "start": "next start",
     "test": "vitest run",
-    "migrate": "ts-node scripts/run-migrations.ts"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "type-check": "tsc --noEmit",
+    "security-check": "pnpm audit --audit-level moderate",
+    "migrate": "ts-node scripts/run-migrations.ts",
+    "db:backup": "ts-node scripts/backup-database.ts",
+    "db:restore": "ts-node scripts/restore-database.ts",
+    "health-check": "curl -f http://localhost:3000/api/health || exit 1"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
+    "dotenv": "^16.4.5",
+    "express-rate-limit": "^7.4.1",
+    "multer": "^1.4.5-lts.1",
+    "node-cache": "^5.1.2",
+    "pino": "^9.5.0",
+    "zod": "^3.24.1",
     "@nivo/line": "^0.99.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -81,6 +94,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
+    "@types/multer": "^1.4.12",
+    "pino-pretty": "^11.2.2",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
