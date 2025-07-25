@@ -190,7 +190,7 @@ export async function processCSVFile(station: string, csvPath: string) {
         // Rate limit SSE updates to prevent controller errors
         setTimeout(() => {
           triggerDeltaUpdate()
-        }, Math.random() * 200) // Random delay 0-200ms to spread out updates
+        }, Math.random() * 500 + 100) // Random delay 100-600ms to spread out updates
         
         // Trigger 15-Min-Aggregation nach erfolgreichem Import
         try {

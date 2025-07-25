@@ -298,6 +298,47 @@ export function runMigrations() {
   } catch (e) {
     console.error('❌ Migration check failed:', e)
   }
+  // Migration 6: Add alarm_threshold column to thresholds table if missing
+  try {
+    const columns = db.prepare("PRAGMA table_info(thresholds)").all() as Array<{ name: string }>
+    const hasAlarmThreshold = columns.some(col => col.name === 'alarm_threshold')
+    if (!hasAlarmThreshold) {
+      try {
+        // Add alarm_threshold column and populate it with the existing alarm values
+        db.exec('ALTER TABLE thresholds ADD COLUMN alarm_threshold REAL')
+        db.prepare("UPDATE thresholds SET alarm_threshold = alarm WHERE alarm_threshold IS NULL").run()
+        console.log('✅ Added alarm_threshold column to thresholds table')
+      } catch (e: unknown) {
+        const error = e as Error
+        if (error.message && error.message.includes('duplicate column name')) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Spalte alarm_threshold existiert bereits, Migration wird übersprungen.')
+          }
+        } else {
+          throw e
+        }
+      }
+    }
+    
+    // Create default threshold records if none exist
+    const thresholdCount = db.prepare("SELECT COUNT(*) as count FROM thresholds").get() as { count: number }
+    if (thresholdCount.count === 0) {
+      const stations = ['ort', 'techno', 'heuballern', 'band']
+      for (const station of stations) {
+        db.prepare(`
+          INSERT INTO thresholds (station, from_time, to_time, warning, alarm, alarm_threshold, las, laf)
+          VALUES (?, '00:00', '23:59', 50, 60, 60, 60, 60)
+        `).run(station)
+      }
+      console.log('✅ Created default threshold records for all stations')
+    }
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error('❌ Migration for alarm_threshold column failed:', e.message)
+    } else {
+      console.error('❌ Migration for alarm_threshold column failed:', e)
+    }
+  }
 }
 
 export function startCsvWatcher() {
@@ -353,7 +394,7 @@ export function getMeasurementsForStation(
     sortOrder?: 'asc' | 'desc'
   } = {}
 ) {
-  const { page = 1, pageSize = 1000, sortBy = 'datetime', sortOrder = 'desc' } = options
+  const { page = 1, pageSize = 10000, sortBy = 'datetime', sortOrder = 'desc' } = options
   
   // Validierung der Parameter
   const validSortFields = ['time', 'las', 'datetime']

@@ -49,10 +49,10 @@ export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
     clearTimeout(updateTimeout)
   }
   
-  // Debounce updates - send after 100ms of inactivity
+  // Debounce updates - send after 50ms of inactivity (reduced from 100ms)
   updateTimeout = setTimeout(() => {
     sendDebouncedUpdate()
-  }, 100)
+  }, 50)
 }
 
 function sendDebouncedUpdate() {
@@ -98,8 +98,22 @@ function sendDebouncedUpdate() {
     try {
       // Double-check controller state before sending
       if (!sub.closed && sub.controller && typeof sub.controller.enqueue === 'function') {
-        sub.controller.enqueue(encoder.encode(data))
-        successCount++;
+        // Additional safety check - try to access controller properties
+        if (sub.controller.desiredSize !== undefined) {
+          // Final safety check - wrap the enqueue call in try-catch
+          try {
+            sub.controller.enqueue(encoder.encode(data))
+            successCount++;
+          } catch (enqueueError) {
+            // Controller became invalid between checks
+            sub.closed = true;
+            errorCount++;
+            console.debug('Controller became invalid during enqueue:', enqueueError)
+          }
+        } else {
+          sub.closed = true;
+          errorCount++;
+        }
       } else {
         sub.closed = true;
         errorCount++;
