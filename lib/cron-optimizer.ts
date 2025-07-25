@@ -1,20 +1,6 @@
 // Cron-Optimizer für bessere Performance und weniger missed executions
-// Import with fallback for missing node-cron dependency
-let cron: any = null;
-
-try {
-  cron = require('node-cron');
-} catch (error) {
-  console.warn('node-cron not available, cron functionality disabled');
-  // Fallback cron implementation
-  cron = {
-    schedule: (schedule: string, task: () => void, options?: any) => ({
-      stop: () => {},
-      start: () => {},
-      destroy: () => {}
-    })
-  };
-}
+import cron from 'node-cron'
+import { registerProcessCleanup } from './event-manager'
 
 interface CronJobConfig {
   name: string
@@ -180,14 +166,11 @@ class CronOptimizer {
 export const cronOptimizer = new CronOptimizer()
 
 // Cleanup bei Prozessende
-if (typeof process !== 'undefined' && process.on) {
-  const cleanup = () => {
-    cronOptimizer.stopAllJobs()
-    process.exit(0)
-  }
+const cleanup = () => {
+  cronOptimizer.stopAllJobs()
+};
 
-  process.on('SIGINT', cleanup)
-  process.on('SIGTERM', cleanup)
-}
+registerProcessCleanup('SIGINT', cleanup);
+registerProcessCleanup('SIGTERM', cleanup);
 
 export default cronOptimizer

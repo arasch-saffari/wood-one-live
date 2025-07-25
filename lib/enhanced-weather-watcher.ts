@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { cronOptimizer } from './cron-optimizer';
 import { intelligentCache } from './intelligent-cache';
 import { invalidateStationCache } from './table-data-service';
+import { registerProcessCleanup } from './event-manager';
 
 interface WeatherData {
   windSpeed: number | null;
@@ -394,8 +395,18 @@ export class EnhancedWeatherWatcher extends EventEmitter {
         timestamp: new Date().toISOString()
       };
 
-      triggerDeltaUpdate(updateData);
-      console.log('📡 Weather frontend update triggered');
+      // Rate limiting für SSE-Updates - nur alle 30 Sekunden
+      const now = Date.now();
+      const lastUpdate = (this as any).lastFrontendUpdate || 0;
+      const minInterval = 30000; // 30 Sekunden
+      
+      if (now - lastUpdate >= minInterval) {
+        triggerDeltaUpdate(updateData);
+        (this as any).lastFrontendUpdate = now;
+        console.log('📡 Weather frontend update triggered');
+      } else {
+        console.log('⏱️  Weather frontend update rate limited (30s interval)');
+      }
 
     } catch (error) {
       console.warn('⚠️  Failed to trigger weather frontend update:', error);
@@ -481,12 +492,10 @@ if (process.env.ENABLE_BACKGROUND_JOBS === 'true') {
 }
 
 // Cleanup bei Prozessende
-if (typeof process !== 'undefined' && process.on) {
-  const cleanup = async () => {
-    console.log('🧹 Cleaning up Enhanced Weather Watcher...');
-    await enhancedWeatherWatcher.stop();
-  };
+const cleanup = async () => {
+  console.log('🧹 Cleaning up Enhanced Weather Watcher...');
+  await enhancedWeatherWatcher.stop();
+};
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
-}
+registerProcessCleanup('SIGINT', cleanup);
+registerProcessCleanup('SIGTERM', cleanup);

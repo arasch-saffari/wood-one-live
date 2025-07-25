@@ -1,8 +1,9 @@
-import fs from 'fs';
-import path from 'path';
-import chokidar from 'chokidar';
 import { EventEmitter } from 'events';
+import chokidar from 'chokidar';
+import path from 'path';
+import fs from 'fs';
 import { csvImportCoordinator } from './csv-import-coordinator';
+import { registerProcessCleanup } from './event-manager';
 import { invalidateStationCache } from './table-data-service';
 import { intelligentCache } from './intelligent-cache';
 
@@ -387,10 +388,21 @@ export class EnhancedCSVWatcher extends EventEmitter {
         timestamp: new Date().toISOString()
       };
 
-      // Trigger SSE-Update
-      triggerDeltaUpdate(updateData);
+      // Rate limiting für SSE-Updates - nur alle 10 Sekunden pro Station
+      const now = Date.now();
+      const lastUpdate = (this as any).lastFrontendUpdates || {};
+      const minInterval = 10000; // 10 Sekunden
       
-      console.log(`📡 Frontend update triggered: ${action} for ${station}`);
+      if (!lastUpdate[station] || (now - lastUpdate[station]) >= minInterval) {
+        triggerDeltaUpdate(updateData);
+        if (!(this as any).lastFrontendUpdates) {
+          (this as any).lastFrontendUpdates = {};
+        }
+        (this as any).lastFrontendUpdates[station] = now;
+        console.log(`📡 Frontend update triggered: ${action} for ${station}`);
+      } else {
+        console.log(`⏱️  Frontend update rate limited for ${station} (10s interval)`);
+      }
       
     } catch (error) {
       console.warn('⚠️  Failed to trigger frontend update:', error);
@@ -472,13 +484,10 @@ if (process.env.ENABLE_BACKGROUND_JOBS === 'true') {
 }
 
 // Cleanup bei Prozessende
-if (typeof process !== 'undefined' && process.on) {
-  const cleanup = async () => {
-    console.log('🧹 Cleaning up Enhanced CSV Watcher...');
-    await enhancedCSVWatcher.stop();
-    process.exit(0);
-  };
+const cleanup = async () => {
+  console.log('🧹 Cleaning up Enhanced CSV Watcher...');
+  await enhancedCSVWatcher.stop();
+};
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
-}
+registerProcessCleanup('SIGINT', cleanup);
+registerProcessCleanup('SIGTERM', cleanup);

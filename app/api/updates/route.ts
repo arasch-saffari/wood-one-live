@@ -1,8 +1,9 @@
 import { initializeApplication } from '@/lib/app-init'
+import { registerProcessCleanup } from '@/lib/event-manager'
 
 let initialized = false
 
-let subscribers: { controller: ReadableStreamDefaultController, closed: boolean }[] = []
+let subscribers: { controller: ReadableStreamDefaultController, closed: boolean, id: string }[] = []
 
 // Singleton für Event-Listener-Registrierung
 let eventListenersRegistered = false
@@ -10,6 +11,9 @@ let eventListenersRegistered = false
 // Debouncing für SSE-Updates
 let updateTimeout: NodeJS.Timeout | null = null
 let pendingUpdates: Record<string, unknown>[] = []
+
+// Controller state tracking
+const controllerStates = new Map<string, boolean>()
 
 export async function GET() {
   // Initialize application on first API call
@@ -24,15 +28,20 @@ export async function GET() {
   }
 
   let cleanup: (() => void) | undefined
-  let subscriber: { controller: ReadableStreamDefaultController, closed: boolean }
+  let subscriber: { controller: ReadableStreamDefaultController, closed: boolean, id: string }
+  const subscriberId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder()
       controller.enqueue(encoder.encode('retry: 10000\n\n'))
-      subscriber = { controller, closed: false }
+      subscriber = { controller, closed: false, id: subscriberId }
       subscribers.push(subscriber)
+      controllerStates.set(subscriberId, true)
+      
       cleanup = () => {
         subscriber.closed = true
+        controllerStates.set(subscriberId, false)
         subscribers = subscribers.filter(s => s !== subscriber)
         try {
           controller.close()
@@ -89,6 +98,13 @@ function sendDebouncedUpdate() {
   const activeSubscribers = subscribers.filter(sub => {
     // Remove closed subscribers
     if (sub.closed) {
+      controllerStates.set(sub.id, false)
+      return false
+    }
+    
+    // Check if controller state is still valid
+    if (!controllerStates.get(sub.id)) {
+      sub.closed = true
       return false
     }
     
@@ -97,11 +113,13 @@ function sendDebouncedUpdate() {
       // Test if controller is still valid by checking its state
       if (!sub.controller || typeof sub.controller.enqueue !== 'function') {
         sub.closed = true
+        controllerStates.set(sub.id, false)
         return false
       }
       return true
     } catch {
       sub.closed = true
+      controllerStates.set(sub.id, false)
       return false
     }
   });
@@ -111,8 +129,12 @@ function sendDebouncedUpdate() {
   
   for (const sub of activeSubscribers) {
     try {
-      // Double-check controller state before sending
-      if (!sub.closed && sub.controller && typeof sub.controller.enqueue === 'function') {
+      // Triple-check controller state before sending
+      if (!sub.closed && 
+          sub.controller && 
+          typeof sub.controller.enqueue === 'function' &&
+          controllerStates.get(sub.id)) {
+        
         // Additional safety check - try to access controller properties
         if (sub.controller.desiredSize !== undefined) {
           // Final safety check - wrap the enqueue call in try-catch
@@ -122,19 +144,23 @@ function sendDebouncedUpdate() {
           } catch (enqueueError) {
             // Controller became invalid between checks
             sub.closed = true;
+            controllerStates.set(sub.id, false);
             errorCount++;
             console.debug('Controller became invalid during enqueue:', enqueueError)
           }
         } else {
           sub.closed = true;
+          controllerStates.set(sub.id, false);
           errorCount++;
         }
       } else {
         sub.closed = true;
+        controllerStates.set(sub.id, false);
         errorCount++;
       }
     } catch (error) {
       sub.closed = true // Mark as closed to avoid repeated errors
+      controllerStates.set(sub.id, false);
       errorCount++;
       console.error('Fehler beim Senden von SSE-Update:', error)
     }
@@ -158,18 +184,27 @@ function sendDebouncedUpdate() {
 // Cleanup-Funktion für SSE-Subscriber
 function cleanupSubscribers() {
   subscribers = subscribers.filter(s => !s.closed)
+  // Cleanup controller states for closed subscribers
+  for (const sub of subscribers) {
+    if (sub.closed) {
+      controllerStates.delete(sub.id)
+    }
+  }
 }
 setInterval(cleanupSubscribers, 30000)
 
 // Registriere Cleanup bei Prozessende (nur einmal)
-if (typeof process !== 'undefined' && process.on && !eventListenersRegistered) {
+if (!eventListenersRegistered) {
   eventListenersRegistered = true
-  process.on('SIGINT', () => {
+  
+  // Verwende zentralen Event-Manager statt direkte process.on Aufrufe
+  registerProcessCleanup('SIGINT', () => {
     subscribers = []
-    process.exit(0)
+    controllerStates.clear()
   })
-  process.on('SIGTERM', () => {
+  
+  registerProcessCleanup('SIGTERM', () => {
     subscribers = []
-    process.exit(0)
+    controllerStates.clear()
   })
 } 
