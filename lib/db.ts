@@ -297,7 +297,7 @@ export function insertMeasurement(station: string, time: string, las: number) {
   // time und datetime identisch setzen
   const datetime = time
   const stmt = db.prepare(
-    'INSERT OR IGNORE INTO measurements (station, time, las, datetime) VALUES (?, ?, ?, ?)' 
+    'INSERT OR REPLACE INTO measurements (station, time, las, datetime) VALUES (?, ?, ?, ?)' 
   )
   return stmt.run(station, time, las, datetime)
 }

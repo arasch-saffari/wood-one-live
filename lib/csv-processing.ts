@@ -117,8 +117,9 @@ export async function processCSVFile(station: string, csvPath: string) {
                 let insertResult = null
                 for (let attempt = 1; attempt <= 5; attempt++) {
                   try {
+                    // Verwende INSERT OR REPLACE statt INSERT OR IGNORE um Datenlücken zu vermeiden
                     insertResult = db.prepare(
-                      'INSERT OR IGNORE INTO measurements (station, time, las, source_file, datetime, all_csv_fields) VALUES (?, ?, ?, ?, ?, ?)'
+                      'INSERT OR REPLACE INTO measurements (station, time, las, source_file, datetime, all_csv_fields) VALUES (?, ?, ?, ?, ?, ?)'
                     ).run(station, time, las, fileName, datetime, allCsvFields)
                     break
                   } catch (err: unknown) {

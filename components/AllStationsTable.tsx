@@ -299,9 +299,15 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
     { label: "Ort", key: "station", sortable: true },
   ]
 
+  // Sortierung sollte serverseitig erfolgen, nicht im Frontend
   const filteredRows = useMemo(() => {
+    // Wenn wir serverseitige Pagination haben, sind die Daten bereits sortiert
+    if (page !== undefined && pageSize !== undefined && totalCount !== undefined) {
+      return tableRows; // Bereits serverseitig sortiert
+    }
+    
+    // Fallback: Frontend-Sortierung nur für lokale Daten
     let rows = tableRows;
-    // Always sort by datetime DESC by default, unless userSorted is true
     const col = tableColumns.find(c => c.key === sortKey);
     if (col && typeof col.sortFn === 'function') {
       rows = [...rows].sort((a, b) => col.sortFn!(a, b, sortDir));
@@ -321,7 +327,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
       });
     }
     return rows;
-  }, [tableRows, sortKey, sortDir, tableColumns]);
+  }, [tableRows, sortKey, sortDir, tableColumns, page, pageSize, totalCount]);
 
   // Filterung: "Nur Alarme" zeigt ausschließlich Datensätze, die als Alarm eingestuft sind
   const effectivePage = page ?? 1
@@ -352,8 +358,19 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
   }, [onTopRowChange, pagedRows, filterStationProp]);
 
   function handleSort(key: string) {
+    const newSortDir = sortKey === key && sortDir === 'asc' ? 'desc' : 'asc'
     setSortKey(key)
-    setSortDir(key === 'datetime' ? 'desc' : 'asc')
+    setSortDir(newSortDir)
+    
+    // Wenn serverseitige Pagination aktiv ist, informiere Parent-Komponente über Sortierung
+    if (page !== undefined && pageSize !== undefined && totalCount !== undefined && setPage) {
+      // Reset auf Seite 1 bei neuer Sortierung
+      setPage(1)
+      // TODO: Parent-Komponente muss sortBy/sortOrder an API weiterleiten
+      if (typeof window !== 'undefined') {
+        console.log('[AllStationsTable] Sortierung geändert:', { sortKey: key, sortDir: newSortDir })
+      }
+    }
   }
 
   function getSortIcon(key: string) {

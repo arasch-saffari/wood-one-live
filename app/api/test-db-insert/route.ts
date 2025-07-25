@@ -7,7 +7,7 @@ export async function GET() {
     
     // Teste einfachen Insert
     const insertStmt = db.prepare(
-      'INSERT OR IGNORE INTO measurements (station, time, las, source_file, datetime, all_csv_fields) VALUES (?, ?, ?, ?, ?, ?)' 
+      'INSERT OR REPLACE INTO measurements (station, time, las, source_file, datetime, all_csv_fields) VALUES (?, ?, ?, ?, ?, ?)' 
     )
     
     const result = insertStmt.run(
