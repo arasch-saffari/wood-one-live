@@ -17,7 +17,10 @@ const controllerStates = new Map<string, boolean>()
 
 // Global rate limiting für SSE-Updates
 let lastGlobalUpdate = 0
-const MIN_GLOBAL_UPDATE_INTERVAL = 5000 // 5 Sekunden zwischen globalen Updates
+const MIN_GLOBAL_UPDATE_INTERVAL = 10000 // 10 Sekunden zwischen globalen Updates (erhöht von 5s)
+const MAX_UPDATES_PER_MINUTE = 6 // Maximal 6 Updates pro Minute
+let updatesThisMinute = 0
+let minuteStart = Date.now()
 
 export async function GET() {
   // Initialize application on first API call
@@ -69,8 +72,22 @@ export async function GET() {
 export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
   // Global rate limiting check
   const now = Date.now()
+  
+  // Reset minute counter if needed
+  if (now - minuteStart >= 60000) {
+    updatesThisMinute = 0
+    minuteStart = now
+  }
+  
+  // Check global rate limiting
   if (now - lastGlobalUpdate < MIN_GLOBAL_UPDATE_INTERVAL) {
-    console.debug('⏱️  Global SSE update rate limited (5s interval)')
+    console.debug('⏱️  Global SSE update rate limited (10s interval)')
+    return
+  }
+  
+  // Check per-minute rate limiting
+  if (updatesThisMinute >= MAX_UPDATES_PER_MINUTE) {
+    console.debug('⏱️  Global SSE update rate limited (6 per minute)')
     return
   }
   
@@ -87,6 +104,7 @@ export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
   // Debounce updates - send after 100ms of inactivity (increased from 50ms)
   updateTimeout = setTimeout(() => {
     lastGlobalUpdate = Date.now()
+    updatesThisMinute++
     sendDebouncedUpdate()
   }, 100)
 }
@@ -153,8 +171,16 @@ function sendDebouncedUpdate() {
           try {
             // Additional check: ensure controller is not in closed state
             if (sub.controller.desiredSize !== null) {
-              sub.controller.enqueue(encoder.encode(data))
-              successCount++;
+              // One more check: ensure controller is still valid
+              if (typeof sub.controller.enqueue === 'function' && !sub.closed) {
+                sub.controller.enqueue(encoder.encode(data))
+                successCount++;
+              } else {
+                // Controller became invalid
+                sub.closed = true;
+                controllerStates.set(sub.id, false);
+                errorCount++;
+              }
             } else {
               // Controller is closed
               sub.closed = true;

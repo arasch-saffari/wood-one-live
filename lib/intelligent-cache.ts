@@ -258,17 +258,23 @@ export class IntelligentCache {
   /**
    * Löscht Eintrag von Disk
    */
-  private async deleteFromDisk(key: string): Promise<boolean> {
+  private async deleteFromDisk(key: string): Promise<void> {
     try {
       const filePath = this.getDiskPath(key);
       if (fs.existsSync(filePath)) {
         await fs.promises.unlink(filePath);
-        return true;
+        console.debug(`🗑️  Cache file deleted: ${key}`);
+      } else {
+        console.debug(`📝 Cache file not found (already deleted): ${key}`);
       }
     } catch (error) {
-      console.warn(`Failed to delete cache entry from disk: ${key}`, error);
+      // Ignore ENOENT errors (file not found) - this is expected when cache files are already deleted
+      if (error instanceof Error && (error as any).code === 'ENOENT') {
+        console.debug(`📝 Cache file already deleted: ${key}`);
+      } else {
+        console.error(`❌ Failed to delete cache file ${key}:`, error);
+      }
     }
-    return false;
   }
 
   /**
