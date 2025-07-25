@@ -3,6 +3,10 @@ let subscribers: { controller: ReadableStreamDefaultController, closed: boolean 
 // Singleton für Event-Listener-Registrierung
 let eventListenersRegistered = false
 
+// Debouncing für SSE-Updates
+let updateTimeout: NodeJS.Timeout | null = null
+let pendingUpdates: Record<string, unknown>[] = []
+
 export async function GET() {
   let cleanup: (() => void) | undefined
   let subscriber: { controller: ReadableStreamDefaultController, closed: boolean }
@@ -15,7 +19,11 @@ export async function GET() {
       cleanup = () => {
         subscriber.closed = true
         subscribers = subscribers.filter(s => s !== subscriber)
-        controller.close()
+        try {
+          controller.close()
+        } catch {
+          // Controller already closed, ignore
+        }
       }
     },
   })
@@ -30,13 +38,31 @@ export async function GET() {
   })
 }
 
-export function triggerDeltaUpdate(updateData?: any) {
+export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
+  // Add to pending updates
+  if (updateData) {
+    pendingUpdates.push(updateData)
+  }
+  
+  // Clear existing timeout
+  if (updateTimeout) {
+    clearTimeout(updateTimeout)
+  }
+  
+  // Debounce updates - send after 100ms of inactivity
+  updateTimeout = setTimeout(() => {
+    sendDebouncedUpdate()
+  }, 100)
+}
+
+function sendDebouncedUpdate() {
   const encoder = new TextEncoder()
   
-  // Strukturierte Update-Daten
+  // Combine all pending updates into one payload
   const payload = {
     timestamp: new Date().toISOString(),
-    ...updateData
+    updates: pendingUpdates.length > 0 ? pendingUpdates : undefined,
+    type: pendingUpdates.length > 0 ? 'batch_update' : 'generic_update'
   };
   
   const data = `event: update\ndata: ${JSON.stringify(payload)}\n\n`
@@ -44,28 +70,60 @@ export function triggerDeltaUpdate(updateData?: any) {
   let successCount = 0;
   let errorCount = 0;
   
-  for (const sub of subscribers) {
-    if (!sub.closed) {
-      try {
+  // Create a copy of subscribers and validate their state
+  const activeSubscribers = subscribers.filter(sub => {
+    // Remove closed subscribers
+    if (sub.closed) {
+      return false
+    }
+    
+    // Validate controller state
+    try {
+      // Test if controller is still valid by checking its state
+      if (!sub.controller || typeof sub.controller.enqueue !== 'function') {
+        sub.closed = true
+        return false
+      }
+      return true
+    } catch {
+      sub.closed = true
+      return false
+    }
+  });
+  
+  // Update the main subscribers array to remove invalid ones
+  subscribers = subscribers.filter(sub => !sub.closed)
+  
+  for (const sub of activeSubscribers) {
+    try {
+      // Double-check controller state before sending
+      if (!sub.closed && sub.controller && typeof sub.controller.enqueue === 'function') {
         sub.controller.enqueue(encoder.encode(data))
         successCount++;
-      } catch (error) {
-        sub.closed = true // Mark as closed to avoid repeated errors
+      } else {
+        sub.closed = true;
         errorCount++;
-        console.error('Fehler beim Senden von SSE-Update:', error)
       }
+    } catch (error) {
+      sub.closed = true // Mark as closed to avoid repeated errors
+      errorCount++;
+      console.error('Fehler beim Senden von SSE-Update:', error)
     }
   }
   
   // Log Update-Statistiken
   if (process.env.NODE_ENV === 'development') {
-    console.log(`📡 SSE Update sent: ${successCount} success, ${errorCount} errors, type: ${updateData?.type || 'generic'}`);
+    console.log(`📡 SSE Update sent: ${successCount} success, ${errorCount} errors, updates: ${pendingUpdates.length}`);
   }
   
   // Cleanup geschlossene Verbindungen
   if (errorCount > 0) {
     cleanupSubscribers();
   }
+  
+  // Clear pending updates
+  pendingUpdates = []
+  updateTimeout = null
 }
 
 // Cleanup-Funktion für SSE-Subscriber
