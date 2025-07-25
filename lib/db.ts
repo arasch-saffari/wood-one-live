@@ -487,9 +487,6 @@ if (process.env.ENABLE_BACKGROUND_JOBS === 'true') {
       const duration = Date.now() - startTime
       console.error(`[Wetter-Cron] Fehler beim Wetter-Update nach ${duration}ms:`, e)
     }
-  }, {
-    scheduled: true,
-    timezone: "Europe/Berlin"
   })
 }
 
@@ -544,9 +541,6 @@ export function addDatabaseBackupCron() {
       const duration = Date.now() - startTime
       console.error(`[Backup] Fehler beim Erstellen des Backups nach ${duration}ms:`, e)
     }
-  }, {
-    scheduled: true,
-    timezone: "Europe/Berlin"
   })
 }
 
@@ -580,7 +574,7 @@ cron.schedule('0 3 * * *', async () => {
       )
     ])
     
-    const health = await healthPromise
+    const health = await healthPromise as { notify: boolean }
     const duration = Date.now() - startTime
     
     if (health.notify && process.env.NODE_ENV === 'development') {
@@ -596,9 +590,6 @@ cron.schedule('0 3 * * *', async () => {
     const duration = Date.now() - startTime
     console.error(`[HealthCheck] Fehler beim automatischen Health-Check nach ${duration}ms:`, e)
   }
-}, {
-  scheduled: true,
-  timezone: "Europe/Berlin"
 })
 
 // Monitoring für wiederkehrende Fehler (täglich) - ASYNC für non-blocking I/O mit Timeout-Schutz
@@ -665,9 +656,6 @@ cron.schedule('30 3 * * *', async () => {
     const duration = Date.now() - startTime
     console.error(`[Monitoring] Fehler bei der Fehleranalyse nach ${duration}ms:`, e)
   }
-}, {
-  scheduled: true,
-  timezone: "Europe/Berlin"
 })
 
 // Cronjob: Aktualisiere alle 5 Minuten die 15min-Aggregate
