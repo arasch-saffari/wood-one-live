@@ -77,11 +77,21 @@ export default function ZugvoegelDashboard() {
     }
   })
 
-  const currentLevels = {
-    ort: ortData.length > 0 ? ortData[ortData.length - 1].las : 0,
-    techno: technoData.length > 0 ? technoData[technoData.length - 1].las : 0,
-    band: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
+  // Helper: get latest las value by datetime desc
+  function getLatestLevel(data) {
+    if (!data || data.length === 0) return null;
+    const sorted = [...data].sort((a, b) => {
+      const da = a.datetime ? new Date(a.datetime.replace(' ', 'T')).getTime() : 0;
+      const db = b.datetime ? new Date(b.datetime.replace(' ', 'T')).getTime() : 0;
+      return db - da;
+    });
+    return sorted[0]?.las ?? null;
   }
+  const currentLevels = {
+    ort: getLatestLevel(ortData),
+    techno: getLatestLevel(technoData),
+    band: getLatestLevel(bandData),
+  };
 
   const WIND_COLOR = config?.chartColors?.wind || "#06b6d4"
 
@@ -154,7 +164,7 @@ export default function ZugvoegelDashboard() {
                   </div>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge className={cn("rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg font-semibold cursor-pointer", meta.kpiColor)}>{level.toFixed(1)} dB</Badge>
+                      <Badge className={cn("rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg font-semibold cursor-pointer", meta.kpiColor)}>{typeof level === "number" && !isNaN(level) ? Math.round(level) : "keine daten"} dB</Badge>
                     </TooltipTrigger>
                     <TooltipContent>Lautstärke (dB)</TooltipContent>
                   </Tooltip>

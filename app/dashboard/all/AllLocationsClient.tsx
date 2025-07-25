@@ -277,6 +277,15 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
     // eslint-disable-next-line no-console
     console.log('[KPI-DEBUG] topRow for Ort:', { datetime: topOrt?.datetime, las: topOrt?.las });
   }
+
+  // Debug alert for Ort KPI box
+  useEffect(() => {
+    if (mappedOrtData && mappedOrtData.length > 0) {
+      const firstTableRow = mappedOrtData[0];
+      const debugRow = firstTableRow ? `mappedOrtData[0]: ${firstTableRow.datetime ?? '-'} | las: ${firstTableRow.las ?? '-'}` : 'mappedOrtData[0]: -';
+      window.alert(`DEBUG: mappedOrtData.length = ${mappedOrtData.length}\nKPI-Box-Render-Check\n${debugRow}`);
+    }
+  }, [mappedOrtData && mappedOrtData.length]);
   return (
     <TooltipProvider>
       <div className="space-y-4 lg:space-y-6">
@@ -319,6 +328,10 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
             if (label === 'Ort') {
               const firstTableRow = mappedOrtData[0];
               debugRow = firstTableRow ? `mappedOrtData[0]: ${firstTableRow.datetime ?? '-'} | las: ${firstTableRow.las ?? '-'}` : 'mappedOrtData[0]: -';
+              // Trigger alert for debug info
+              if (typeof window !== 'undefined') {
+                window.alert(`DEBUG: mappedOrtData.length = ${mappedOrtData.length}\nKPI-Box-Render-Check\n${debugRow}`);
+              }
             }
             // Sichtbare Debug-Zeile NUR für Ort: mappedOrtData.length und Render-Check
             const debugLength = (label === 'Ort') ? `DEBUG: mappedOrtData.length = ${mappedOrtData.length}` : '';
@@ -605,6 +618,13 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
           </div>
         </div>
       </div>
+      {mappedOrtData && mappedOrtData.length > 0 && (
+        <div style={{ background: '#fffae5', color: '#b45309', padding: '16px', borderRadius: '12px', marginBottom: '16px', fontWeight: 'bold', fontFamily: 'monospace', fontSize: '1.1em', border: '2px solid #facc15' }}>
+          DEBUG: mappedOrtData.length = {mappedOrtData.length}<br />
+          KPI-Box-Render-Check<br />
+          mappedOrtData[0]: {mappedOrtData[0]?.datetime ?? '-'} | las: {mappedOrtData[0]?.las ?? '-'}
+        </div>
+      )}
     </TooltipProvider>
   )
 } 

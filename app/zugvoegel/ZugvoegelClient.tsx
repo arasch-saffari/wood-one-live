@@ -52,12 +52,13 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
   })
   // Helper: get latest las value by datetime desc
   function getLatestLevel(data) {
-    if (!data || data.length === 0) return 0;
-    return [...data].sort((a, b) => {
-      const da = new Date(a.datetime ?? '').getTime();
-      const db = new Date(b.datetime ?? '').getTime();
+    if (!data || data.length === 0) return null;
+    const sorted = [...data].sort((a, b) => {
+      const da = a.datetime ? new Date(a.datetime.replace(' ', 'T')).getTime() : 0;
+      const db = b.datetime ? new Date(b.datetime.replace(' ', 'T')).getTime() : 0;
       return db - da;
-    })[0]?.las ?? 0;
+    });
+    return sorted[0]?.las ?? null;
   }
   const currentLevels = {
     ort: getLatestLevel(ortData),
@@ -72,6 +73,23 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
   }
   return (
     <TooltipProvider>
+    {/* DEBUG-BOX: Sichtbar im UI, zeigt aktuelle Werte für alle Stationen */}
+    <div style={{ background: '#fffae5', color: '#b45309', padding: '16px', borderRadius: '12px', marginBottom: '16px', fontWeight: 'bold', fontFamily: 'monospace', fontSize: '1.1em', border: '2px solid #facc15' }}>
+      {['ort', 'techno', 'band'].map(station => {
+        const data = station === 'ort' ? ortData : station === 'techno' ? technoData : bandData;
+        const sorted = [...data].sort((a, b) => {
+          const da = a.datetime ? new Date(a.datetime.replace(' ', 'T')).getTime() : 0;
+          const db = b.datetime ? new Date(b.datetime.replace(' ', 'T')).getTime() : 0;
+          return db - da;
+        });
+        const top = sorted[0];
+        return (
+          <div key={station}>
+            {station.toUpperCase()}: {data.length} Werte | Neueste: {top?.datetime ?? '-'} | las: {top?.las ?? '-'}
+          </div>
+        );
+      })}
+    </div>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 md:p-8 pb-8 pt-4">
       <div className="max-w-6xl mx-auto w-full space-y-10">
         {/* Header */}
@@ -99,15 +117,13 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
                     </TooltipTrigger>
                     <TooltipContent>{meta.name} (aktuell)</TooltipContent>
                   </Tooltip>
-                  <div className="flex flex-col flex-1 items-center justify-center">
-                    <span className="text-base md:text-lg font-bold text-gray-900 dark:text-white">{meta.name}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{meta.name}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Status:</span>
+                    <span className="text-base font-semibold mt-1 mb-1">
+                      {typeof level === "number" && !isNaN(level) ? Math.round(level) : "keine daten"} <span className="text-xs font-normal text-gray-500">dB</span>
+                    </span>
                   </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge className={cn("rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-base md:text-lg font-semibold cursor-pointer", meta.kpiColor)}>{level.toFixed(1)} dB</Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>Lautstärke (dB)</TooltipContent>
-                  </Tooltip>
                 </CardHeader>
               </Card>
             )})}

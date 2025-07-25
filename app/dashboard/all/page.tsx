@@ -242,13 +242,22 @@ export default function AllLocationsPage() {
     }
   })
 
-  // Compose current levels for KPI cards (last value in each array)
-  const currentLevels = {
-    ort: ortData.length > 0 ? ortData[ortData.length - 1].las : 0,
-    techno: technoData.length > 0 ? technoData[technoData.length - 1].las : 0,
-    band: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
-    heuballern: heuballernData.length > 0 ? heuballernData[heuballernData.length - 1].las : 0,
+  // Compose current levels for KPI cards (latest by datetime DESC, not last array element!)
+  function getLatestLevel(data) {
+    if (!data || data.length === 0) return null;
+    const sorted = [...data].sort((a, b) => {
+      const da = a.datetime ? new Date(a.datetime.replace(' ', 'T')).getTime() : 0;
+      const db = b.datetime ? new Date(b.datetime.replace(' ', 'T')).getTime() : 0;
+      return db - da;
+    });
+    return sorted[0]?.las ?? null;
   }
+  const currentLevels = {
+    ort: getLatestLevel(ortData),
+    techno: getLatestLevel(technoData),
+    band: getLatestLevel(bandData),
+    heuballern: getLatestLevel(heuballernData),
+  };
 
   // Für jede Station aktuelle Zeit und Schwellenwerte bestimmen
   const getThresholds = (station: StationKey, data: Array<{ datetime?: string }>): ThresholdBlock | undefined => {
