@@ -15,10 +15,6 @@ let pendingUpdates: Record<string, unknown>[] = []
 // Controller state tracking
 const controllerStates = new Map<string, boolean>()
 
-// Global rate limiting für SSE-Updates
-let lastGlobalUpdate = 0
-const MIN_GLOBAL_UPDATE_INTERVAL = 10000 // 10 Sekunden zwischen globalen Updates
-
 // Aggressive SSE-Schutz während CSV-Processing
 let isProcessingCSV = false
 
@@ -29,8 +25,12 @@ const MAX_CONTROLLER_ERRORS = 2 // Reduziert von 3 auf 2 für schnellere Reaktio
 const CIRCUIT_BREAKER_TIMEOUT = 60000 // 1 Minute
 let lastControllerError = 0
 
-// Globale SSE-Deaktivierung
-let sseGloballyDisabled = false
+// Intelligente SSE-Deaktivierung - nur problematische Controller blockieren
+const problematicControllers = new Set<string>()
+
+// Global rate limiting für SSE-Updates
+let lastGlobalUpdate = 0
+const MIN_GLOBAL_UPDATE_INTERVAL = 10000 // 10 Sekunden zwischen globalen Updates
 
 export async function GET() {
   // Initialize application on first API call
@@ -80,9 +80,9 @@ export async function GET() {
 }
 
 export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
-  // Globale SSE-Deaktivierung Check
-  if (sseGloballyDisabled) {
-    console.debug('🛡️  SSE globally disabled - all updates blocked')
+  // Intelligente SSE-Deaktivierung Check - nur problematische Controller blockieren
+  if (problematicControllers.size > 0) {
+    console.debug(`🛡️  SSE blocked for ${problematicControllers.size} problematic controllers`)
     return
   }
   
@@ -96,7 +96,7 @@ export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
       // Circuit Breaker zurücksetzen nach Timeout
       sseCircuitBreakerOpen = false
       controllerErrorCount = 0
-      sseGloballyDisabled = false // Globale Deaktivierung zurücksetzen
+      problematicControllers.clear() // Problematic controllers zurücksetzen
       console.debug('🛡️  SSE circuit breaker reset')
     }
   }
@@ -140,12 +140,12 @@ export function setCSVProcessingState(processing: boolean) {
   }
 }
 
-// Funktion zum Zurücksetzen der globalen SSE-Deaktivierung
+// Funktion zum Zurücksetzen der intelligenten SSE-Deaktivierung
 export function resetGlobalSSEDisable() {
-  sseGloballyDisabled = false
   sseCircuitBreakerOpen = false
   controllerErrorCount = 0
-  console.debug('🛡️  Global SSE disable reset')
+  problematicControllers.clear()
+  console.debug('🛡️  Intelligent SSE disable reset')
 }
 
 function sendDebouncedUpdate() {
@@ -233,15 +233,17 @@ function sendDebouncedUpdate() {
             errorCount++;
             console.debug('Controller became invalid during enqueue:', enqueueError)
             
+            // Intelligente Controller-Blockierung
+            problematicControllers.add(sub.id)
+            console.debug(`🛡️  Controller ${sub.id} marked as problematic`)
+            
             // Circuit Breaker Logic
             controllerErrorCount++;
             lastControllerError = Date.now()
             
             if (controllerErrorCount >= MAX_CONTROLLER_ERRORS) {
               sseCircuitBreakerOpen = true
-              sseGloballyDisabled = true // Globale Deaktivierung
               console.warn('🛡️  SSE circuit breaker opened due to controller errors')
-              console.warn('🛡️  SSE globally disabled to prevent further errors')
             }
           }
         } else {
@@ -266,9 +268,7 @@ function sendDebouncedUpdate() {
       
       if (controllerErrorCount >= MAX_CONTROLLER_ERRORS) {
         sseCircuitBreakerOpen = true
-        sseGloballyDisabled = true // Globale Deaktivierung
         console.warn('🛡️  SSE circuit breaker opened due to controller errors')
-        console.warn('🛡️  SSE globally disabled to prevent further errors')
       }
     }
   }
