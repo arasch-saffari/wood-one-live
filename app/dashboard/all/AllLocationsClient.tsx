@@ -61,10 +61,11 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
   // 1. Context und State
   const { config } = useConfig();
   // 2. Daten-Hooks für Charts (jetzt 15min-Aggregation, ohne Limit)
-  const ortDataObj = useStationData("ort", "24h", 60000, 1, 200, "15min");
-  const heuballernDataObj = useStationData("heuballern", "24h", 60000, 1, 200, "15min");
-  const technoDataObj = useStationData("techno", "24h", 60000, 1, 200, "15min");
-  const bandDataObj = useStationData("band", "24h", 60000, 1, 200, "15min");
+  const pageSize = 1000;
+  const ortDataObj = useStationData("ort", "24h", 60000, 1, pageSize, "15min");
+  const heuballernDataObj = useStationData("heuballern", "24h", 60000, 1, pageSize, "15min");
+  const technoDataObj = useStationData("techno", "24h", 60000, 1, pageSize, "15min");
+  const bandDataObj = useStationData("band", "24h", 60000, 1, pageSize, "15min");
   const ortData = (ortDataObj.data && ortDataObj.data.length ? ortDataObj.data : (initialOrt ?? [])) || [];
   const heuballernData = (heuballernDataObj.data && heuballernDataObj.data.length ? heuballernDataObj.data : (initialHeuballern ?? [])) || [];
   const technoData = (technoDataObj.data && technoDataObj.data.length ? technoDataObj.data : (initialTechno ?? [])) || [];
@@ -74,34 +75,41 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
   const technoLoading = technoDataObj.loading
   const bandLoading = bandDataObj.loading
   // Daten für Tabelle (immer 15min Aggregation, ohne Limit)
-  const mappedOrtData = ortData.map(row => ({
+  function sortByDatetimeDesc(arr) {
+    return [...arr].sort((a, b) => {
+      const da = parseDate(a.datetime)?.getTime() ?? 0;
+      const db = parseDate(b.datetime)?.getTime() ?? 0;
+      return db - da;
+    });
+  }
+  const mappedOrtData = sortByDatetimeDesc(ortData.map(row => ({
     ...row,
     station: "Ort",
     time: row.time && /^\d{2}:\d{2}/.test(row.time)
       ? row.time.slice(0, 5)
       : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-  }));
-  const mappedHeuballernData = heuballernData.map(row => ({
+  })));
+  const mappedHeuballernData = sortByDatetimeDesc(heuballernData.map(row => ({
     ...row,
     station: "Heuballern",
     time: row.time && /^\d{2}:\d{2}/.test(row.time)
       ? row.time.slice(0, 5)
       : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-  }));
-  const mappedTechnoData = technoData.map(row => ({
+  })));
+  const mappedTechnoData = sortByDatetimeDesc(technoData.map(row => ({
     ...row,
     station: "Techno Floor",
     time: row.time && /^\d{2}:\d{2}/.test(row.time)
       ? row.time.slice(0, 5)
       : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-  }));
-  const mappedBandData = bandData.map(row => ({
+  })));
+  const mappedBandData = sortByDatetimeDesc(bandData.map(row => ({
     ...row,
     station: "Band Bühne",
     time: row.time && /^\d{2}:\d{2}/.test(row.time)
       ? row.time.slice(0, 5)
       : (row.datetime && row.datetime.length >= 16 ? row.datetime.slice(11, 16) : undefined)
-  }));
+  })));
   const { weather: latestWeather } = useWeatherData("global", "now")
   const { health } = useHealth();
   const { watcherStatus } = useCsvWatcherStatus();
@@ -219,11 +227,56 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
     const entry = heuballernData.find(d => d.time === time);
     return { time, las: entry?.las ?? null };
   });
-  // State for top row of each station
-  const [topRows, setTopRows] = useState<{ [key in StationKey]?: TableRowType | null }>({});
-  const handleTopRowChange = (station: StationKey) => (row: TableRowType | null) => {
-    setTopRows(prev => ({ ...prev, [station]: row }));
+  // State for top row of each station (by label)
+  const [topRows, setTopRows] = useState<{ [label: string]: TableRowType | null }>({});
+  const handleTopRowChange = (label: string) => (row: TableRowType | null) => {
+    setTopRows(prev => ({ ...prev, [label]: row }));
   };
+
+  // Render hidden AllStationsTable for each station to track top row
+  useEffect(() => {
+    // No-op, just to ensure topRows is always up to date
+  }, [topRows]);
+
+  // Helper: station label mapping (for filter and KPI mapping)
+  const stationLabels: { [key in StationKey]: string } = {
+    ort: 'Ort',
+    techno: 'Techno Floor',
+    band: 'Band Bühne',
+    heuballern: 'Heuballern',
+  };
+  // Reverse mapping for KPI lookup
+  const labelToKey: { [label: string]: StationKey } = Object.fromEntries(Object.entries(stationLabels).map(([k, v]) => [v, k])) as any;
+
+  // Helper: get top row for a station (latest by datetime desc)
+  function getTopRow(data: TableRowType[]): TableRowType | null {
+    if (!data || data.length === 0) return null;
+    const sorted = [...data].sort((a, b) => {
+      const da = parseDate(a.datetime)?.getTime() ?? 0;
+      const db = parseDate(b.datetime)?.getTime() ?? 0;
+      return db - da;
+    });
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.log('[KPI-DEBUG] getTopRow sorted:', sorted.map(r => ({ datetime: r.datetime, las: r.las })));
+      // eslint-disable-next-line no-console
+      console.log('[KPI-DEBUG] getTopRow topRow:', { datetime: sorted[0]?.datetime, las: sorted[0]?.las });
+    }
+    return sorted[0] || null;
+  }
+  // Debug: Log sorted mappedOrtData and topRow for KPI
+  if (typeof window !== 'undefined') {
+    const sortedOrt = [...mappedOrtData].sort((a, b) => {
+      const da = parseDate(a.datetime)?.getTime() ?? 0;
+      const db = parseDate(b.datetime)?.getTime() ?? 0;
+      return db - da;
+    });
+    const topOrt = sortedOrt[0];
+    // eslint-disable-next-line no-console
+    console.log('[KPI-DEBUG] mappedOrtData sorted:', sortedOrt.map(r => ({ datetime: r.datetime, las: r.las })));
+    // eslint-disable-next-line no-console
+    console.log('[KPI-DEBUG] topRow for Ort:', { datetime: topOrt?.datetime, las: topOrt?.las });
+  }
   return (
     <TooltipProvider>
       <div className="space-y-4 lg:space-y-6">
@@ -247,32 +300,54 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
         </motion.div>
         {/* Standort-Übersicht Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 md:mb-10">
-          {(['ort', 'heuballern', 'techno', 'band'] as StationKey[]).map((location) => {
-            const meta = STATION_META[location as keyof typeof STATION_META];
-            const level = topRows[location]?.las ?? null;
+          {[stationLabels.ort, stationLabels.heuballern, stationLabels.techno, stationLabels.band].map((label) => {
+            const key = labelToKey[label] as StationKey;
+            const meta = STATION_META[key];
             const mappedData =
-              location === 'ort' ? mappedOrtData :
-              location === 'heuballern' ? mappedHeuballernData :
-              location === 'techno' ? mappedTechnoData :
+              key === 'ort' ? mappedOrtData :
+              key === 'heuballern' ? mappedHeuballernData :
+              key === 'techno' ? mappedTechnoData :
               mappedBandData;
+            // KPI-Logik wie auf den Einzelstationsseiten: sortiere nach datetime desc, nimm ersten Wert
+            const latest = mappedData.length > 0
+              ? mappedData[0]
+              : null;
+            const level = latest?.las ?? null;
+            const levelDisplay = typeof level === 'number' && !isNaN(level) ? Math.round(level) : null;
+            // Sichtbare Debug-Zeile NUR für Ort: mappedOrtData.length, mappedOrtData[0], und erste Tabellenzeile
+            let debugRow = '';
+            if (label === 'Ort') {
+              const firstTableRow = mappedOrtData[0];
+              debugRow = firstTableRow ? `mappedOrtData[0]: ${firstTableRow.datetime ?? '-'} | las: ${firstTableRow.las ?? '-'}` : 'mappedOrtData[0]: -';
+            }
+            // Sichtbare Debug-Zeile NUR für Ort: mappedOrtData.length und Render-Check
+            const debugLength = (label === 'Ort') ? `DEBUG: mappedOrtData.length = ${mappedOrtData.length}` : '';
+            const renderCheck = (label === 'Ort') ? 'KPI-Box-Render-Check' : '';
             return (
-              <motion.div key={location}
+              <motion.div key={label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <Link href={`/dashboard/${location}`}>
+                <Link href={`/dashboard/${key}`}>
                   <Card className="rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-800 hover:scale-[1.025] transition-transform cursor-pointer">
                     <CardHeader className="flex flex-col items-center gap-2 p-6 md:p-8">
                       <span className="text-lg font-bold text-gray-900 dark:text-white mb-1">{meta.name}</span>
                       <UITooltip>
                         <TooltipTrigger asChild>
-                          {getStatusBadge(level ?? 0, location as StationKey, mappedData)}
+                          {getStatusBadge(levelDisplay ?? 0, key, mappedData)}
                         </TooltipTrigger>
-                        <TooltipContent>Status: {typeof level === "number" && !isNaN(level) ? level.toFixed(1) : "keine daten"} dB</TooltipContent>
+                        <TooltipContent>Status: {levelDisplay !== null ? levelDisplay : "keine daten"} dB</TooltipContent>
                       </UITooltip>
-                      <span className={`text-2xl font-bold mt-2 mb-1 ${getStatusColor(level ?? 0, location as StationKey, mappedData)}`}>{typeof level === "number" && !isNaN(level) ? level.toFixed(1) : "keine daten"} <span className="text-base font-normal text-gray-500">dB</span></span>
+                      <span className={`text-2xl font-bold mt-2 mb-1 ${getStatusColor(levelDisplay ?? 0, key, mappedData)}`}>{levelDisplay !== null ? levelDisplay : "keine daten"} <span className="text-base font-normal text-gray-500">dB</span></span>
                       <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">Klicken für Details →</span>
+                      {label === 'Ort' && (
+                        <>
+                          <span className="block text-xs text-red-500 mt-2 font-mono">{debugLength}</span>
+                          <span className="block text-xs text-blue-500 mt-1 font-mono">{renderCheck}</span>
+                          <span className="block text-xs text-orange-500 mt-1 font-mono">{debugRow}</span>
+                        </>
+                      )}
                     </CardHeader>
                   </Card>
                 </Link>

@@ -50,10 +50,19 @@ export default function ZugvoegelClient({ ortData: initialOrt, technoData: initi
       windSpeed: windSpeed ?? null,
     }
   })
+  // Helper: get latest las value by datetime desc
+  function getLatestLevel(data) {
+    if (!data || data.length === 0) return 0;
+    return [...data].sort((a, b) => {
+      const da = new Date(a.datetime ?? '').getTime();
+      const db = new Date(b.datetime ?? '').getTime();
+      return db - da;
+    })[0]?.las ?? 0;
+  }
   const currentLevels = {
-    ort: ortData.length > 0 ? ortData[ortData.length - 1].las : 0,
-    techno: technoData.length > 0 ? technoData[technoData.length - 1].las : 0,
-    band: bandData.length > 0 ? bandData[bandData.length - 1].las : 0,
+    ort: getLatestLevel(ortData),
+    techno: getLatestLevel(technoData),
+    band: getLatestLevel(bandData),
   }
   const WIND_COLOR = effectiveConfig?.chartColors?.wind || "#06b6d4"
   const STATION_ICONS: Record<string, JSX.Element> = {

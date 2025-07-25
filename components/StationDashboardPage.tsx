@@ -142,7 +142,14 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
     )
   }
   // KPIs
-  const current: number = typeof chartData[chartData.length - 1]?.las === 'number' ? chartData[chartData.length - 1].las : 0
+  // Bestimme den aktuellsten Wert nach datetime (wie Tabelle)
+  const current: number = chartData.length > 0
+    ? [...chartData].sort((a, b) => {
+        const da = new Date(a.datetime ?? '').getTime();
+        const db = new Date(b.datetime ?? '').getTime();
+        return db - da;
+      })[0]?.las ?? 0
+    : 0;
   function safeInt(val: number | undefined): string {
     return typeof val === 'number' && isFinite(val) ? String(Math.round(val)) : '–'
   }

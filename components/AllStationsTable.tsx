@@ -104,6 +104,7 @@ type AllStationsTableProps = {
   showOnlyAlarms?: boolean;
   onAlarmToggle?: (val: boolean) => void;
   onTopRowChange?: (row: TableRowType | null) => void;
+  filterStation?: string;
 }
 
 // Hilfsfunktion: robustes Datum-Parsing für verschiedene Formate
@@ -178,10 +179,12 @@ function getWarningThresholdForRow(row: TableRowType, config: ConfigType): numbe
   return blocks[0]?.warning;
 }
 
-export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity, page, setPage, pageSize, totalCount, alarmRows, showOnlyAlarms: showOnlyAlarmsProp, onAlarmToggle, onTopRowChange }: AllStationsTableProps) {
+export function AllStationsTable({ ortData, heuballernData, technoData, bandData, config, granularity, page, setPage, pageSize, totalCount, alarmRows, showOnlyAlarms: showOnlyAlarmsProp, onAlarmToggle, onTopRowChange, filterStation: filterStationProp }: AllStationsTableProps) {
   const [showWeather, setShowWeather] = useState(false)
   const [search, setSearch] = useState("")
   const [filterStation, setFilterStation] = useState("")
+  // If filterStationProp is set, override the filterStation state
+  const effectiveFilterStation = filterStationProp !== undefined ? filterStationProp : filterStation;
   const [filterDate, setFilterDate] = useState("")
   // const [filter15min, setFilter15min] = useState(false) // Entfernt, da Aggregation jetzt über API
   // showOnlyAlarms: Entweder Prop oder lokaler State (Fallback)
@@ -243,10 +246,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
       render: (row: TableRowType) => {
         if (!row.datetime) return "-"
         const d = parseDate(row.datetime)
-        if (typeof window !== 'undefined') {
-          // eslint-disable-next-line no-console
-          console.log('Datum raw:', row.datetime, '→', d ? d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'INVALID');
-        }
+        // Debug-Log entfernt
         return d ? d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : row.datetime
       } },
     { label: "Zeit", key: "time", sortable: true, render: (row: TableRowType) => {
@@ -345,9 +345,9 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
         return d && d.toLocaleDateString('de-DE') === filterDate;
       });
     }
-    // Filter nach Station
-    if (filterStation) {
-      rows = rows.filter(r => r.station === filterStation);
+    // Filter nach Station (from prop or UI)
+    if (effectiveFilterStation) {
+      rows = rows.filter(r => r.station === effectiveFilterStation);
     }
     // Suche
     if (search) {
@@ -359,7 +359,7 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
       );
     }
     return rows;
-  }, [filteredRows, filterDate, filterStation, search]);
+  }, [filteredRows, filterDate, effectiveFilterStation, search]);
   const effectiveTotalFiltered = filteredAndSearchedRows.length;
   const pageCount = Math.ceil(effectiveTotalFiltered / effectivePageSize);
   const pagedRows = useMemo<TableRowType[]>(() => {
@@ -374,9 +374,17 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
   // Notify parent of the top row (first visible row) whenever pagedRows changes
   React.useEffect(() => {
     if (onTopRowChange) {
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-console
+        console.log('[AllStationsTable] onTopRowChange', {
+          filterStation: filterStationProp,
+          pagedRows: pagedRows.map(r => ({ station: r.station, datetime: r.datetime, las: r.las })),
+          topRow: pagedRows.length > 0 ? { station: pagedRows[0].station, datetime: pagedRows[0].datetime, las: pagedRows[0].las } : null
+        });
+      }
       onTopRowChange(pagedRows.length > 0 ? pagedRows[0] : null);
     }
-  }, [onTopRowChange, pagedRows]);
+  }, [onTopRowChange, pagedRows, filterStationProp]);
 
   function handleSort(key: string) {
     setUserSorted(true);
