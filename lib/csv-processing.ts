@@ -37,199 +37,189 @@ function writeMetaSync(csvPath: string, meta: { lastLine: number }) {
   fs.closeSync(fd)
 }
 
-// Streaming-CSV-Verarbeitung mit inkrementellem Offset
-export async function processCSVFile(station: string, csvPath: string) {
-  let attempts = 0
-  const MAX_ATTEMPTS = 3
-  while (attempts < MAX_ATTEMPTS) {
-    try {
-      attempts++
-      const startTime = Date.now()
-      const fileStat = fs.statSync(csvPath)
-      const fileName = path.basename(csvPath)
+// Hilfsfunktionen für CSV-Verarbeitung
+function parseCSVLine(line: string, station: string, fileName: string): any {
+  try {
+    const parts = line.split(';')
+    if (parts.length < 2) return null
+    
+    // Suche nach Zeit- und Lärm-Spalten
+    let sysTime = null
+    let las = null
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i].trim()
       
-      // Debug-Logging für Deployment
-      console.log(`🔍 [CSV Processing] Processing ${station}: ${fileName} (${fileStat.size} bytes)`)
-      console.log(`🔍 [CSV Processing] Database path: ${process.env.DATABASE_PATH || './data.sqlite'}`)
-      
-      // Entferne das Löschen aller alten Einträge für diese Datei/Station
-      // Lese Offset/Zeilennummer
-      const meta = readMeta(csvPath)
-      const lastLine = meta.lastLine || 0
-      let currentLine = 0
-      let insertedCount = 0
-      let batchCount = 0
-      const BATCH_SIZE = 100 // Batch-Größe für Meta-Updates
-      
-      try {
-        db.exec('BEGIN TRANSACTION')
-        await new Promise<void>((resolve, reject) => {
-          fs.createReadStream(csvPath)
-            .pipe(csvParser({ separator: ';', skipLines: lastLine, mapHeaders: ({ header }) => header.trim() }))
-            .on('data', (row) => {
-              currentLine++
-              batchCount++
-              // Zeilenzähler bezieht sich auf alle Zeilen inkl. Header
-              const realLine = lastLine + currentLine
-              try {
-                // Validierung wie bisher
-                let sysTime = row['Systemzeit']?.trim() || row['Systemzeit ']?.trim()
-                const noiseColumns = ["LAF", "LAS", "LAeq", "Lmax", "Lmin", "LAFT5s", "LAFTeq", "LAF5s", "LCFeq", "LCF5s"]
-                let lasRaw: string | null = null
-                let usedNoiseCol: string | null = null
-                for (const col of noiseColumns) {
-                  if (row[col] && row[col].trim()) {
-                    lasRaw = row[col]
-                    usedNoiseCol = col
-                    break
-                  }
-                }
-                if (!sysTime || !lasRaw) return
-                const timeParts = sysTime.split(":")
-                if (timeParts.length < 3) return
-                const hours = timeParts[0].padStart(2, "0")
-                const minutes = timeParts[1].padStart(2, "0")
-                const seconds = timeParts[2].padStart(2, "0")
-                sysTime = `${hours}:${minutes}:${seconds}`
-                const las = Number(lasRaw.replace(",", "."))
-                if (isNaN(las)) return
-                row['Systemzeit'] = sysTime
-                row['_usedNoiseCol'] = usedNoiseCol || ''
-                row['_noiseValue'] = las.toString()
-                // Datum bestimmen
-                let dateStr = null
-                if (row['Datum']) {
-                  const parts = row['Datum'].split('.')
-                  if (parts.length === 3) {
-                    dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`
-                  }
-                } else if (row['Date']) {
-                  dateStr = row['Date']
-                } else if (row['datetime']) {
-                  const dt = new Date(row['datetime'])
-                  if (!isNaN(dt.getTime())) {
-                    dateStr = dt.toISOString().split('T')[0]
-                  }
-                }
-                if (!dateStr) {
-                  const mtime = fileStat.mtime
-                  dateStr = `${mtime.getFullYear()}-${String(mtime.getMonth()+1).padStart(2,'0')}-${String(mtime.getDate()).padStart(2,'0')}`
-                }
-                const datetime = `${dateStr} ${sysTime}`
-                row['_fullDateTime'] = datetime
-                const allCsvFields = JSON.stringify(row)
-                const time = datetime
-                let insertResult = null
-                for (let attempt = 1; attempt <= 5; attempt++) {
-                  try {
-                    // Verwende INSERT OR REPLACE statt INSERT OR IGNORE um Datenlücken zu vermeiden
-                    insertResult = db.prepare(
-                      'INSERT OR REPLACE INTO measurements (station, time, las, source_file, datetime, all_csv_fields) VALUES (?, ?, ?, ?, ?, ?)'
-                    ).run(station, time, las, fileName, datetime, allCsvFields)
-                    break
-                  } catch (err: unknown) {
-                    if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'SQLITE_BUSY') {
-                      if (process.env.NODE_ENV === 'development') {
-                        console.warn(`⚠️  DB locked (Insert measurements), Versuch ${attempt}/5, warte 200ms...`)
-                      }
-                      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200)
-                      continue
-                    } else {
-                      throw err
-                    }
-                  }
-                }
-                if (insertResult && insertResult.changes > 0) {
-                  insertedCount++
-                }
-                
-                // Batch-Offset-Persistenz: Nur alle BATCH_SIZE Zeilen speichern
-                if (batchCount >= BATCH_SIZE) {
-                  writeMeta(csvPath, { lastLine: realLine })
-                  batchCount = 0
-                }
-              } catch (err) {
-                console.error(`❌ Fehler in Zeile ${lastLine + currentLine}:`, err)
-              }
-            })
-            .on('end', () => {
-                try {
-                  db.exec('COMMIT')
-                  // Finales Meta-Update mit fsync für Crash-Sicherheit
-                  if (currentLine > 0) {
-                    writeMetaSync(csvPath, { lastLine: lastLine + currentLine })
-                  }
-                } catch (e: unknown) {
-                  const msg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e)
-                  if (!msg.includes('no transaction is active')) {
-                    console.error('COMMIT-Fehler:', e)
-                  }
-                }
-                resolve()
-            })
-            .on('error', (err) => {
-                try {
-                  db.exec('ROLLBACK')
-                } catch (e: unknown) {
-                  const msg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e)
-                  if (!msg.includes('no transaction is active')) {
-                    console.error('ROLLBACK-Fehler:', e)
-                  }
-                }
-                reject(err)
-            })
-        })
-      } catch (batchErr) {
-        db.exec('ROLLBACK')
-        throw batchErr
-      }
-      // Nach erfolgreichem Import: File-Cache für diese Station löschen
-      const cacheFile = path.join(process.cwd(), 'cache', `stationdata-${station}.json`)
-      if (fs.existsSync(cacheFile)) {
-        fs.unlinkSync(cacheFile)
-      }
-      const durationSec = (Date.now() - startTime) / 1000
-      importDuration.set(durationSec)
-      
-      // Debug-Logging für Deployment
-      console.log(`✅ [CSV Processing] ${station}: ${fileName} - ${insertedCount} rows inserted in ${durationSec.toFixed(2)}s`)
-      
-      if (insertedCount > 0) {
-        // Rate limit SSE updates to prevent controller errors
-        // Nur SSE-Updates senden wenn mehr als 500 Zeilen importiert wurden (erhöht von 100)
-        if (insertedCount > 500) {
-          setTimeout(() => {
-            triggerDeltaUpdate()
-          }, Math.random() * 3000 + 2000) // Random delay 2000-5000ms für große Imports (erhöht)
-        }
-        
-        // Trigger 15-Min-Aggregation nach erfolgreichem Import
-        try {
-          const { update15MinAggregates } = await import('./db')
-          await update15MinAggregates()
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`📊 15-Min-Aggregation nach Import von ${insertedCount} Messwerten aktualisiert`)
-          }
-        } catch (aggError) {
-          console.error('❌ Fehler bei 15-Min-Aggregation nach Import:', aggError)
-        }
+      // Zeit-Format: HH:MM:SS
+      if (part.match(/^\d{1,2}:\d{1,2}:\d{1,2}$/)) {
+        const timeParts = part.split(':')
+        sysTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1].padStart(2, '0')}:${timeParts[2].padStart(2, '0')}`
       }
       
-      return insertedCount
-    } catch (e) {
-      if (attempts < MAX_ATTEMPTS) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`⚠️  Versuch ${attempts + 1}/${MAX_ATTEMPTS} fehlgeschlagen, wiederhole...`)
-        }
-        continue
-      } else {
-        const msg = e instanceof Error ? e.message : String(e)
-        console.error(`❌ Alle Versuche fehlgeschlagen für ${csvPath}:`, msg)
-        return 0
+      // Lärm-Wert (numerisch)
+      if (!las && !isNaN(Number(part.replace(',', '.')))) {
+        las = Number(part.replace(',', '.'))
       }
     }
+    
+    if (!sysTime || !las) return null
+    
+    // Datum aus Dateiname oder aktuelles Datum
+    const dateMatch = fileName.match(/(\d{2})\.(\d{2})\.(\d{4})/)
+    let dateStr = null
+    if (dateMatch) {
+      dateStr = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`
+    } else {
+      const now = new Date()
+      dateStr = now.toISOString().split('T')[0]
+    }
+    
+    const datetime = `${dateStr} ${sysTime}`
+    const time = datetime
+    
+    return {
+      station,
+      time,
+      las,
+      source_file: fileName,
+      datetime,
+      all_csv_fields: JSON.stringify({ line, station, fileName })
+    }
+  } catch (error) {
+    console.error(`❌ [CSV Processing] Error parsing line: ${error}`)
+    return null
   }
-  return 0
+}
+
+async function insertBatch(db: any, batches: any[], hasDatetime: boolean): Promise<number> {
+  if (batches.length === 0) return 0
+  
+  try {
+    const stmt = hasDatetime 
+      ? db.prepare('INSERT OR REPLACE INTO measurements (station, time, las, source_file, datetime, all_csv_fields) VALUES (?, ?, ?, ?, ?, ?)')
+      : db.prepare('INSERT OR REPLACE INTO measurements (station, time, las, source_file, all_csv_fields) VALUES (?, ?, ?, ?, ?)')
+    
+    let insertedCount = 0
+    for (const batch of batches) {
+      try {
+        const result = hasDatetime
+          ? stmt.run(batch.station, batch.time, batch.las, batch.source_file, batch.datetime, batch.all_csv_fields)
+          : stmt.run(batch.station, batch.time, batch.las, batch.source_file, batch.all_csv_fields)
+        
+        if (result.changes > 0) {
+          insertedCount++
+        }
+      } catch (error) {
+        console.error(`❌ [CSV Processing] Error inserting batch: ${error}`)
+      }
+    }
+    
+    return insertedCount
+  } catch (error) {
+    console.error(`❌ [CSV Processing] Error in insertBatch: ${error}`)
+    return 0
+  }
+}
+
+// Streaming-CSV-Verarbeitung mit inkrementellem Offset
+export async function processCSVFile(station: string, filePath: string): Promise<number> {
+  const startTime = Date.now()
+  
+  try {
+    console.log(`🔍 [CSV Processing] Processing ${station}: ${path.basename(filePath)}`)
+    
+    // Debug: Prüfe Dateigröße
+    const fileStat = fs.statSync(filePath)
+    console.log(`🔍 [CSV Processing] File size: ${fileStat.size} bytes`)
+    
+    // Debug: Prüfe Offset-Datei
+    const offsetFile = filePath.replace('.csv', '.meta.json')
+    let offset = 0
+    if (fs.existsSync(offsetFile)) {
+      try {
+        const offsetData = JSON.parse(fs.readFileSync(offsetFile, 'utf8'))
+        offset = offsetData.offset || 0
+        console.log(`🔍 [CSV Processing] Found offset: ${offset} for ${path.basename(filePath)}`)
+      } catch (err) {
+        console.log(`🔍 [CSV Processing] Error reading offset file: ${err}`)
+      }
+    } else {
+      console.log(`🔍 [CSV Processing] No offset file found for ${path.basename(filePath)}`)
+    }
+    
+    // Debug: Prüfe Dateiinhalt
+    const fileContent = fs.readFileSync(filePath, 'utf8')
+    const lines = fileContent.split('\n').filter(line => line.trim())
+    console.log(`🔍 [CSV Processing] Total lines in file: ${lines.length}`)
+    console.log(`🔍 [CSV Processing] Lines after offset: ${lines.length - offset}`)
+    
+    if (lines.length <= offset) {
+      console.log(`🔍 [CSV Processing] File already fully processed (${lines.length} <= ${offset})`)
+      return 0
+    }
+    
+    // Debug: Zeige erste paar Zeilen
+    const sampleLines = lines.slice(offset, Math.min(offset + 5, lines.length))
+    console.log(`🔍 [CSV Processing] Sample lines after offset:`)
+    sampleLines.forEach((line, i) => {
+      console.log(`🔍 [CSV Processing] Line ${offset + i}: ${line.substring(0, 100)}...`)
+    })
+    
+    const db = (await import('./database')).default
+    
+    // Prüfe ob datetime Spalte existiert
+    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+    const hasDatetime = columns.some(col => col.name === 'datetime')
+    console.log(`🔍 [CSV Processing] Database has datetime column: ${hasDatetime}`)
+    
+    let insertedCount = 0
+    const batchSize = 1000
+    const batches = []
+    
+    // Verarbeite Zeilen ab dem Offset
+    for (let i = offset; i < lines.length; i++) {
+      const line = lines[i].trim()
+      if (!line) continue
+      
+      try {
+        const measurement = parseCSVLine(line, station, path.basename(filePath))
+        if (measurement) {
+          batches.push(measurement)
+          
+          if (batches.length >= batchSize) {
+            const batchInserted = await insertBatch(db, batches, hasDatetime)
+            insertedCount += batchInserted
+            batches.length = 0
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [CSV Processing] Error parsing line ${i + 1}: ${error}`)
+        continue
+      }
+    }
+    
+    // Füge restliche Batches ein
+    if (batches.length > 0) {
+      const batchInserted = await insertBatch(db, batches, hasDatetime)
+      insertedCount += batchInserted
+    }
+    
+    // Speichere neuen Offset
+    if (insertedCount > 0) {
+      const newOffset = lines.length
+      const offsetData = { offset: newOffset, lastProcessed: new Date().toISOString() }
+      fs.writeFileSync(offsetFile, JSON.stringify(offsetData, null, 2))
+      console.log(`🔍 [CSV Processing] Updated offset to ${newOffset}`)
+    }
+    
+    const durationSec = (Date.now() - startTime) / 1000
+    console.log(`✅ [CSV Processing] ${station}: ${path.basename(filePath)} - ${insertedCount} rows inserted in ${durationSec.toFixed(2)}s`)
+    
+    return insertedCount
+  } catch (error) {
+    console.error(`❌ [CSV Processing] Error processing ${filePath}:`, error)
+    return 0
+  }
 }
 
 export async function processAllCSVFiles(): Promise<number> {
