@@ -97,8 +97,8 @@ export async function GET(req: Request) {
     
     const aggCountResult = aggCountStmt.get(station) as { total: number }
     
-    // Wenn aggregierte Daten vorhanden sind UND genug Einträge (mindestens 10), verwende sie
-    if (aggCountResult.total > 10) {
+    // Wenn aggregierte Daten vorhanden sind UND genug Einträge (mindestens 50), verwende sie
+    if (aggCountResult.total > 50) {
       console.log(`[API station-data] Verwende 15min aggregierte Daten für ${station}: ${aggCountResult.total} Einträge`)
       
       const stmt = db.prepare(`
