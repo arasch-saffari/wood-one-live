@@ -38,7 +38,10 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  
+  useEffect(() => { 
+    setMounted(true) 
+  }, [])
   const pathname = usePathname()
 
   // Optimiert: Lade nur minimale Daten für letzte Aktualisierung (1 Datenpunkt pro Station)

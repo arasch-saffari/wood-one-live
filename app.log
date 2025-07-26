@@ -7,10 +7,16 @@
    - Network:      http://192.168.178.23:3000
 
  ✓ Starting...
- ✓ Ready in 1491ms
- ○ Compiling /api/station-data ...
- ✓ Compiled /api/station-data in 952ms (530 modules)
-{"level":"info","time":"2025-07-26T14:08:43.339Z","pid":86394,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+ ✓ Ready in 1524ms
+ ○ Compiling /dashboard/all ...
+ ✓ Compiled /dashboard/all in 3.4s (1860 modules)
+AllLocationsPage wird gerendert
+ GET /dashboard/all 200 in 4114ms
+ ✓ Compiled in 764ms (863 modules)
+ ○ Compiling /api/admin/health ...
+ ✓ Compiled /api/admin/health in 1583ms (1996 modules)
+{"level":"info","time":"2025-07-26T14:58:19.072Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+ GET /api/weather?station=global&time=now 200 in 1772ms
 ✅ Event manager registered for SIGINT/SIGTERM
 🔧 Initializing database tables...
 ✅ Database tables initialized successfully
@@ -20,43 +26,530 @@
 ✅ All database migrations completed successfully
 🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
 🔄 Starting 15-minute aggregation update...
-✅ 15-minute aggregation completed in 2100ms
+✅ 15-minute aggregation completed in 2944ms
 📊 Aggregation statistics: [
-  { station: 'band', count: 44 },
-  { station: 'heuballern', count: 46 },
-  { station: 'ort', count: 50 },
-  { station: 'techno', count: 45 },
-  { station: 'teststation', count: 252 }
+  { station: 'band', count: 41 },
+  { station: 'heuballern', count: 43 },
+  { station: 'ort', count: 47 },
+  { station: 'techno', count: 42 },
+  { station: 'teststation', count: 249 }
 ]
 ✅ Automatic aggregation scheduled successfully
-🔍 [API station-data] Request: station=heuballern, interval=24h, page=1, pageSize=5, aggregate=null
+🔍 [API station-data] Request: station=heuballern, interval=24h, page=1, pageSize=1, aggregate=dates
 🔍 [API station-data] Environment: NODE_ENV=development, Platform=darwin
-🔍 [API station-data] Result: 5 rows for heuballern, totalCount: 38921
-[API station-data] Station: heuballern, Page: 1/7785, Rows: 5/38921
- GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=5 200 in 3307ms
-{"level":"info","time":"2025-07-26T14:08:43.342Z","pid":86394,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
-{"level":"info","time":"2025-07-26T14:08:43.369Z","pid":86394,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
-{"level":"info","time":"2025-07-26T14:08:43.430Z","pid":86394,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
-{"level":"info","time":"2025-07-26T14:08:43.430Z","pid":86394,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
-{"level":"info","time":"2025-07-26T14:08:43.430Z","pid":86394,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
-{"level":"info","time":"2025-07-26T14:08:45.532Z","pid":86394,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
-🔍 [API station-data] Request: station=band, interval=24h, page=1, pageSize=5, aggregate=null
+🔍 [API station-data] Result: 1 rows for heuballern, totalCount: 35945
+[API station-data] Station: heuballern, Page: 1/35945, Rows: 1/35945
+[API station-data] Verwende 15min aggregierte Daten für ort: 47 Einträge
+[API station-data] Verwende 15min aggregierte Daten für techno: 42 Einträge
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=dates 200 in 4808ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 4808ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 4797ms
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2622ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 41 },
+  { station: 'heuballern', count: 43 },
+  { station: 'ort', count: 47 },
+  { station: 'techno', count: 42 },
+  { station: 'teststation', count: 249 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/csv-watcher-status 200 in 7441ms
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1566ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 41 },
+  { station: 'heuballern', count: 43 },
+  { station: 'ort', count: 47 },
+  { station: 'techno', count: 42 },
+  { station: 'teststation', count: 249 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/admin/health 200 in 9019ms
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1215ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 41 },
+  { station: 'heuballern', count: 43 },
+  { station: 'ort', count: 47 },
+  { station: 'techno', count: 42 },
+  { station: 'teststation', count: 249 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/health 200 in 10285ms
+{"level":"info","time":"2025-07-26T14:58:19.077Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T14:58:19.130Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+{"level":"info","time":"2025-07-26T14:58:19.175Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T14:58:19.176Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T14:58:19.176Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T14:58:22.123Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T14:58:22.139Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T14:58:22.140Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T14:58:22.140Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T14:58:24.762Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T14:58:24.773Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T14:58:24.773Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T14:58:24.773Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T14:58:26.340Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T14:58:26.348Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T14:58:26.348Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T14:58:26.349Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T14:58:27.565Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ ○ Compiling /api/weather/last-update ...
+ ✓ Compiled /api/weather/last-update in 937ms (2015 modules)
+{"level":"info","time":"2025-07-26T14:58:28.556Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+✅ Event manager registered for SIGINT/SIGTERM
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2426ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 41 },
+  { station: 'heuballern', count: 43 },
+  { station: 'ort', count: 47 },
+  { station: 'techno', count: 42 },
+  { station: 'teststation', count: 249 }
+]
+✅ Automatic aggregation scheduled successfully
+💓 SSE heartbeat mechanism started
+ GET /api/weather/last-update 200 in 3400ms
+ GET /api/admin/config 200 in 3471ms
+{"level":"info","time":"2025-07-26T14:58:28.565Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+{"level":"info","time":"2025-07-26T14:58:28.566Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T14:58:28.581Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T14:58:28.581Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T14:58:28.582Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T14:58:31.016Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+AllLocationsPage wird gerendert
+ GET /dashboard/all 200 in 587ms
+ GET /dashboard/all 200 in 3213ms
+ ✓ Compiled in 676ms (863 modules)
+ GET /dashboard/all 200 in 36ms
+{"level":"info","time":"2025-07-26T14:59:17.263Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2115ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 41 },
+  { station: 'heuballern', count: 43 },
+  { station: 'ort', count: 47 },
+  { station: 'techno', count: 42 },
+  { station: 'teststation', count: 249 }
+]
+✅ Automatic aggregation scheduled successfully
+[API station-data] Verwende 15min aggregierte Daten für ort: 47 Einträge
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 2143ms
+{"level":"info","time":"2025-07-26T14:59:17.263Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T14:59:17.263Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T14:59:19.378Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+[API station-data] Verwende 15min aggregierte Daten für band: 41 Einträge
+[API station-data] Verwende 15min aggregierte Daten für techno: 42 Einträge
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 2147ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 2147ms
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 43 Einträge
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 184ms
+ GET /api/weather?station=global&time=now 200 in 194ms
+{"level":"info","time":"2025-07-26T14:59:19.592Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1152ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 41 },
+  { station: 'heuballern', count: 43 },
+  { station: 'ort', count: 47 },
+  { station: 'techno', count: 42 },
+  { station: 'teststation', count: 249 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/admin/health 200 in 1353ms
+{"level":"info","time":"2025-07-26T14:59:19.592Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T14:59:19.593Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T14:59:20.745Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T14:59:20.771Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1120ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 41 },
+  { station: 'heuballern', count: 43 },
+  { station: 'ort', count: 47 },
+  { station: 'techno', count: 42 },
+  { station: 'teststation', count: 249 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/csv-watcher-status 200 in 2312ms
+{"level":"info","time":"2025-07-26T14:59:20.771Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T14:59:20.771Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T14:59:21.892Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ ✓ Compiled in 2.6s (863 modules)
+ GET /dashboard/all 200 in 32ms
+ ○ Compiling / ...
+ ✓ Compiled / in 966ms (2018 modules)
+ GET / 307 in 1546ms
+AllLocationsPage wird gerendert
+ GET /dashboard/all 200 in 698ms
+ GET /dashboard/all 200 in 151ms
+{"level":"info","time":"2025-07-26T15:00:09.945Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2236ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+[API station-data] Verwende 15min aggregierte Daten für ort: 46 Einträge
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 2358ms
+{"level":"info","time":"2025-07-26T15:00:09.946Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T15:00:09.965Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+{"level":"info","time":"2025-07-26T15:00:09.987Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T15:00:09.987Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:09.988Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:12.225Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+[API station-data] Verwende 15min aggregierte Daten für techno: 41 Einträge
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 2361ms
+ GET /api/weather?station=global&time=now 200 in 2366ms
+{"level":"info","time":"2025-07-26T15:00:12.287Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1132ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/admin/health 200 in 1190ms
+{"level":"info","time":"2025-07-26T15:00:12.287Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:12.287Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:13.419Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T15:00:13.565Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1139ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/csv-watcher-status 200 in 2455ms
+{"level":"info","time":"2025-07-26T15:00:13.565Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:13.566Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:14.705Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+🔍 [API station-data] Request: station=heuballern, interval=24h, page=1, pageSize=1, aggregate=dates
 🔍 [API station-data] Environment: NODE_ENV=development, Platform=darwin
-🔍 [API station-data] Result: 5 rows for band, totalCount: 39892
-🔍 [API station-data] Special debug for band:
-🔍 [API station-data] - Total count: 39892
-🔍 [API station-data] - Result length: 5
-🔍 [API station-data] - First result: {"time":"2025-07-26 01:13:39","las":88.2,"datetime":"2025-07-26 01:13:39","ws":null,"wd":null,"rh":null}
-🔍 [API station-data] - Last result: {"time":"2025-07-26 01:13:35","las":87.8,"datetime":"2025-07-26 01:13:35","ws":null,"wd":null,"rh":null}
-[API station-data] Station: band, Page: 1/7979, Rows: 5/39892
- GET /api/station-data?station=band&interval=24h&page=1&pageSize=5 200 in 10ms
-🔍 [API station-data] Request: station=techno, interval=24h, page=1, pageSize=5, aggregate=null
-🔍 [API station-data] Environment: NODE_ENV=development, Platform=darwin
-🔍 [API station-data] Result: 5 rows for techno, totalCount: 40042
-🔍 [API station-data] Special debug for techno:
-🔍 [API station-data] - Total count: 40042
-🔍 [API station-data] - Result length: 5
-🔍 [API station-data] - First result: {"time":"2025-07-26 01:16:08","las":77.4,"datetime":"2025-07-26 01:16:08","ws":null,"wd":null,"rh":null}
-🔍 [API station-data] - Last result: {"time":"2025-07-26 01:16:04","las":75.6,"datetime":"2025-07-26 01:16:04","ws":null,"wd":null,"rh":null}
-[API station-data] Station: techno, Page: 1/8009, Rows: 5/40042
- GET /api/station-data?station=techno&interval=24h&page=1&pageSize=5 200 in 7ms
+🔍 [API station-data] Result: 1 rows for heuballern, totalCount: 35833
+[API station-data] Station: heuballern, Page: 1/35833, Rows: 1/35833
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=dates 200 in 2462ms
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 5.7s (2949 modules)
+{"level":"info","time":"2025-07-26T15:00:18.033Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+(node:96658) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 21 SIGINT listeners added to [process]. MaxListeners is 20. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:96658) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 21 SIGTERM listeners added to [process]. MaxListeners is 20. Use emitter.setMaxListeners() to increase limit
+ GET /api/admin/config 200 in 3352ms
+{"level":"info","time":"2025-07-26T15:00:18.033Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T15:00:18.056Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+ GET /api/weather/last-update 200 in 4526ms
+ GET /api/updates 200 in 111749ms
+ GET /api/updates 200 in 111752ms
+ GET /api/updates 200 in 111753ms
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+{"level":"info","time":"2025-07-26T15:00:19.391Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2200ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+[API station-data] Keine ausreichenden aggregierten Daten für band (40 Einträge), verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 3550ms
+{"level":"info","time":"2025-07-26T15:00:19.392Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:19.393Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:21.594Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 3553ms
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 42 Einträge
+ GET /admin 200 in 6989ms
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 42 Einträge
+[API station-data] Keine ausreichenden aggregierten Daten für band (40 Einträge), verwende direkte Messwerte
+[API station-data] Verwende 15min aggregierte Daten für techno: 41 Einträge
+ GET /dashboard/all 200 in 308ms
+ ○ Compiling /api/updates ...
+ ✓ Compiled /api/updates in 876ms (2950 modules)
+{"level":"info","time":"2025-07-26T15:00:22.579Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+✅ Event manager registered for SIGINT/SIGTERM
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1600ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+💓 SSE heartbeat mechanism started
+{"level":"info","time":"2025-07-26T15:00:22.588Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+{"level":"info","time":"2025-07-26T15:00:22.589Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T15:00:22.605Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T15:00:22.605Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:22.605Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:24.210Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /dashboard/all 200 in 306ms
+ GET /api/admin/config 200 in 54ms
+ ✓ Compiled in 1710ms (1325 modules)
+ GET /admin 200 in 64ms
+ GET /dashboard/all 200 in 65ms
+{"level":"info","time":"2025-07-26T15:00:26.158Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2452ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/admin/health 200 in 2510ms
+{"level":"info","time":"2025-07-26T15:00:26.158Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:26.169Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:28.622Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ ○ Compiling /api/admin/logs ...
+ ✓ Compiled /api/admin/logs in 1908ms (2940 modules)
+{"level":"info","time":"2025-07-26T15:00:30.634Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2429ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/csv-watcher-status 200 in 6992ms
+💓 Heartbeat failed for subscriber sub_1753541911017_ion69yt49: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911023_by9jh0iu5: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911024_arpy2c0o0: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+{"level":"info","time":"2025-07-26T15:00:30.644Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+{"level":"info","time":"2025-07-26T15:00:30.644Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T15:00:30.666Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T15:00:30.667Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:30.667Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:33.098Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /api/admin/cron 200 in 7019ms
+ GET /api/admin/logs 200 in 4506ms
+{"level":"info","time":"2025-07-26T15:00:33.174Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1211ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+💓 SSE heartbeat mechanism started
+{"level":"info","time":"2025-07-26T15:00:33.175Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:33.175Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:34.387Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /api/admin/config 200 in 1395ms
+{"level":"info","time":"2025-07-26T15:00:34.576Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1198ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/admin/health 200 in 1221ms
+{"level":"info","time":"2025-07-26T15:00:34.576Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:00:34.576Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:00:35.775Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ ✓ Compiled in 2.7s (1325 modules)
+ GET /dashboard/all 200 in 55ms
+ GET /admin 200 in 33ms
+ GET /api/csv-watcher-status 200 in 9ms
+ GET /api/admin/cron 200 in 7ms
+ GET /api/admin/logs 200 in 4ms
+ GET /api/admin/config 200 in 5ms
+ GET /dashboard/all 200 in 14ms
+ GET /admin 200 in 11ms
+{"level":"info","time":"2025-07-26T15:01:09.900Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2049ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+[API station-data] Verwende 15min aggregierte Daten für ort: 46 Einträge
+(node:96658) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 21 unhandledRejection listeners added to [process]. MaxListeners is 20. Use emitter.setMaxListeners() to increase limit
+(node:96658) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 21 uncaughtException listeners added to [process]. MaxListeners is 20. Use emitter.setMaxListeners() to increase limit
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 2118ms
+{"level":"info","time":"2025-07-26T15:01:09.901Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:01:09.901Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:01:11.950Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 42 Einträge
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 46ms
+[API station-data] Keine ausreichenden aggregierten Daten für band (40 Einträge), verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 58ms
+[API station-data] Verwende 15min aggregierte Daten für techno: 41 Einträge
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+ GET /api/weather?station=global&time=now 200 in 309ms
+ ✓ Compiled in 633ms (1325 modules)
+ GET /api/admin/health 200 in 24ms
+ GET /api/csv-watcher-status 200 in 9ms
+ GET /admin 200 in 16ms
+ GET /dashboard/all 200 in 12ms
+ GET /api/admin/health 200 in 15ms
+ GET /api/admin/cron 200 in 8ms
+ GET /api/admin/logs 200 in 9ms
+ GET /api/csv-watcher-status 200 in 4ms
+ GET /api/admin/config 200 in 8ms

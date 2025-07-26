@@ -250,35 +250,17 @@ export default function AllLocationsClient({ ortData: initialOrt, heuballernData
     Object.entries(stationLabels).map(([k, v]) => [v, k])
   ) as { [label: string]: StationKey };
 
-  // Helper: get top row for a station (latest by datetime desc)
-  function getTopRow(data: TableRowType[]): TableRowType | null {
-    if (!data || data.length === 0) return null;
-    const sorted = [...data].sort((a, b) => {
-      const da = parseDate(a.datetime)?.getTime() ?? 0;
-      const db = parseDate(b.datetime)?.getTime() ?? 0;
-      return db - da;
-    });
-    if (typeof window !== 'undefined') {
-      // eslint-disable-next-line no-console
-      console.log('[KPI-DEBUG] getTopRow sorted:', sorted.map(r => ({ datetime: r.datetime, las: r.las })));
-      // eslint-disable-next-line no-console
-      console.log('[KPI-DEBUG] getTopRow topRow:', { datetime: sorted[0]?.datetime, las: sorted[0]?.las });
-    }
-    return sorted[0] || null;
-  }
-  // Debug: Log sorted mappedOrtData and topRow for KPI
-  if (typeof window !== 'undefined') {
+  // Debug logging only on client side
+  useEffect(() => {
     const sortedOrt = [...mappedOrtData].sort((a, b) => {
       const da = parseDate(a.datetime)?.getTime() ?? 0;
       const db = parseDate(b.datetime)?.getTime() ?? 0;
       return db - da;
     });
     const topOrt = sortedOrt[0];
-    // eslint-disable-next-line no-console
     console.log('[KPI-DEBUG] mappedOrtData sorted:', sortedOrt.map(r => ({ datetime: r.datetime, las: r.las })));
-    // eslint-disable-next-line no-console
     console.log('[KPI-DEBUG] topRow for Ort:', { datetime: topOrt?.datetime, las: topOrt?.las });
-  }
+  }, [mappedOrtData]);
 
   // Debug alert for Ort KPI box
   useEffect(() => {

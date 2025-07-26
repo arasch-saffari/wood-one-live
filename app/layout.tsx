@@ -58,6 +58,7 @@ export default function RootLayout({
           geistMono.variable,
           "min-h-screen bg-background font-sans antialiased"
         )}
+        suppressHydrationWarning
       >
         <ClientProviders>
           {children}

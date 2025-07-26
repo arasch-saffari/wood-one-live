@@ -251,7 +251,9 @@ export default function AdminDashboard() {
     setImportRunning(false)
   }, [])
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => { 
+    setMounted(true) 
+  }, [])
 
   // Verschiebe fetchCorrectionStats und fetchCorrectionData direkt vor die useEffect, die sie verwendet.
   const fetchCorrectionStats = useCallback(async () => {
