@@ -28,6 +28,20 @@ let lastControllerError = 0
 // Intelligente SSE-Deaktivierung - nur problematische Controller blockieren
 const problematicControllers = new Set<string>()
 
+// Controller cleanup timer
+let controllerCleanupTimer: NodeJS.Timeout | null = null
+
+// Funktion zum Bereinigen alter problematischer Controller
+function cleanupProblematicControllers() {
+  if (problematicControllers.size > 0) {
+    console.debug(`🧹 Cleaning up ${problematicControllers.size} problematic controllers`)
+    problematicControllers.clear()
+  }
+  
+  // Automatische Bereinigung alle 30 Sekunden
+  controllerCleanupTimer = setTimeout(cleanupProblematicControllers, 30000)
+}
+
 // Global rate limiting für SSE-Updates
 let lastGlobalUpdate = 0
 const MIN_GLOBAL_UPDATE_INTERVAL = 10000 // 10 Sekunden zwischen globalen Updates
@@ -80,8 +94,8 @@ export async function GET() {
 }
 
 export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
-  // Intelligente SSE-Deaktivierung Check - nur problematische Controller blockieren
-  if (problematicControllers.size > 0) {
+  // Intelligente SSE-Deaktivierung Check - nur bei zu vielen problematischen Controllern blockieren
+  if (problematicControllers.size > 5) { // Nur blockieren wenn mehr als 5 problematische Controller
     console.debug(`🛡️  SSE blocked for ${problematicControllers.size} problematic controllers`)
     return
   }
@@ -98,6 +112,15 @@ export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
       controllerErrorCount = 0
       problematicControllers.clear() // Problematic controllers zurücksetzen
       console.debug('🛡️  SSE circuit breaker reset')
+      
+      // Cleanup timer zurücksetzen
+      if (controllerCleanupTimer) {
+        clearTimeout(controllerCleanupTimer)
+        controllerCleanupTimer = null
+      }
+      
+      // Cleanup function aufrufen
+      cleanupProblematicControllers()
     }
   }
   
@@ -145,6 +168,13 @@ export function resetGlobalSSEDisable() {
   sseCircuitBreakerOpen = false
   controllerErrorCount = 0
   problematicControllers.clear()
+  
+  // Cleanup timer zurücksetzen
+  if (controllerCleanupTimer) {
+    clearTimeout(controllerCleanupTimer)
+    controllerCleanupTimer = null
+  }
+  
   console.debug('🛡️  Intelligent SSE disable reset')
 }
 
