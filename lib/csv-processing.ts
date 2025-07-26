@@ -219,7 +219,7 @@ export async function processCSVFile(station: string, filePath: string): Promise
     console.log(`📄 [CSV Processing] Processing ${lines.length} lines from ${path.basename(filePath)}`)
     
     let insertedCount = 0
-    const batchSize = 1000
+    const batchSize = 500 // Reduziert von 1000 auf 500
     const batches = []
     let processedLines = 0
     
@@ -240,8 +240,11 @@ export async function processCSVFile(station: string, filePath: string): Promise
             
             // Progress reporting
             processedLines += batchSize
-            if (processedLines % 5000 === 0) {
+            if (processedLines % 2000 === 0) { // Reduziert von 5000 auf 2000
               console.log(`📊 [CSV Processing] Progress: ${processedLines}/${lines.length} lines processed, ${insertedCount} inserted`)
+              
+              // Kurze Pause alle 2000 Zeilen um CPU zu entlasten
+              await new Promise(resolve => setTimeout(resolve, 100))
             }
           }
         }
@@ -291,6 +294,7 @@ export async function processAllCSVFiles(): Promise<number> {
     const stations = ['ort', 'techno', 'heuballern', 'band']
     let totalInserted = 0
     
+    // Verarbeite Stationen sequenziell statt parallel
     for (const station of stations) {
       const csvDir = path.join(process.cwd(), 'public', 'csv', station)
       console.log(`📁 Überprüfe Verzeichnis: ${csvDir}`)
@@ -308,9 +312,11 @@ export async function processAllCSVFiles(): Promise<number> {
         console.log(`📄 Erste CSV-Dateien in ${station}:`, csvFiles.slice(0, 3))
       }
       
-      for (const csvFile of csvFiles) {
+      // Verarbeite Dateien sequenziell mit Pausen
+      for (let i = 0; i < csvFiles.length; i++) {
+        const csvFile = csvFiles[i]
         const csvPath = path.join(csvDir, csvFile)
-        console.log(`📄 Processing: ${csvPath}`)
+        console.log(`📄 Processing: ${csvPath} (${i + 1}/${csvFiles.length})`)
         
         // Debug: Prüfe Dateigröße
         try {
@@ -323,6 +329,12 @@ export async function processAllCSVFiles(): Promise<number> {
         const insertedCount = await processCSVFile(station, csvPath)
         totalInserted += insertedCount
         console.log(`📊 ${station}: ${csvFile} - ${insertedCount} rows inserted`)
+        
+        // Pause zwischen Dateien um CPU zu entlasten
+        if (i < csvFiles.length - 1) {
+          console.log(`⏸️  Pause zwischen Dateien (CPU-Entlastung)...`)
+          await new Promise(resolve => setTimeout(resolve, 1000)) // 1 Sekunde Pause
+        }
       }
     }
     
