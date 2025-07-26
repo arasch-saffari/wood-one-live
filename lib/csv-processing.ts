@@ -290,6 +290,12 @@ export async function processAllCSVFiles(): Promise<number> {
   // SSE-Schutz aktivieren
   setCSVProcessingState(true)
   
+  // Timeout nach 5 Minuten
+  const timeout = setTimeout(() => {
+    console.log(`⏰ [CSV Processing] Timeout nach 5 Minuten - Verarbeitung wird abgebrochen`)
+    setCSVProcessingState(false)
+  }, 5 * 60 * 1000)
+  
   try {
     const stations = ['ort', 'techno', 'heuballern', 'band']
     let totalInserted = 0
@@ -357,7 +363,8 @@ export async function processAllCSVFiles(): Promise<number> {
     
     return totalInserted
   } finally {
-    // SSE-Schutz deaktivieren
+    // Timeout löschen und SSE-Schutz deaktivieren
+    clearTimeout(timeout)
     setCSVProcessingState(false)
   }
 }
