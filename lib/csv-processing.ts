@@ -52,7 +52,7 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
     let datum = null
     
     // Erste Zeile ist Header - überspringe
-    if (parts[0].toLowerCase().includes('systemzeit') || parts[0].toLowerCase().includes('zeit')) {
+    if (parts[0].toLowerCase().includes('messnummer') || parts[0].toLowerCase().includes('systemzeit')) {
       console.log(`🔍 [CSV Processing] Skipping header row`)
       return null
     }
@@ -63,17 +63,25 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
       const part = parts[i].trim()
       
       // Prüfe ob es eine Zeit-Spalte ist
-      if (timeColumns.some(col => part.includes(col) || part.match(/^\d{1,2}:\d{1,2}:\d{1,2}$/))) {
-        // Extrahiere Zeit aus der Spalte
-        const timeMatch = part.match(/(\d{1,2}):(\d{1,2}):(\d{1,2})/)
+      if (timeColumns.some(col => part.includes(col) || part.match(/^\d{1,2}:\d{1,2}:\d{1,2}:\d{1,3}$/))) {
+        // Extrahiere Zeit aus der Spalte - unterstützt Millisekunden
+        const timeMatch = part.match(/(\d{1,2}):(\d{1,2}):(\d{1,2}):(\d{1,3})/)
         if (timeMatch) {
+          // Entferne Millisekunden für Datenbank
           sysTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2].padStart(2, '0')}:${timeMatch[3].padStart(2, '0')}`
-          console.log(`🔍 [CSV Processing] Found time: ${sysTime}`)
+          console.log(`🔍 [CSV Processing] Found time: ${sysTime} (removed milliseconds)`)
+        } else {
+          // Fallback für Zeit ohne Millisekunden
+          const timeMatch2 = part.match(/(\d{1,2}):(\d{1,2}):(\d{1,2})/)
+          if (timeMatch2) {
+            sysTime = `${timeMatch2[1].padStart(2, '0')}:${timeMatch2[2].padStart(2, '0')}:${timeMatch2[3].padStart(2, '0')}`
+            console.log(`🔍 [CSV Processing] Found time: ${sysTime}`)
+          }
         }
       }
       
-      // Suche nach Lärm-Spalten
-      const noiseColumns = ['LAF', 'LAS', 'LAeq', 'Lmax', 'Lmin', 'LAFT5s', 'LAFTeq', 'LAF5s', 'LCFeq', 'LCF5s']
+      // Suche nach Lärm-Spalten (erweiterte Liste)
+      const noiseColumns = ['LAS', 'LAF', 'LAeq', 'Lmax', 'Lmin', 'LAFT5s', 'LAFTeq', 'LAF5s', 'LCFeq', 'LCF5s', 'LS']
       for (const noiseCol of noiseColumns) {
         if (part.includes(noiseCol) || (!las && !isNaN(Number(part.replace(',', '.'))))) {
           const noiseValue = part.replace(',', '.')
@@ -86,7 +94,7 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
         }
       }
       
-      // Suche nach Datum
+      // Suche nach Datum (DD.MM.YYYY Format)
       if (part.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
         datum = part
         console.log(`🔍 [CSV Processing] Found date: ${datum}`)
