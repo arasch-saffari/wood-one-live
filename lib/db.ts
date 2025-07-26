@@ -392,9 +392,10 @@ export function getMeasurementsForStation(
     pageSize?: number
     sortBy?: 'time' | 'las' | 'datetime'
     sortOrder?: 'asc' | 'desc'
+    timeFilter?: '24h' | '7d' | 'all'
   } = {}
 ) {
-  const { page = 1, pageSize = 10000, sortBy = 'datetime', sortOrder = 'desc' } = options
+  const { page = 1, pageSize = 10000, sortBy = 'datetime', sortOrder = 'desc', timeFilter = 'all' } = options
   
   // Validierung der Parameter
   const validSortFields = ['time', 'las', 'datetime']
@@ -402,11 +403,19 @@ export function getMeasurementsForStation(
   const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'datetime'
   const safeSortOrder = validSortOrders.includes(sortOrder) ? sortOrder.toUpperCase() : 'DESC'
   
+  // Zeitfilter bestimmen
+  let timeCondition = ''
+  if (timeFilter === '24h') {
+    timeCondition = "AND m.datetime >= datetime('now', '-24 hours')"
+  } else if (timeFilter === '7d') {
+    timeCondition = "AND m.datetime >= datetime('now', '-7 days')"
+  }
+  
   // Berechne LIMIT und OFFSET
   const limit = Math.min(Math.max(1, pageSize), 10000) // Max 10k Zeilen pro Seite
   const offset = Math.max(0, (page - 1) * limit)
   
-  // Hauptquery mit Pagination
+  // Hauptquery mit Pagination und Zeitfilter
   const stmt = db.prepare(`
     SELECT m.time, m.las, m.datetime,
       w.windSpeed as ws, w.windDir as wd, w.relHumidity as rh, w.temperature as temp
@@ -416,16 +425,16 @@ export function getMeasurementsForStation(
       AND w.time = (
         substr(m.time,1,3) || printf('%02d', (CAST(substr(m.time,4,2) AS INTEGER) / 10) * 10) || ':00'
       )
-    WHERE m.station = ?
+    WHERE m.station = ? ${timeCondition}
     ORDER BY m.${safeSortBy} ${safeSortOrder}
     LIMIT ? OFFSET ?
   `)
   
-  // Count-Query für totalCount
+  // Count-Query für totalCount mit Zeitfilter
   const countStmt = db.prepare(`
     SELECT COUNT(*) as total
     FROM measurements
-    WHERE station = ?
+    WHERE station = ? ${timeCondition}
   `)
   
   const results = stmt.all(station, limit, offset) as Array<{ 

@@ -288,7 +288,8 @@ export async function GET(req: Request) {
       page: page,
       pageSize: pageSize,
       sortBy: sortBy,
-      sortOrder: sortOrder
+      sortOrder: sortOrder,
+      timeFilter: interval === '7d' ? '7d' : '24h'
     })
     
     // console.log(`[DEBUG] getMeasurementsForStation returned:`, { // Added and removed
@@ -311,6 +312,17 @@ export async function GET(req: Request) {
     
     // Debug-Logging für Deployment
     console.log(`🔍 [API station-data] Result: ${result.length} rows for ${station}, totalCount: ${paginatedResult.totalCount}`)
+    
+    // Zusätzliche Debug-Informationen für techno und band
+    if (station === 'techno' || station === 'band') {
+      console.log(`🔍 [API station-data] Special debug for ${station}:`)
+      console.log(`🔍 [API station-data] - Total count: ${paginatedResult.totalCount}`)
+      console.log(`🔍 [API station-data] - Result length: ${result.length}`)
+      if (result.length > 0) {
+        console.log(`🔍 [API station-data] - First result: ${JSON.stringify(result[0])}`)
+        console.log(`🔍 [API station-data] - Last result: ${JSON.stringify(result[result.length - 1])}`)
+      }
+    }
     
     if (process.env.NODE_ENV === 'development') {
       console.log(`[API station-data] Station: ${station}, Page: ${page}/${paginatedResult.totalPages}, Rows: ${result.length}/${paginatedResult.totalCount}`)

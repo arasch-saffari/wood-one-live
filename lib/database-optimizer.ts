@@ -214,25 +214,40 @@ export class DatabaseOptimizer {
    * Aktualisiert stündliche Aggregate (für Cron-Job)
    */
   async updateHourlyAggregates(): Promise<void> {
-    const sql = `
-      INSERT OR REPLACE INTO measurements_hourly_agg 
-      (station, hour, avg_las, min_las, max_las, count, last_updated)
-      SELECT 
-        station,
-        strftime('%Y-%m-%d %H:00:00', datetime) as hour,
-        AVG(las) as avg_las,
-        MIN(las) as min_las,
-        MAX(las) as max_las,
-        COUNT(*) as count,
-        CURRENT_TIMESTAMP
-      FROM measurements
-      WHERE datetime >= datetime('now', '-2 hours')
-        AND datetime < datetime('now', '-1 hour')
-      GROUP BY station, hour
-    `;
+    try {
+      // Prüfe ob die Tabelle existiert
+      const tableExists = this.db.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='measurements_hourly_agg'
+      `).get();
+      
+      if (!tableExists) {
+        console.log('⚠️  measurements_hourly_agg table does not exist, skipping hourly aggregates update');
+        return;
+      }
 
-    this.db.exec(sql);
-    console.log('✅ Updated hourly aggregates');
+      const sql = `
+        INSERT OR REPLACE INTO measurements_hourly_agg 
+        (station, hour, avg_las, min_las, max_las, count, last_updated)
+        SELECT 
+          station,
+          strftime('%Y-%m-%d %H:00:00', datetime) as hour,
+          AVG(las) as avg_las,
+          MIN(las) as min_las,
+          MAX(las) as max_las,
+          COUNT(*) as count,
+          CURRENT_TIMESTAMP
+        FROM measurements
+        WHERE datetime >= datetime('now', '-2 hours')
+          AND datetime < datetime('now', '-1 hour')
+        GROUP BY station, hour
+      `;
+
+      this.db.exec(sql);
+      console.log('✅ Updated hourly aggregates');
+    } catch (error) {
+      console.error('❌ Failed to update hourly aggregates:', error);
+    }
   }
 
   /**
