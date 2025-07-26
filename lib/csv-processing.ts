@@ -43,39 +43,84 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
     const parts = line.split(';')
     if (parts.length < 2) return null
     
-    // Suche nach Zeit- und Lärm-Spalten
+    // Debug: Zeige alle Spalten für Analyse
+    console.log(`🔍 [CSV Processing] CSV line parts: ${parts.map(p => `"${p.trim()}"`).join(', ')}`)
+    
+    // Suche nach spezifischen Spaltennamen
     let sysTime = null
     let las = null
+    let datum = null
     
+    // Erste Zeile ist Header - überspringe
+    if (parts[0].toLowerCase().includes('systemzeit') || parts[0].toLowerCase().includes('zeit')) {
+      console.log(`🔍 [CSV Processing] Skipping header row`)
+      return null
+    }
+    
+    // Suche nach Zeit-Spalte (verschiedene Namen)
+    const timeColumns = ['Systemzeit', 'Systemzeit ', 'Zeit', 'Time', 'Uhrzeit']
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i].trim()
       
-      // Zeit-Format: HH:MM:SS
-      if (part.match(/^\d{1,2}:\d{1,2}:\d{1,2}$/)) {
-        const timeParts = part.split(':')
-        sysTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1].padStart(2, '0')}:${timeParts[2].padStart(2, '0')}`
+      // Prüfe ob es eine Zeit-Spalte ist
+      if (timeColumns.some(col => part.includes(col) || part.match(/^\d{1,2}:\d{1,2}:\d{1,2}$/))) {
+        // Extrahiere Zeit aus der Spalte
+        const timeMatch = part.match(/(\d{1,2}):(\d{1,2}):(\d{1,2})/)
+        if (timeMatch) {
+          sysTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2].padStart(2, '0')}:${timeMatch[3].padStart(2, '0')}`
+          console.log(`🔍 [CSV Processing] Found time: ${sysTime}`)
+        }
       }
       
-      // Lärm-Wert (numerisch)
-      if (!las && !isNaN(Number(part.replace(',', '.')))) {
-        las = Number(part.replace(',', '.'))
+      // Suche nach Lärm-Spalten
+      const noiseColumns = ['LAF', 'LAS', 'LAeq', 'Lmax', 'Lmin', 'LAFT5s', 'LAFTeq', 'LAF5s', 'LCFeq', 'LCF5s']
+      for (const noiseCol of noiseColumns) {
+        if (part.includes(noiseCol) || (!las && !isNaN(Number(part.replace(',', '.'))))) {
+          const noiseValue = part.replace(',', '.')
+          const noiseNum = Number(noiseValue)
+          if (!isNaN(noiseNum) && noiseNum > 0 && noiseNum < 200) {
+            las = noiseNum
+            console.log(`🔍 [CSV Processing] Found noise: ${las} from column ${noiseCol}`)
+            break
+          }
+        }
+      }
+      
+      // Suche nach Datum
+      if (part.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+        datum = part
+        console.log(`🔍 [CSV Processing] Found date: ${datum}`)
       }
     }
     
-    if (!sysTime || !las) return null
+    if (!sysTime || !las) {
+      console.log(`🔍 [CSV Processing] Missing required data - time: ${sysTime}, noise: ${las}`)
+      return null
+    }
     
-    // Datum aus Dateiname oder aktuelles Datum
-    const dateMatch = fileName.match(/(\d{2})\.(\d{2})\.(\d{4})/)
+    // Datum bestimmen
     let dateStr = null
-    if (dateMatch) {
-      dateStr = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`
+    if (datum) {
+      const dateParts = datum.split('.')
+      if (dateParts.length === 3) {
+        dateStr = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`
+      }
     } else {
-      const now = new Date()
-      dateStr = now.toISOString().split('T')[0]
+      // Datum aus Dateiname
+      const dateMatch = fileName.match(/(\d{2})\.(\d{2})\.(\d{4})/)
+      if (dateMatch) {
+        dateStr = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`
+      } else {
+        // Fallback auf aktuelles Datum
+        const now = new Date()
+        dateStr = now.toISOString().split('T')[0]
+      }
     }
     
     const datetime = `${dateStr} ${sysTime}`
     const time = datetime
+    
+    console.log(`🔍 [CSV Processing] Parsed measurement: ${datetime}, noise: ${las}`)
     
     return {
       station,
@@ -140,6 +185,17 @@ export async function processCSVFile(station: string, filePath: string): Promise
         const offsetData = JSON.parse(fs.readFileSync(offsetFile, 'utf8'))
         offset = offsetData.offset || 0
         console.log(`🔍 [CSV Processing] Found offset: ${offset} for ${path.basename(filePath)}`)
+        
+        // Force reprocess für techno und band (Debug-Modus)
+        if (station === 'techno' || station === 'band') {
+          console.log(`🔍 [CSV Processing] Force reprocessing for ${station} - resetting offset`)
+          offset = 0
+          // Lösche Offset-Datei für Neuverarbeitung
+          if (fs.existsSync(offsetFile)) {
+            fs.unlinkSync(offsetFile)
+            console.log(`🔍 [CSV Processing] Deleted offset file for ${station}`)
+          }
+        }
       } catch (err) {
         console.log(`🔍 [CSV Processing] Error reading offset file: ${err}`)
       }
