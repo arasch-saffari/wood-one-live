@@ -45,16 +45,31 @@ class CSVWatcher {
 
   private initializeWatchedDirectories() {
     const stations = ['ort', 'techno', 'heuballern', 'band']
+    console.log(`🔍 [CSV Watcher] Initializing watched directories...`)
+    console.log(`🔍 [CSV Watcher] Current working directory: ${process.cwd()}`)
+    console.log(`🔍 [CSV Watcher] NODE_ENV: ${process.env.NODE_ENV}`)
+    
     for (const station of stations) {
       const csvDir = path.join(process.cwd(), "public", "csv", station)
+      console.log(`🔍 [CSV Watcher] Checking directory: ${csvDir}`)
+      
       if (fs.existsSync(csvDir)) {
+        console.log(`✅ [CSV Watcher] Directory exists: ${csvDir}`)
+        const files = fs.readdirSync(csvDir).filter(file => file.endsWith('.csv'))
+        console.log(`📊 [CSV Watcher] Found ${files.length} CSV files in ${station}`)
+        
         this.watchedDirs.push({
           path: csvDir,
           station,
           lastCheck: Date.now()
         })
+      } else {
+        console.log(`❌ [CSV Watcher] Directory does not exist: ${csvDir}`)
       }
     }
+    
+    console.log(`🔍 [CSV Watcher] Total watched directories: ${this.watchedDirs.length}`)
+    console.log(`🔍 [CSV Watcher] Watched stations: ${this.watchedDirs.map(d => d.station).join(', ')}`)
   }
 
   private writeHeartbeat() {
@@ -240,32 +255,44 @@ class CSVWatcher {
 
   // Manual trigger for processing all files
   public async processAllFiles() {
+    console.log(`🔍 [CSV Watcher] Starting processAllFiles...`)
+    console.log(`🔍 [CSV Watcher] Watched directories: ${this.watchedDirs.length}`)
+    
     let totalInserted = 0
     let processedFiles = 0
     const lockPath = path.join(process.cwd(), 'backups', 'csv-processing.lock')
     fs.writeFileSync(lockPath, 'processing')
     try {
       for (const dir of this.watchedDirs) {
+        console.log(`🔍 [CSV Watcher] Processing directory: ${dir.path} (station: ${dir.station})`)
         try {
           const files = fs.readdirSync(dir.path)
             .filter(file => file.endsWith('.csv') && !file.startsWith('_gsdata_'))
+          
+          console.log(`📊 [CSV Watcher] Found ${files.length} CSV files in ${dir.station}`)
+          
           for (const file of files) {
             const filePath = path.join(dir.path, file)
+            console.log(`📄 [CSV Watcher] Processing file: ${file}`)
+            
             const inserted = await processCSVFile(dir.station, filePath)
             processedFiles++
             if (inserted > 0) {
               totalInserted += inserted
+              console.log(`✅ [CSV Watcher] ${inserted} rows inserted from ${file}`)
             } else {
-              console.log(`⚠️  Keine neuen Messwerte aus ${file}`)
+              console.log(`⚠️  [CSV Watcher] No new measurements from ${file}`)
             }
           }
-        } catch {
-          // intentionally ignored
+        } catch (error) {
+          console.error(`❌ [CSV Watcher] Error processing ${dir.station}:`, error)
         }
       }
     } finally {
       if (fs.existsSync(lockPath)) fs.unlinkSync(lockPath)
     }
+    
+    console.log(`🔍 [CSV Watcher] ProcessAllFiles completed: ${totalInserted} total inserted, ${processedFiles} files processed`)
     return { totalInserted, processedFiles }
   }
 }

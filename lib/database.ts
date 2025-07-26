@@ -47,6 +47,28 @@ try {
   } catch (pragmaError) {
     logger.warn({ error: pragmaError }, 'Could not set SQLite pragmas');
   }
+
+  // Erstelle measurements_15min_agg Tabelle
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS measurements_15min_agg (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      station TEXT NOT NULL,
+      bucket TEXT NOT NULL,
+      avgLas REAL NOT NULL,
+      UNIQUE(station, bucket)
+    )
+  `)
+
+  // Erstelle measurements_hourly_agg Tabelle
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS measurements_hourly_agg (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      station TEXT NOT NULL,
+      bucket TEXT NOT NULL,
+      avgLas REAL NOT NULL,
+      UNIQUE(station, bucket)
+    )
+  `)
 } catch (error) {
   logger.fatal({ error, dbPath }, 'Failed to initialize database connection');
   throw new DatabaseError('Database initialization failed', { dbPath, error });
