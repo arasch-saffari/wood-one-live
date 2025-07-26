@@ -403,11 +403,15 @@ export function getMeasurementsForStation(
   const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'datetime'
   const safeSortOrder = validSortOrders.includes(sortOrder) ? sortOrder.toUpperCase() : 'DESC'
   
-  // Zeitfilter bestimmen
+  // Prüfe ob datetime Spalte existiert
+  const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+  const hasDatetime = columns.some(col => col.name === 'datetime')
+  
+  // Zeitfilter bestimmen - nur wenn datetime Spalte existiert
   let timeCondition = ''
-  if (timeFilter === '24h') {
+  if (hasDatetime && timeFilter === '24h') {
     timeCondition = "AND m.datetime >= datetime('now', '-24 hours')"
-  } else if (timeFilter === '7d') {
+  } else if (hasDatetime && timeFilter === '7d') {
     timeCondition = "AND m.datetime >= datetime('now', '-7 days')"
   }
   
@@ -415,9 +419,9 @@ export function getMeasurementsForStation(
   const limit = Math.min(Math.max(1, pageSize), 10000) // Max 10k Zeilen pro Seite
   const offset = Math.max(0, (page - 1) * limit)
   
-  // Hauptquery mit Pagination und Zeitfilter
+  // Hauptquery mit Pagination und Zeitfilter - angepasst für fehlende datetime Spalte
   const stmt = db.prepare(`
-    SELECT m.time, m.las, m.datetime,
+    SELECT m.time, m.las, ${hasDatetime ? 'm.datetime,' : ''}
       w.windSpeed as ws, w.windDir as wd, w.relHumidity as rh, w.temperature as temp
     FROM measurements m
     LEFT JOIN weather w
@@ -440,7 +444,7 @@ export function getMeasurementsForStation(
   const results = stmt.all(station, limit, offset) as Array<{ 
     time: string; 
     las: number; 
-    datetime: string; 
+    datetime?: string; 
     ws?: number; 
     wd?: string; 
     rh?: number; 

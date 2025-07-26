@@ -101,6 +101,40 @@ export async function GET(req: Request) {
     if (aggCountResult.total === 0) {
       console.log(`[API station-data] Keine aggregierten Daten für ${station}, verwende direkte Messwerte`)
       
+      // Prüfe ob datetime Spalte existiert
+      const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+      const hasDatetime = columns.some(col => col.name === 'datetime')
+      
+      if (!hasDatetime) {
+        console.log(`[API station-data] Keine datetime Spalte für ${station}, verwende alle Daten`)
+        // Fallback: Verwende alle Daten ohne Zeitfilter
+        const stmt = db.prepare(`
+          SELECT time, AVG(las) as avgLas
+          FROM measurements
+          WHERE station = ?
+          GROUP BY time
+          ORDER BY time ${sortOrder.toUpperCase()}
+          LIMIT ? OFFSET ?
+        `)
+        
+        const offset = (page - 1) * pageSize
+        const results = stmt.all(station, pageSize, offset) as Array<{ time: string, avgLas: number }>
+        
+        const paged = results.map(b => ({
+          time: b.time,
+          las: b.avgLas,
+          datetime: `${new Date().toISOString().slice(0, 10)} ${b.time}`
+        }))
+        
+        apiLatencyEnd()
+        return NextResponse.json({ 
+          data: paged, 
+          totalCount: results.length, 
+          page, 
+          pageSize 
+        })
+      }
+      
       // Prüfe zuerst 24h, dann 7d falls keine Daten vorhanden
       let timeFilter = "datetime('now', '-24 hours')"
       let countStmt = db.prepare(`
@@ -134,6 +168,7 @@ export async function GET(req: Request) {
       
       const offset = (page - 1) * pageSize
       const results = stmt.all(station, pageSize, offset) as Array<{ bucket: string, avgLas: number }>
+      // const countResult = countStmt.get(station) as { total: number } // This line was removed as countResult is already defined above
       
       const paged = results.map(b => ({
         time: b.bucket.slice(11, 16),
@@ -302,7 +337,7 @@ export async function GET(req: Request) {
     const result = paginatedResult.data.map(m => ({
       time: m.time,
       las: m.las,
-      datetime: m.datetime,
+      datetime: m.datetime || `${new Date().toISOString().slice(0, 10)} ${m.time}`, // Fallback wenn datetime fehlt
       ws: m.ws,
       wd: m.wd,
       rh: m.rh,
