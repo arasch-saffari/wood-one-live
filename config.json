@@ -17,16 +17,13 @@
   "adminEmail": "",
   "weatherApiKey": "",
   "apiCacheDuration": 60,
-  "pollingIntervalSeconds": 180,
+  "pollingIntervalSeconds": 120,
   "chartLimit": 200,
   "pageSize": 20,
   "defaultInterval": "24h",
   "defaultGranularity": "15min",
   "allowedIntervals": [
-    "12h",
     "24h",
-    "48h",
-    "5d",
     "7d"
   ],
   "allowedGranularities": [
@@ -55,109 +52,5 @@
         "to": "#67e8f9"
       }
     }
-  },
-  "thresholdsByStationAndTime": {
-    "ort": [
-      {
-        "from": "08:00",
-        "to": "23:00",
-        "warning": 55,
-        "alarm": 60,
-        "las": 50,
-        "laf": 52
-      },
-      {
-        "from": "08:00",
-        "to": "22:00",
-        "warning": 55,
-        "alarm": 60,
-        "las": 50,
-        "laf": 52
-      },
-      {
-        "from": "08:00",
-        "to": "20:00",
-        "warning": 55,
-        "alarm": 60,
-        "las": 50,
-        "laf": 52
-      },
-      {
-        "from": "20:00",
-        "to": "08:00",
-        "warning": 50,
-        "alarm": 55,
-        "las": 48,
-        "laf": 50
-      }
-    ],
-    "techno": [
-      {
-        "from": "08:00",
-        "to": "20:00",
-        "warning": 60,
-        "alarm": 65,
-        "las": 55,
-        "laf": 57
-      },
-      {
-        "from": "20:00",
-        "to": "08:00",
-        "warning": 55,
-        "alarm": 60,
-        "las": 52,
-        "laf": 54
-      }
-    ],
-    "heuballern": [
-      {
-        "from": "08:00",
-        "to": "20:00",
-        "warning": 58,
-        "alarm": 63,
-        "las": 53,
-        "laf": 55
-      },
-      {
-        "from": "20:00",
-        "to": "08:00",
-        "warning": 53,
-        "alarm": 58,
-        "las": 50,
-        "laf": 52
-      }
-    ],
-    "band": [
-      {
-        "from": "08:00",
-        "to": "20:00",
-        "warning": 57,
-        "alarm": 62,
-        "las": 52,
-        "laf": 54
-      },
-      {
-        "from": "20:00",
-        "to": "08:00",
-        "warning": 52,
-        "alarm": 57,
-        "las": 49,
-        "laf": 51
-      }
-    ]
-  },
-  "chartVisibleLines": {
-    "ort": [
-      "las"
-    ],
-    "techno": [
-      "las"
-    ],
-    "heuballern": [
-      "las"
-    ],
-    "band": [
-      "las"
-    ]
   }
 }

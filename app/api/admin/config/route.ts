@@ -84,14 +84,15 @@ async function getThresholdsFromDb() {
 async function setThresholdsToDb(thresholds: Record<string, { from: string; to: string; warning: number; alarm: number; las?: number; laf?: number }[]>) {
   const tx = db.transaction(() => {
     for (const station of Object.keys(thresholds)) {
-      for (const block of thresholds[station]) {
-        // Prüfe, ob es einen bestehenden Eintrag gibt
-        const existing = db.prepare('SELECT * FROM thresholds WHERE station = ? AND from_time = ? AND to_time = ?').get(station, block.from, block.to) as ThresholdBlockDb | undefined
-        let action: 'insert' | 'update' = 'insert'
-        if (existing) {
-          action = 'update'
-        }
-        db.prepare(`INSERT OR REPLACE INTO thresholds (station, from_time, to_time, warning, alarm, las, laf, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`).run(
+      // Ensure only 2 blocks per station (day and night)
+      const blocks = thresholds[station].slice(0, 2);
+      
+      // Delete all existing blocks for this station first
+      db.prepare('DELETE FROM thresholds WHERE station = ?').run(station);
+      
+      // Insert only the first 2 blocks
+      for (const block of blocks) {
+        db.prepare(`INSERT INTO thresholds (station, from_time, to_time, warning, alarm, las, laf, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`).run(
           station,
           block.from,
           block.to,
@@ -100,22 +101,23 @@ async function setThresholdsToDb(thresholds: Record<string, { from: string; to: 
           block.las ?? null,
           block.laf ?? null
         )
+        
         // Audit-Log schreiben
         db.prepare(`INSERT INTO thresholds_audit (threshold_id, station, from_time, to_time, old_warning, new_warning, old_alarm, new_alarm, old_las, new_las, old_laf, new_laf, action) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
           .run(
-            existing?.id ?? null,
+            null, // No existing ID since we're inserting new
             station,
             block.from,
             block.to,
-            existing?.warning ?? null,
+            null, // No old values
             block.warning,
-            existing?.alarm ?? null,
+            null, // No old values
             block.alarm,
-            existing?.las ?? null,
+            null, // No old values
             block.las ?? null,
-            existing?.laf ?? null,
+            null, // No old values
             block.laf ?? null,
-            action
+            'insert'
           )
       }
     }

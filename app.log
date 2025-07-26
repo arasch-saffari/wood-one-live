@@ -553,3 +553,334 @@ AllLocationsPage wird gerendert
  GET /api/admin/logs 200 in 9ms
  GET /api/csv-watcher-status 200 in 4ms
  GET /api/admin/config 200 in 8ms
+[API station-data] Verwende 15min aggregierte Daten für ort: 46 Einträge
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 36ms
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 42 Einträge
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 5ms
+[API station-data] Verwende 15min aggregierte Daten für techno: 41 Einträge
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 4ms
+[API station-data] Keine ausreichenden aggregierten Daten für band (40 Einträge), verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 43ms
+ GET /api/weather?station=global&time=now 200 in 11ms
+ GET /api/admin/health 200 in 10ms
+ GET /api/csv-watcher-status 200 in 5ms
+ GET /api/admin/health 200 in 13ms
+ GET /api/admin/cron 200 in 5ms
+ GET /api/admin/logs 200 in 3ms
+ GET /api/csv-watcher-status 200 in 19ms
+ GET /api/admin/config 200 in 6ms
+💓 Heartbeat failed for subscriber sub_1753541911017_ion69yt49: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911023_by9jh0iu5: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911024_arpy2c0o0: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+[API station-data] Verwende 15min aggregierte Daten für ort: 46 Einträge
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+[API station-data] Verwende 15min aggregierte Daten für techno: 41 Einträge
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 4ms
+[API station-data] Keine ausreichenden aggregierten Daten für band (40 Einträge), verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 42ms
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 42 Einträge
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 6ms
+ GET /api/weather?station=global&time=now 200 in 7ms
+ GET /api/admin/health 200 in 6ms
+ GET /api/csv-watcher-status 200 in 5ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+ GET /api/admin/health 200 in 6ms
+ GET /api/admin/cron 200 in 5ms
+ GET /api/admin/logs 200 in 5ms
+ GET /api/csv-watcher-status 200 in 6ms
+ GET /api/admin/config 200 in 6ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2836ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2410ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1181ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+ GET / 307 in 228ms
+AllLocationsPage wird gerendert
+ GET /dashboard/all 200 in 156ms
+[API station-data] Verwende 15min aggregierte Daten für ort: 46 Einträge
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 184ms
+[API station-data] Verwende 15min aggregierte Daten für techno: 41 Einträge
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 4ms
+ GET /api/weather?station=global&time=now 200 in 5ms
+ GET /api/admin/health 200 in 5ms
+ GET /api/csv-watcher-status 200 in 6ms
+🔍 [API station-data] Request: station=heuballern, interval=24h, page=1, pageSize=1, aggregate=dates
+🔍 [API station-data] Environment: NODE_ENV=development, Platform=darwin
+🔍 [API station-data] Result: 1 rows for heuballern, totalCount: 35615
+[API station-data] Station: heuballern, Page: 1/35615, Rows: 1/35615
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=dates 200 in 21ms
+ GET /api/weather/last-update 200 in 6ms
+ GET /api/admin/config 200 in 4ms
+[API station-data] Keine ausreichenden aggregierten Daten für band (40 Einträge), verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 102ms
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 42 Einträge
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 4ms
+[API station-data] Verwende 15min aggregierte Daten für ort: 46 Einträge
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 5ms
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 42 Einträge
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 5ms
+[API station-data] Verwende 15min aggregierte Daten für techno: 41 Einträge
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 5ms
+[API station-data] Keine ausreichenden aggregierten Daten für band (40 Einträge), verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 39ms
+ GET /api/updates 200 in 6878ms
+ GET /api/updates 200 in 5017ms
+ ✓ Compiled in 2.9s (2954 modules)
+ GET /admin 200 in 91ms
+ GET /dashboard/all 200 in 29ms
+{"level":"info","time":"2025-07-26T15:04:08.387Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+ GET /api/admin/config 200 in 194ms
+{"level":"info","time":"2025-07-26T15:04:08.393Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T15:04:08.447Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+{"level":"info","time":"2025-07-26T15:04:09.895Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2059ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+[API station-data] Verwende 15min aggregierte Daten für ort: 46 Einträge
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 2132ms
+{"level":"info","time":"2025-07-26T15:04:09.898Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:04:09.898Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:04:11.958Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+[API station-data] Verwende 15min aggregierte Daten für techno: 41 Einträge
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 36ms
+[API station-data] Keine ausreichenden aggregierten Daten für band (40 Einträge), verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 269ms
+[API station-data] Verwende 15min aggregierte Daten für heuballern: 42 Einträge
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 28ms
+ ✓ Compiled in 479ms (1325 modules)
+ GET /api/weather?station=global&time=now 200 in 215ms
+{"level":"info","time":"2025-07-26T15:04:12.556Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1572ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/admin/health 200 in 1588ms
+{"level":"info","time":"2025-07-26T15:04:12.556Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:04:12.557Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:04:14.130Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T15:04:14.306Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1172ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/csv-watcher-status 200 in 1343ms
+{"level":"info","time":"2025-07-26T15:04:14.306Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:04:14.307Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:04:15.480Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /admin 200 in 114ms
+ ✓ Compiled in 1467ms (1325 modules)
+ GET /dashboard/all 200 in 19ms
+ GET /admin 200 in 14ms
+ GET /dashboard/all 200 in 14ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2263ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+ GET /api/admin/health 200 in 404ms
+ GET /api/admin/cron 200 in 22ms
+ GET /api/admin/logs 200 in 21ms
+ GET /api/csv-watcher-status 200 in 248ms
+ ✓ Compiled in 4s (2954 modules)
+{"level":"info","time":"2025-07-26T15:04:28.220Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+ GET /api/admin/config 200 in 636ms
+{"level":"info","time":"2025-07-26T15:04:28.221Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T15:04:28.235Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+ GET /admin 200 in 66ms
+ GET /dashboard/all 200 in 39ms
+ GET /api/admin/config 200 in 1563ms
+💓 Heartbeat failed for subscriber sub_1753541911017_ion69yt49: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911023_by9jh0iu5: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911024_arpy2c0o0: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542232344_zmswvkfdd: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542239238_29vao08sf: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+ ✓ Compiled in 1851ms (2954 modules)
+ GET /dashboard/all 200 in 98ms
+ GET /admin 200 in 25ms
+{"level":"info","time":"2025-07-26T15:04:42.691Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+ GET /api/admin/config 200 in 117ms
+{"level":"info","time":"2025-07-26T15:04:42.691Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T15:04:42.711Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+ GET /api/admin/config 200 in 4ms
+ PATCH /api/admin/config 200 in 8ms
+ ✓ Compiled in 418ms (1325 modules)
+ GET /admin 200 in 19ms
+ GET /dashboard/all 200 in 15ms
+ GET /api/admin/config 200 in 13ms
+ GET /api/admin/config 200 in 5ms

@@ -315,6 +315,23 @@ export default function AdminDashboard() {
       if (!prev) return { thresholdsByStationAndTime: {} };
       const updated = { ...prev };
       updated.thresholdsByStationAndTime = { ...prev.thresholdsByStationAndTime };
+      
+      // Ensure only two blocks per station (day and night)
+      if (!updated.thresholdsByStationAndTime[station]) {
+        updated.thresholdsByStationAndTime[station] = [
+          { from: '08:00', to: '20:00', warning: 55, alarm: 60, las: 50, laf: 52 }, // Day
+          { from: '20:00', to: '08:00', warning: 50, alarm: 55, las: 48, laf: 50 }   // Night
+        ];
+      }
+      
+      // Ensure exactly 2 blocks
+      if (updated.thresholdsByStationAndTime[station].length !== 2) {
+        updated.thresholdsByStationAndTime[station] = [
+          { from: '08:00', to: '20:00', warning: 55, alarm: 60, las: 50, laf: 52 }, // Day
+          { from: '20:00', to: '08:00', warning: 50, alarm: 55, las: 48, laf: 50 }   // Night
+        ];
+      }
+      
       updated.thresholdsByStationAndTime[station] = updated.thresholdsByStationAndTime[station].map((block: ThresholdBlock, i: number) =>
         i === idx ? { ...block, [key]: value } : block
       );
@@ -1066,20 +1083,30 @@ export default function AdminDashboard() {
                         {station === 'heuballern' && <Sun className="w-7 h-7 text-cyan-400" />}
                         {station === 'band' && <DatabaseZap className="w-7 h-7 text-orange-400" />}
                         <span className="capitalize">{station}</span>
+                        <Badge className="ml-2 bg-blue-100 text-blue-700 text-xs">2 Blöcke: Tag & Nacht</Badge>
                       </h2>
+                      
+                      {/* Validation message if more than 2 blocks */}
+                      {(blocks as ThresholdBlock[]).length > 2 && (
+                        <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg">
+                          <strong>Warnung:</strong> Nur 2 Blöcke (Tag und Nacht) sind erlaubt. Überschüssige Blöcke werden automatisch entfernt.
+                        </div>
+                      )}
+                      
                       <div className="flex flex-col gap-8">
-                        {(blocks as ThresholdBlock[]).map((block, idx) => {
+                        {(blocks as ThresholdBlock[]).slice(0, 2).map((block, idx) => {
                           const isDay = block.from < block.to
+                          const blockType = idx === 0 ? 'Tag' : 'Nacht'
                           return (
                             <div
                               key={idx}
                               className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl flex flex-col gap-6"
-                              aria-label={`Zeitblock ${block.from} - ${block.to} (${isDay ? 'Tag' : 'Nacht'})`}
+                              aria-label={`${blockType}-Block ${block.from} - ${block.to}`}
                             >
                               <h3 className="flex items-center gap-3 text-xl font-semibold mb-2">
                                 {isDay ? <Sun className="w-6 h-6 text-yellow-400" /> : <Moon className="w-6 h-6 text-blue-400" />}
-                                Zeitblock: {block.from} - {block.to}
-                                <span className={cn("ml-2 px-3 py-1 rounded-full text-xs font-bold", isDay ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700")}>{isDay ? 'Tag' : 'Nacht'}</span>
+                                {blockType}-Block: {block.from} - {block.to}
+                                <span className={cn("ml-2 px-3 py-1 rounded-full text-xs font-bold", isDay ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700")}>{blockType}</span>
                               </h3>
                               <form
                                 className="grid grid-cols-1 md:grid-cols-2 gap-6"
