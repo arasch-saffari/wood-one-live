@@ -43,8 +43,8 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
     const parts = line.split(';')
     if (parts.length < 2) return null
     
-    // Debug: Zeige alle Spalten für Analyse
-    console.log(`🔍 [CSV Processing] CSV line parts: ${parts.map(p => `"${p.trim()}"`).join(', ')}`)
+    // Reduzierte Debug-Logs für Performance
+    // console.log(`🔍 [CSV Processing] CSV line parts: ${parts.map(p => `"${p.trim()}"`).join(', ')}`)
     
     // Suche nach spezifischen Spaltennamen
     let sysTime = null
@@ -53,7 +53,7 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
     
     // Erste Zeile ist Header - überspringe
     if (parts[0].toLowerCase().includes('messnummer') || parts[0].toLowerCase().includes('systemzeit')) {
-      console.log(`🔍 [CSV Processing] Skipping header row`)
+      // console.log(`🔍 [CSV Processing] Skipping header row`)
       return null
     }
     
@@ -69,13 +69,13 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
         if (timeMatch) {
           // Entferne Millisekunden für Datenbank
           sysTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2].padStart(2, '0')}:${timeMatch[3].padStart(2, '0')}`
-          console.log(`🔍 [CSV Processing] Found time: ${sysTime} (removed milliseconds)`)
+          // console.log(`🔍 [CSV Processing] Found time: ${sysTime} (removed milliseconds)`)
         } else {
           // Fallback für Zeit ohne Millisekunden
           const timeMatch2 = part.match(/(\d{1,2}):(\d{1,2}):(\d{1,2})/)
           if (timeMatch2) {
             sysTime = `${timeMatch2[1].padStart(2, '0')}:${timeMatch2[2].padStart(2, '0')}:${timeMatch2[3].padStart(2, '0')}`
-            console.log(`🔍 [CSV Processing] Found time: ${sysTime}`)
+            // console.log(`🔍 [CSV Processing] Found time: ${sysTime}`)
           }
         }
       }
@@ -88,7 +88,7 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
           const noiseNum = Number(noiseValue)
           if (!isNaN(noiseNum) && noiseNum > 0 && noiseNum < 200) {
             las = noiseNum
-            console.log(`🔍 [CSV Processing] Found noise: ${las} from column ${noiseCol}`)
+            // console.log(`🔍 [CSV Processing] Found noise: ${las} from column ${noiseCol}`)
             break
           }
         }
@@ -97,12 +97,12 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
       // Suche nach Datum (DD.MM.YYYY Format)
       if (part.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
         datum = part
-        console.log(`🔍 [CSV Processing] Found date: ${datum}`)
+        // console.log(`🔍 [CSV Processing] Found date: ${datum}`)
       }
     }
     
     if (!sysTime || !las) {
-      console.log(`🔍 [CSV Processing] Missing required data - time: ${sysTime}, noise: ${las}`)
+      // console.log(`🔍 [CSV Processing] Missing required data - time: ${sysTime}, noise: ${las}`)
       return null
     }
     
@@ -128,7 +128,7 @@ function parseCSVLine(line: string, station: string, fileName: string): any {
     const datetime = `${dateStr} ${sysTime}`
     const time = datetime
     
-    console.log(`🔍 [CSV Processing] Parsed measurement: ${datetime}, noise: ${las}`)
+    // console.log(`🔍 [CSV Processing] Parsed measurement: ${datetime}, noise: ${las}`)
     
     return {
       station,
@@ -179,11 +179,12 @@ export async function processCSVFile(station: string, filePath: string): Promise
   const startTime = Date.now()
   
   try {
-    console.log(`🔍 [CSV Processing] Processing ${station}: ${path.basename(filePath)}`)
+    console.log(`🔍 [CSV Processing] Processing ${station}: ${path.basename(filePath)} (${fs.statSync(filePath).size} bytes)`)
     
-    // Debug: Prüfe Dateigröße
-    const fileStat = fs.statSync(filePath)
-    console.log(`🔍 [CSV Processing] File size: ${fileStat.size} bytes`)
+    // Prüfe ob datetime Spalte existiert
+    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+    const hasDatetime = columns.some(col => col.name === 'datetime')
+    console.log(`🔍 [CSV Processing] Database has datetime column: ${hasDatetime}`)
     
     // Debug: Prüfe Offset-Datei
     const offsetFile = filePath.replace('.csv', '.meta.json')
@@ -211,34 +212,16 @@ export async function processCSVFile(station: string, filePath: string): Promise
       console.log(`🔍 [CSV Processing] No offset file found for ${path.basename(filePath)}`)
     }
     
-    // Debug: Prüfe Dateiinhalt
-    const fileContent = fs.readFileSync(filePath, 'utf8')
-    const lines = fileContent.split('\n').filter(line => line.trim())
-    console.log(`🔍 [CSV Processing] Total lines in file: ${lines.length}`)
-    console.log(`🔍 [CSV Processing] Lines after offset: ${lines.length - offset}`)
+    // Lese CSV-Datei
+    const content = fs.readFileSync(filePath, 'utf8')
+    const lines = content.split('\n').filter(line => line.trim())
     
-    if (lines.length <= offset) {
-      console.log(`🔍 [CSV Processing] File already fully processed (${lines.length} <= ${offset})`)
-      return 0
-    }
-    
-    // Debug: Zeige erste paar Zeilen
-    const sampleLines = lines.slice(offset, Math.min(offset + 5, lines.length))
-    console.log(`🔍 [CSV Processing] Sample lines after offset:`)
-    sampleLines.forEach((line, i) => {
-      console.log(`🔍 [CSV Processing] Line ${offset + i}: ${line.substring(0, 100)}...`)
-    })
-    
-    const db = (await import('./database')).default
-    
-    // Prüfe ob datetime Spalte existiert
-    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
-    const hasDatetime = columns.some(col => col.name === 'datetime')
-    console.log(`🔍 [CSV Processing] Database has datetime column: ${hasDatetime}`)
+    console.log(`📄 [CSV Processing] Processing ${lines.length} lines from ${path.basename(filePath)}`)
     
     let insertedCount = 0
     const batchSize = 1000
     const batches = []
+    let processedLines = 0
     
     // Verarbeite Zeilen ab dem Offset
     for (let i = offset; i < lines.length; i++) {
@@ -254,6 +237,12 @@ export async function processCSVFile(station: string, filePath: string): Promise
             const batchInserted = await insertBatch(db, batches, hasDatetime)
             insertedCount += batchInserted
             batches.length = 0
+            
+            // Progress reporting
+            processedLines += batchSize
+            if (processedLines % 5000 === 0) {
+              console.log(`📊 [CSV Processing] Progress: ${processedLines}/${lines.length} lines processed, ${insertedCount} inserted`)
+            }
           }
         }
       } catch (error) {
