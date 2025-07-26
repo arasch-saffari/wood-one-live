@@ -44,20 +44,20 @@ const defaultConfig = {
   },
   thresholdsByStationAndTime: {
     ort: [
-      { from: '08:00', to: '20:00', warning: 55, alarm: 60, las: 50, laf: 52 },
-      { from: '20:00', to: '08:00', warning: 50, alarm: 55, las: 48, laf: 50 },
+      { from: '10:00', to: '22:00', warning: 52, alarm: 55, las: 50, laf: 52 },
+      { from: '22:00', to: '10:00', warning: 42, alarm: 45, las: 48, laf: 50 },
     ],
     techno: [
-      { from: '08:00', to: '20:00', warning: 60, alarm: 65, las: 55, laf: 57 },
-      { from: '20:00', to: '08:00', warning: 55, alarm: 60, las: 52, laf: 54 },
+      { from: '10:00', to: '22:00', warning: 77, alarm: 80, las: 75, laf: 77 },
+      { from: '22:00', to: '10:00', warning: 77, alarm: 80, las: 75, laf: 77 },
     ],
     heuballern: [
-      { from: '08:00', to: '20:00', warning: 58, alarm: 63, las: 53, laf: 55 },
-      { from: '20:00', to: '08:00', warning: 53, alarm: 58, las: 50, laf: 52 },
+      { from: '10:00', to: '22:00', warning: 84, alarm: 87, las: 82, laf: 84 },
+      { from: '22:00', to: '10:00', warning: 80, alarm: 83, las: 78, laf: 80 },
     ],
     band: [
-      { from: '08:00', to: '20:00', warning: 57, alarm: 62, las: 52, laf: 54 },
-      { from: '20:00', to: '08:00', warning: 52, alarm: 57, las: 49, laf: 51 },
+      { from: '10:00', to: '22:00', warning: 95, alarm: 98, las: 93, laf: 95 },
+      { from: '22:00', to: '10:00', warning: 92, alarm: 95, las: 90, laf: 92 },
     ],
   },
 }

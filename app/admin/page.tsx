@@ -319,16 +319,16 @@ export default function AdminDashboard() {
       // Ensure only two blocks per station (day and night)
       if (!updated.thresholdsByStationAndTime[station]) {
         updated.thresholdsByStationAndTime[station] = [
-          { from: '08:00', to: '20:00', warning: 55, alarm: 60, las: 50, laf: 52 }, // Day
-          { from: '20:00', to: '08:00', warning: 50, alarm: 55, las: 48, laf: 50 }   // Night
+          { from: '10:00', to: '22:00', warning: 52, alarm: 55, las: 50, laf: 52 }, // Day
+          { from: '22:00', to: '10:00', warning: 42, alarm: 45, las: 48, laf: 50 }   // Night
         ];
       }
       
       // Ensure exactly 2 blocks
       if (updated.thresholdsByStationAndTime[station].length !== 2) {
         updated.thresholdsByStationAndTime[station] = [
-          { from: '08:00', to: '20:00', warning: 55, alarm: 60, las: 50, laf: 52 }, // Day
-          { from: '20:00', to: '08:00', warning: 50, alarm: 55, las: 48, laf: 50 }   // Night
+          { from: '10:00', to: '22:00', warning: 52, alarm: 55, las: 50, laf: 52 }, // Day
+          { from: '22:00', to: '10:00', warning: 42, alarm: 45, las: 48, laf: 50 }   // Night
         ];
       }
       
