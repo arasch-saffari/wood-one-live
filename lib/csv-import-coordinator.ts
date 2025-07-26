@@ -293,7 +293,8 @@ export class CSVImportCoordinator extends EventEmitter {
    * Setup für periodische Datenbankoptimierung
    */
   private setupPeriodicOptimization(): void {
-    // Alle 30 Minuten Aggregate aktualisieren
+    // Alle 30 Minuten Aggregate aktualisieren - DEAKTIVIERT wegen fehlender Tabelle
+    /*
     setInterval(async () => {
       try {
         await this.dbOptimizer.updateHourlyAggregates();
@@ -302,6 +303,8 @@ export class CSVImportCoordinator extends EventEmitter {
         console.warn('⚠️  Failed to update hourly aggregates:', error);
       }
     }, 30 * 60 * 1000);
+    */
+    console.log('⚠️  Hourly aggregates update disabled - table does not exist');
 
     // Täglich um 3 Uhr: Volloptimierung
     const now = new Date();
@@ -325,18 +328,37 @@ export class CSVImportCoordinator extends EventEmitter {
     console.log('🔧 Starting daily database optimization...');
     
     try {
-      // Aktualisiere tägliche Aggregate
-      await this.dbOptimizer.updateDailyAggregates();
+      // Aktualisiere tägliche Aggregate - mit Fehlerbehandlung
+      try {
+        await this.dbOptimizer.updateDailyAggregates();
+        console.log('✅ Daily aggregates updated');
+      } catch (error) {
+        console.warn('⚠️  Failed to update daily aggregates:', error);
+      }
       
-      // Bereinige alte Daten
-      const cleanup = await this.dbOptimizer.cleanupOldData();
-      console.log(`🧹 Cleaned up ${cleanup.deletedRows} old records from ${cleanup.tables.join(', ')}`);
+      // Bereinige alte Daten - mit Fehlerbehandlung
+      try {
+        const cleanup = await this.dbOptimizer.cleanupOldData();
+        console.log(`🧹 Cleaned up ${cleanup.deletedRows} old records from ${cleanup.tables.join(', ')}`);
+      } catch (error) {
+        console.warn('⚠️  Failed to cleanup old data:', error);
+      }
       
-      // Optimiere Datenbank
-      await this.dbOptimizer.optimizeDatabase();
+      // Optimiere Datenbank - mit Fehlerbehandlung
+      try {
+        await this.dbOptimizer.optimizeDatabase();
+        console.log('✅ Database optimized');
+      } catch (error) {
+        console.warn('⚠️  Failed to optimize database:', error);
+      }
       
-      // Bereinige Cache
-      await intelligentCache.clear();
+      // Bereinige Cache - mit Fehlerbehandlung
+      try {
+        await intelligentCache.clear();
+        console.log('✅ Cache cleared');
+      } catch (error) {
+        console.warn('⚠️  Failed to clear cache:', error);
+      }
       
       console.log('✅ Daily optimization completed');
     } catch (error) {
