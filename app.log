@@ -813,3 +813,654 @@ Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
  GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
  GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
  GET /api/csv-watcher-status 200 in 5ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/weather?station=global&time=now 200 in 9ms
+ GET /api/admin/health 200 in 13ms
+ GET /api/csv-watcher-status 200 in 10ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 21ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 23ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+ GET /api/weather?station=global&time=now 200 in 12ms
+ GET /api/admin/health 200 in 16ms
+ GET /api/csv-watcher-status 200 in 5ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 20ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 20ms
+ GET /api/weather?station=global&time=now 200 in 23ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/admin/health 200 in 13ms
+ GET /api/csv-watcher-status 200 in 10ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 21ms
+ GET /api/weather?station=global&time=now 200 in 23ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 25ms
+ GET /api/admin/health 200 in 12ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/csv-watcher-status 200 in 11ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 12ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 17ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 7ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 21ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 24ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 24ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/weather?station=global&time=now 200 in 11ms
+ GET /api/admin/health 200 in 17ms
+ GET /api/csv-watcher-status 200 in 14ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 24ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 24ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 23ms
+ GET /api/weather?station=global&time=now 200 in 10ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/admin/health 200 in 13ms
+ GET /api/csv-watcher-status 200 in 6ms
+ ✓ Compiled in 359ms (268 modules)
+{"level":"info","time":"2025-07-26T00:46:05.808Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+[API station-data] Station: techno, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=techno&page=1&pageSize=10 200 in 95ms
+{"level":"info","time":"2025-07-26T00:46:05.809Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:46:05.831Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+[API station-data] Station: band, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=band&page=1&pageSize=10 200 in 10ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 15ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 9ms
+ GET /api/weather?station=global&time=now 200 in 21ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+{"level":"info","time":"2025-07-26T00:46:17.081Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/admin/health 200 in 32ms
+{"level":"info","time":"2025-07-26T00:46:17.082Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:46:17.083Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:46:17.083Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T00:46:17.107Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/csv-watcher-status 200 in 39ms
+{"level":"info","time":"2025-07-26T00:46:17.108Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:46:17.110Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:46:17.110Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 28ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 28ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ ✓ Compiled in 268ms (268 modules)
+ ✓ Compiled in 88ms (268 modules)
+ ✓ Compiled in 114ms (268 modules)
+ ✓ Compiled in 83ms (268 modules)
+ ✓ Compiled /api/process-csv in 200ms (544 modules)
+{"level":"info","time":"2025-07-26T00:46:56.189Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+✅ Event manager registered for SIGINT/SIGTERM
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+🔄 Starte direkte CSV-Verarbeitung...
+🔍 Starte CSV-Verarbeitung für alle Stationen...
+🔍 [CSV Processing] Database path: ./data.sqlite
+🔍 [CSV Processing] Current working directory: /Users/araschsaffari/code/cursor/wood-one-live
+🛡️  SSE protection activated for CSV processing
+📁 Überprüfe Verzeichnis: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort
+📊 Gefunden: 8 CSV-Dateien in ort
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort/Startdatum_18.07.2025_Startzeit_19.02.42_Messwerte.csv
+🔍 [CSV Processing] Processing ort: Startdatum_18.07.2025_Startzeit_19.02.42_Messwerte.csv (19643944 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+{"level":"info","time":"2025-07-26T00:46:56.190Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:46:56.224Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+{"level":"info","time":"2025-07-26T00:46:56.243Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T00:46:56.243Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:46:56.244Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:46:56.244Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+✅ [CSV Processing] ort: Startdatum_18.07.2025_Startzeit_19.02.42_Messwerte.csv - 175439 rows inserted in 4.10s
+📊 15-Min-Aggregation nach Import von 175439 Messwerten aktualisiert
+📊 ort: Startdatum_18.07.2025_Startzeit_19.02.42_Messwerte.csv - 175439 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort/Startdatum_21.07.2025_Startzeit_18.46.59_Messwerte.csv
+🔍 [CSV Processing] Processing ort: Startdatum_21.07.2025_Startzeit_18.46.59_Messwerte.csv (23503863 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+🛡️  SSE update blocked during CSV processing
+✅ [CSV Processing] ort: Startdatum_21.07.2025_Startzeit_18.46.59_Messwerte.csv - 210150 rows inserted in 7.39s
+📊 15-Min-Aggregation nach Import von 210150 Messwerten aktualisiert
+📊 ort: Startdatum_21.07.2025_Startzeit_18.46.59_Messwerte.csv - 210150 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort/Startdatum_24.07.2025_Startzeit_14.44.24_Messwerte.csv
+🔍 [CSV Processing] Processing ort: Startdatum_24.07.2025_Startzeit_14.44.24_Messwerte.csv (1452160 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] ort: Startdatum_24.07.2025_Startzeit_14.44.24_Messwerte.csv - 13162 rows inserted in 0.66s
+📊 15-Min-Aggregation nach Import von 13162 Messwerten aktualisiert
+📊 ort: Startdatum_24.07.2025_Startzeit_14.44.24_Messwerte.csv - 13162 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort/Startdatum_24.07.2025_Startzeit_18.25.20_Messwerte.csv
+🔍 [CSV Processing] Processing ort: Startdatum_24.07.2025_Startzeit_18.25.20_Messwerte.csv (1044171 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] ort: Startdatum_24.07.2025_Startzeit_18.25.20_Messwerte.csv - 9459 rows inserted in 0.30s
+📊 15-Min-Aggregation nach Import von 9459 Messwerten aktualisiert
+📊 ort: Startdatum_24.07.2025_Startzeit_18.25.20_Messwerte.csv - 9459 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort/Startdatum_24.07.2025_Startzeit_21.04.05_Messwerte.csv
+🔍 [CSV Processing] Processing ort: Startdatum_24.07.2025_Startzeit_21.04.05_Messwerte.csv (1432580 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] ort: Startdatum_24.07.2025_Startzeit_21.04.05_Messwerte.csv - 12957 rows inserted in 0.51s
+📊 15-Min-Aggregation nach Import von 12957 Messwerten aktualisiert
+📊 ort: Startdatum_24.07.2025_Startzeit_21.04.05_Messwerte.csv - 12957 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort/Startdatum_25.07.2025_Startzeit_00.41.34_Messwerte.csv
+🔍 [CSV Processing] Processing ort: Startdatum_25.07.2025_Startzeit_00.41.34_Messwerte.csv (7433310 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+🛡️  SSE update blocked during CSV processing
+🛡️  SSE update blocked during CSV processing
+🛡️  SSE update blocked during CSV processing
+✅ [CSV Processing] ort: Startdatum_25.07.2025_Startzeit_00.41.34_Messwerte.csv - 66904 rows inserted in 2.53s
+📊 15-Min-Aggregation nach Import von 66904 Messwerten aktualisiert
+📊 ort: Startdatum_25.07.2025_Startzeit_00.41.34_Messwerte.csv - 66904 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort/Startdatum_25.07.2025_Startzeit_19.24.07_Messwerte.csv
+🔍 [CSV Processing] Processing ort: Startdatum_25.07.2025_Startzeit_19.24.07_Messwerte.csv (45948 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+🛡️  SSE update blocked during CSV processing
+✅ [CSV Processing] ort: Startdatum_25.07.2025_Startzeit_19.24.07_Messwerte.csv - 418 rows inserted in 0.02s
+📊 15-Min-Aggregation nach Import von 418 Messwerten aktualisiert
+📊 ort: Startdatum_25.07.2025_Startzeit_19.24.07_Messwerte.csv - 418 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/ort/Startdatum_25.07.2025_Startzeit_19.38.56_Messwerte.csv
+🔍 [CSV Processing] Processing ort: Startdatum_25.07.2025_Startzeit_19.38.56_Messwerte.csv (2248960 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+ GET /api/weather?station=global&time=now 200 in 61ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 73ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 71ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 35ms
+✅ [CSV Processing] ort: Startdatum_25.07.2025_Startzeit_19.38.56_Messwerte.csv - 0 rows inserted in 0.13s
+📊 ort: Startdatum_25.07.2025_Startzeit_19.38.56_Messwerte.csv - 0 rows inserted
+📁 Überprüfe Verzeichnis: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno
+📊 Gefunden: 8 CSV-Dateien in techno
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno/Startdatum_22.07.2025_Startzeit_23.00.05_Messwerte.csv
+🔍 [CSV Processing] Processing techno: Startdatum_22.07.2025_Startzeit_23.00.05_Messwerte.csv (3226752 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 40ms
+{"level":"info","time":"2025-07-26T00:47:17.941Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/admin/health 200 in 47ms
+{"level":"info","time":"2025-07-26T00:47:17.942Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:47:17.942Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:47:17.942Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T00:47:17.972Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/csv-watcher-status 200 in 51ms
+{"level":"info","time":"2025-07-26T00:47:17.973Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:47:17.973Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:47:17.973Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+✅ [CSV Processing] techno: Startdatum_22.07.2025_Startzeit_23.00.05_Messwerte.csv - 0 rows inserted in 0.12s
+📊 techno: Startdatum_22.07.2025_Startzeit_23.00.05_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno/Startdatum_23.07.2025_Startzeit_16.18.55_Messwerte.csv
+🔍 [CSV Processing] Processing techno: Startdatum_23.07.2025_Startzeit_16.18.55_Messwerte.csv (910 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] techno: Startdatum_23.07.2025_Startzeit_16.18.55_Messwerte.csv - 0 rows inserted in 0.00s
+📊 techno: Startdatum_23.07.2025_Startzeit_16.18.55_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno/Startdatum_23.07.2025_Startzeit_16.19.33_Messwerte.csv
+🔍 [CSV Processing] Processing techno: Startdatum_23.07.2025_Startzeit_16.19.33_Messwerte.csv (1210 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] techno: Startdatum_23.07.2025_Startzeit_16.19.33_Messwerte.csv - 0 rows inserted in 0.00s
+📊 techno: Startdatum_23.07.2025_Startzeit_16.19.33_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno/Startdatum_23.07.2025_Startzeit_16.20.28_Messwerte.csv
+🔍 [CSV Processing] Processing techno: Startdatum_23.07.2025_Startzeit_16.20.28_Messwerte.csv (8987423 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] techno: Startdatum_23.07.2025_Startzeit_16.20.28_Messwerte.csv - 0 rows inserted in 0.27s
+📊 techno: Startdatum_23.07.2025_Startzeit_16.20.28_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno/Startdatum_24.07.2025_Startzeit_14.42.45_Messwerte.csv
+🔍 [CSV Processing] Processing techno: Startdatum_24.07.2025_Startzeit_14.42.45_Messwerte.csv (1549758 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] techno: Startdatum_24.07.2025_Startzeit_14.42.45_Messwerte.csv - 0 rows inserted in 0.05s
+📊 techno: Startdatum_24.07.2025_Startzeit_14.42.45_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno/Startdatum_24.07.2025_Startzeit_18.36.55_Messwerte.csv
+🔍 [CSV Processing] Processing techno: Startdatum_24.07.2025_Startzeit_18.36.55_Messwerte.csv (2524922 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] techno: Startdatum_24.07.2025_Startzeit_18.36.55_Messwerte.csv - 0 rows inserted in 0.07s
+📊 techno: Startdatum_24.07.2025_Startzeit_18.36.55_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno/Startdatum_25.07.2025_Startzeit_00.55.56_Messwerte.csv
+🔍 [CSV Processing] Processing techno: Startdatum_25.07.2025_Startzeit_00.55.56_Messwerte.csv (5279337 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+🛡️  SSE update blocked during CSV processing
+✅ [CSV Processing] techno: Startdatum_25.07.2025_Startzeit_00.55.56_Messwerte.csv - 0 rows inserted in 0.27s
+📊 techno: Startdatum_25.07.2025_Startzeit_00.55.56_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/techno/Startdatum_25.07.2025_Startzeit_14.06.40_Messwerte.csv
+🔍 [CSV Processing] Processing techno: Startdatum_25.07.2025_Startzeit_14.06.40_Messwerte.csv (4516096 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] techno: Startdatum_25.07.2025_Startzeit_14.06.40_Messwerte.csv - 0 rows inserted in 0.20s
+📊 techno: Startdatum_25.07.2025_Startzeit_14.06.40_Messwerte.csv - 0 rows inserted
+📁 Überprüfe Verzeichnis: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/heuballern
+📊 Gefunden: 5 CSV-Dateien in heuballern
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/heuballern/Startdatum_24.07.2025_Startzeit_14.12.09_Messwerte.csv
+🔍 [CSV Processing] Processing heuballern: Startdatum_24.07.2025_Startzeit_14.12.09_Messwerte.csv (2861011 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] heuballern: Startdatum_24.07.2025_Startzeit_14.12.09_Messwerte.csv - 25530 rows inserted in 1.28s
+📊 15-Min-Aggregation nach Import von 25530 Messwerten aktualisiert
+📊 heuballern: Startdatum_24.07.2025_Startzeit_14.12.09_Messwerte.csv - 25530 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/heuballern/Startdatum_24.07.2025_Startzeit_21.17.54_Messwerte.csv
+🔍 [CSV Processing] Processing heuballern: Startdatum_24.07.2025_Startzeit_21.17.54_Messwerte.csv (8422117 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] heuballern: Startdatum_24.07.2025_Startzeit_21.17.54_Messwerte.csv - 74969 rows inserted in 2.40s
+📊 15-Min-Aggregation nach Import von 74969 Messwerten aktualisiert
+📊 heuballern: Startdatum_24.07.2025_Startzeit_21.17.54_Messwerte.csv - 74969 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/heuballern/Startdatum_25.07.2025_Startzeit_18.13.18_Messwerte.csv
+🔍 [CSV Processing] Processing heuballern: Startdatum_25.07.2025_Startzeit_18.13.18_Messwerte.csv (16768 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+🛡️  SSE update blocked during CSV processing
+✅ [CSV Processing] heuballern: Startdatum_25.07.2025_Startzeit_18.13.18_Messwerte.csv - 145 rows inserted in 0.01s
+📊 15-Min-Aggregation nach Import von 145 Messwerten aktualisiert
+📊 heuballern: Startdatum_25.07.2025_Startzeit_18.13.18_Messwerte.csv - 145 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/heuballern/Startdatum_25.07.2025_Startzeit_18.20.30_Messwerte.csv
+🔍 [CSV Processing] Processing heuballern: Startdatum_25.07.2025_Startzeit_18.20.30_Messwerte.csv (1598464 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+🛡️  SSE update blocked during CSV processing
+✅ [CSV Processing] heuballern: Startdatum_25.07.2025_Startzeit_18.20.30_Messwerte.csv - 13886 rows inserted in 0.38s
+📊 15-Min-Aggregation nach Import von 13886 Messwerten aktualisiert
+📊 heuballern: Startdatum_25.07.2025_Startzeit_18.20.30_Messwerte.csv - 13886 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/heuballern/Startdatum_25.07.2025_Startzeit_23.29.03_Messwerte.csv
+🔍 [CSV Processing] Processing heuballern: Startdatum_25.07.2025_Startzeit_23.29.03_Messwerte.csv (1293184 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] heuballern: Startdatum_25.07.2025_Startzeit_23.29.03_Messwerte.csv - 0 rows inserted in 0.05s
+📊 heuballern: Startdatum_25.07.2025_Startzeit_23.29.03_Messwerte.csv - 0 rows inserted
+📁 Überprüfe Verzeichnis: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band
+📊 Gefunden: 15 CSV-Dateien in band
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_22.07.2025_Startzeit_22.51.46_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_22.07.2025_Startzeit_22.51.46_Messwerte.csv (3226496 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_22.07.2025_Startzeit_22.51.46_Messwerte.csv - 0 rows inserted in 0.12s
+📊 band: Startdatum_22.07.2025_Startzeit_22.51.46_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_23.07.2025_Startzeit_16.32.28_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_23.07.2025_Startzeit_16.32.28_Messwerte.csv (1437 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_23.07.2025_Startzeit_16.32.28_Messwerte.csv - 0 rows inserted in 0.00s
+📊 band: Startdatum_23.07.2025_Startzeit_16.32.28_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_23.07.2025_Startzeit_16.33.06_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_23.07.2025_Startzeit_16.33.06_Messwerte.csv (668 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_23.07.2025_Startzeit_16.33.06_Messwerte.csv - 0 rows inserted in 0.00s
+📊 band: Startdatum_23.07.2025_Startzeit_16.33.06_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_23.07.2025_Startzeit_16.33.25_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_23.07.2025_Startzeit_16.33.25_Messwerte.csv (462 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_23.07.2025_Startzeit_16.33.25_Messwerte.csv - 0 rows inserted in 0.00s
+📊 band: Startdatum_23.07.2025_Startzeit_16.33.25_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_23.07.2025_Startzeit_16.33.41_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_23.07.2025_Startzeit_16.33.41_Messwerte.csv (567 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_23.07.2025_Startzeit_16.33.41_Messwerte.csv - 0 rows inserted in 0.00s
+📊 band: Startdatum_23.07.2025_Startzeit_16.33.41_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_23.07.2025_Startzeit_16.34.03_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_23.07.2025_Startzeit_16.34.03_Messwerte.csv (776 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_23.07.2025_Startzeit_16.34.03_Messwerte.csv - 0 rows inserted in 0.00s
+📊 band: Startdatum_23.07.2025_Startzeit_16.34.03_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_23.07.2025_Startzeit_16.34.21_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_23.07.2025_Startzeit_16.34.21_Messwerte.csv (463 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_23.07.2025_Startzeit_16.34.21_Messwerte.csv - 0 rows inserted in 0.00s
+📊 band: Startdatum_23.07.2025_Startzeit_16.34.21_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_23.07.2025_Startzeit_16.34.46_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_23.07.2025_Startzeit_16.34.46_Messwerte.csv (7927990 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_23.07.2025_Startzeit_16.34.46_Messwerte.csv - 0 rows inserted in 0.28s
+📊 band: Startdatum_23.07.2025_Startzeit_16.34.46_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_24.07.2025_Startzeit_12.13.08_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_24.07.2025_Startzeit_12.13.08_Messwerte.csv (909532 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_24.07.2025_Startzeit_12.13.08_Messwerte.csv - 0 rows inserted in 0.03s
+📊 band: Startdatum_24.07.2025_Startzeit_12.13.08_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_24.07.2025_Startzeit_14.28.59_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_24.07.2025_Startzeit_14.28.59_Messwerte.csv (1922825 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_24.07.2025_Startzeit_14.28.59_Messwerte.csv - 0 rows inserted in 0.06s
+📊 band: Startdatum_24.07.2025_Startzeit_14.28.59_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_24.07.2025_Startzeit_19.14.55_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_24.07.2025_Startzeit_19.14.55_Messwerte.csv (2163728 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_24.07.2025_Startzeit_19.14.55_Messwerte.csv - 0 rows inserted in 0.07s
+📊 band: Startdatum_24.07.2025_Startzeit_19.14.55_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_25.07.2025_Startzeit_00.37.08_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_25.07.2025_Startzeit_00.37.08_Messwerte.csv (4334146 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_25.07.2025_Startzeit_00.37.08_Messwerte.csv - 0 rows inserted in 0.13s
+📊 band: Startdatum_25.07.2025_Startzeit_00.37.08_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_25.07.2025_Startzeit_12.32.48_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_25.07.2025_Startzeit_12.32.48_Messwerte.csv (52687 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_25.07.2025_Startzeit_12.32.48_Messwerte.csv - 0 rows inserted in 0.00s
+📊 band: Startdatum_25.07.2025_Startzeit_12.32.48_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_25.07.2025_Startzeit_13.25.30_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_25.07.2025_Startzeit_13.25.30_Messwerte.csv (6116 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_25.07.2025_Startzeit_13.25.30_Messwerte.csv - 0 rows inserted in 0.00s
+📊 band: Startdatum_25.07.2025_Startzeit_13.25.30_Messwerte.csv - 0 rows inserted
+📄 Processing: /Users/araschsaffari/code/cursor/wood-one-live/public/csv/band/Startdatum_25.07.2025_Startzeit_13.26.53_Messwerte.csv
+🔍 [CSV Processing] Processing band: Startdatum_25.07.2025_Startzeit_13.26.53_Messwerte.csv (4791552 bytes)
+🔍 [CSV Processing] Database path: ./data.sqlite
+✅ [CSV Processing] band: Startdatum_25.07.2025_Startzeit_13.26.53_Messwerte.csv - 0 rows inserted in 0.14s
+📊 band: Startdatum_25.07.2025_Startzeit_13.26.53_Messwerte.csv - 0 rows inserted
+📊 Insgesamt 603019 Messwerte importiert
+🔍 [CSV Processing] Database contents after import: [
+  { station: 'band', count: 2 },
+  { station: 'heuballern', count: 113744 },
+  { station: 'ort', count: 487171 },
+  { station: 'techno', count: 2 }
+]
+🛡️  SSE protection deactivated
+✅ CSV-Verarbeitung abgeschlossen
+ POST /api/process-csv 200 in 32082ms
+📡 SSE Update sent: 0 success, 0 errors, updates: 0
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 9ms

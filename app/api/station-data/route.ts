@@ -278,12 +278,21 @@ export async function GET(req: Request) {
   }
   // Direkte SQL-Level-Pagination ohne Cache für bessere Performance
   try {
+    // console.log(`[DEBUG] API station-data called with station: ${station}, page: ${page}, pageSize: ${pageSize}`) // Added and removed
+    
     const paginatedResult = getMeasurementsForStation(station, {
       page: page,
       pageSize: pageSize,
       sortBy: sortBy,
       sortOrder: sortOrder
     })
+    
+    // console.log(`[DEBUG] getMeasurementsForStation returned:`, { // Added and removed
+    //   totalCount: paginatedResult.totalCount,
+    //   dataLength: paginatedResult.data.length,
+    //   page: paginatedResult.page,
+    //   pageSize: paginatedResult.pageSize
+    // })
     
     const result = paginatedResult.data.map(m => ({
       time: m.time,
@@ -293,6 +302,8 @@ export async function GET(req: Request) {
       wd: m.wd,
       rh: m.rh,
     }));
+    
+    // console.log(`[DEBUG] Final result length: ${result.length}`) // Added and removed
     
     if (process.env.NODE_ENV === 'development') {
       console.log(`[API station-data] Station: ${station}, Page: ${page}/${paginatedResult.totalPages}, Rows: ${result.length}/${paginatedResult.totalCount}`)
@@ -305,17 +316,10 @@ export async function GET(req: Request) {
       page: paginatedResult.page, 
       pageSize: paginatedResult.pageSize,
       totalPages: paginatedResult.totalPages
-    });
-    
+    })
   } catch (error) {
-    console.error(`[API station-data] Fehler bei Station ${station}:`, error)
+    console.error(`❌ Error fetching station data for ${station}:`, error)
     apiLatencyEnd()
-    return NextResponse.json({ 
-      error: 'Database error', 
-      data: [], 
-      totalCount: 0, 
-      page, 
-      pageSize 
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch station data' }, { status: 500 })
   }
 } 

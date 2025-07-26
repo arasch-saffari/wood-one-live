@@ -47,6 +47,11 @@ export async function processCSVFile(station: string, csvPath: string) {
       const startTime = Date.now()
       const fileStat = fs.statSync(csvPath)
       const fileName = path.basename(csvPath)
+      
+      // Debug-Logging für Deployment
+      console.log(`🔍 [CSV Processing] Processing ${station}: ${fileName} (${fileStat.size} bytes)`)
+      console.log(`🔍 [CSV Processing] Database path: ${process.env.DATABASE_PATH || './data.sqlite'}`)
+      
       // Entferne das Löschen aller alten Einträge für diese Datei/Station
       // Lese Offset/Zeilennummer
       const meta = readMeta(csvPath)
@@ -186,6 +191,9 @@ export async function processCSVFile(station: string, csvPath: string) {
       const durationSec = (Date.now() - startTime) / 1000
       importDuration.set(durationSec)
       
+      // Debug-Logging für Deployment
+      console.log(`✅ [CSV Processing] ${station}: ${fileName} - ${insertedCount} rows inserted in ${durationSec.toFixed(2)}s`)
+      
       if (insertedCount > 0) {
         // Rate limit SSE updates to prevent controller errors
         // Nur SSE-Updates senden wenn mehr als 500 Zeilen importiert wurden (erhöht von 100)
@@ -227,6 +235,10 @@ export async function processCSVFile(station: string, csvPath: string) {
 export async function processAllCSVFiles(): Promise<number> {
   console.log('🔍 Starte CSV-Verarbeitung für alle Stationen...')
   
+  // Debug-Logging für Deployment
+  console.log(`🔍 [CSV Processing] Database path: ${process.env.DATABASE_PATH || './data.sqlite'}`)
+  console.log(`🔍 [CSV Processing] Current working directory: ${process.cwd()}`)
+  
   // SSE-Schutz aktivieren
   setCSVProcessingState(true)
   
@@ -248,12 +260,24 @@ export async function processAllCSVFiles(): Promise<number> {
       
       for (const csvFile of csvFiles) {
         const csvPath = path.join(csvDir, csvFile)
+        console.log(`📄 Processing: ${csvPath}`)
         const insertedCount = await processCSVFile(station, csvPath)
         totalInserted += insertedCount
+        console.log(`📊 ${station}: ${csvFile} - ${insertedCount} rows inserted`)
       }
     }
     
     console.log(`📊 Insgesamt ${totalInserted} Messwerte importiert`)
+    
+    // Debug: Überprüfe Datenbank nach Import
+    try {
+      const db = (await import('./database')).default
+      const result = db.prepare('SELECT station, COUNT(*) as count FROM measurements GROUP BY station').all()
+      console.log(`🔍 [CSV Processing] Database contents after import:`, result)
+    } catch (dbError) {
+      console.error(`❌ [CSV Processing] Error checking database:`, dbError)
+    }
+    
     return totalInserted
   } finally {
     // SSE-Schutz deaktivieren
