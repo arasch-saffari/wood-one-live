@@ -89,7 +89,28 @@ export type TableRowType = {
   station: string;
 }
 
-export function normalizeTableRow(row: any, station: StationKey): TableRowType {
+export interface AllStationsTableProps {
+  ortData: TableRowType[];
+  heuballernData: TableRowType[];
+  technoData: TableRowType[];
+  bandData: TableRowType[];
+  config: ConfigType | null;
+  granularity?: string;
+  page?: number;
+  setPage?: (page: number) => void;
+  pageSize?: number;
+  totalCount?: number;
+  alarmRows?: TableRowType[];
+  showOnlyAlarms?: boolean;
+  onAlarmToggle?: (show: boolean) => void;
+  onTopRowChange?: (row: TableRowType | null) => void;
+  filterStation?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  onSortChange?: (key: string, order: 'asc' | 'desc') => void;
+}
+
+export function normalizeTableRow(row: Record<string, unknown>, station: StationKey): TableRowType {
   // time: bevorzugt row.time (falls HH:MM), sonst aus row.datetime extrahieren
   let time: string | undefined = undefined;
   if (typeof row.time === 'string' && /^\d{2}:\d{2}/.test(row.time)) {
@@ -139,8 +160,18 @@ export function getAlarmThresholdForRow(row: TableRowType, config: ConfigType): 
   let stationKey = typeof row.station === 'string' ? row.station.toLowerCase() : '';
   if (stationKey === "techno floor") stationKey = "techno";
   if (stationKey === "band bühne") stationKey = "band";
-  // Zeit im Format HH:MM extrahieren
-  const time = row.time.slice(0, 5);
+  // Zeit im Format HH:MM extrahieren - unterstützt verschiedene Formate
+  let time = row.time;
+  if (time.includes(' ')) {
+    // Format: "2025-07-26 02:40:50" -> "02:40"
+    time = time.split(' ')[1].slice(0, 5);
+  } else if (time.includes('T')) {
+    // Format: "2025-07-26T02:40:50" -> "02:40"
+    time = time.split('T')[1].slice(0, 5);
+  } else {
+    // Format: "02:40" (bereits korrekt)
+    time = time.slice(0, 5);
+  }
   const blocks = config.thresholdsByStationAndTime[stationKey as StationKey];
   if (!blocks) return undefined;
   // Zeit als Minuten seit Mitternacht
@@ -167,7 +198,18 @@ function getWarningThresholdForRow(row: TableRowType, config: ConfigType): numbe
   let stationKey = typeof row.station === 'string' ? row.station.toLowerCase() : '';
   if (stationKey === "techno floor") stationKey = "techno";
   if (stationKey === "band bühne") stationKey = "band";
-  const time = row.time.slice(0, 5);
+  // Zeit im Format HH:MM extrahieren - unterstützt verschiedene Formate
+  let time = row.time;
+  if (time.includes(' ')) {
+    // Format: "2025-07-26 02:40:50" -> "02:40"
+    time = time.split(' ')[1].slice(0, 5);
+  } else if (time.includes('T')) {
+    // Format: "2025-07-26T02:40:50" -> "02:40"
+    time = time.split('T')[1].slice(0, 5);
+  } else {
+    // Format: "02:40" (bereits korrekt)
+    time = time.slice(0, 5);
+  }
   const blocks = config.thresholdsByStationAndTime[stationKey as StationKey];
   if (!blocks) return undefined;
   const [h, m] = time.split(":").map(Number);

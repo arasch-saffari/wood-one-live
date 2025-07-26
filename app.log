@@ -1415,3 +1415,654 @@ AllLocationsPage wird gerendert
   { station: 'techno', count: 41 },
   { station: 'teststation', count: 248 }
 ]
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2989ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2414ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+ GET /api/admin/health 200 in 156ms
+ GET /api/admin/cron 200 in 161ms
+ GET /api/admin/logs 200 in 164ms
+ GET /api/csv-watcher-status 200 in 170ms
+ GET /api/admin/config 200 in 9ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+💓 Heartbeat failed for subscriber sub_1753542494469_vxw4j3523: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542494486_k8lxg1opa: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2749ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2581ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+💓 Heartbeat failed for subscriber sub_1753542024211_l7c3b8w4w: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542024218_d3xmcsysh: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542024219_7xjm6ghbg: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+ GET /api/admin/health 200 in 21ms
+ GET /api/admin/logs 200 in 23ms
+ GET /api/admin/cron 200 in 25ms
+ GET /api/csv-watcher-status 200 in 29ms
+ GET /api/admin/config 200 in 6ms
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2679ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1657ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+⏰ Scheduled 15-minute aggregation triggered...
+💓 Heartbeat failed for subscriber sub_1753541911017_ion69yt49: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911023_by9jh0iu5: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911024_arpy2c0o0: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+💓 Heartbeat failed for subscriber sub_1753542232344_zmswvkfdd: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542239238_29vao08sf: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2385ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+ GET /api/admin/config 200 in 34ms
+⏰ Scheduled 15-minute aggregation triggered...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2075ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+ GET /api/admin/health 200 in 13ms
+ GET /api/admin/cron 200 in 16ms
+ GET /api/admin/logs 200 in 18ms
+ GET /api/csv-watcher-status 200 in 21ms
+ GET /api/admin/config 200 in 5ms
+💓 Heartbeat failed for subscriber sub_1753542494469_vxw4j3523: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542494486_k8lxg1opa: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542024211_l7c3b8w4w: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542024218_d3xmcsysh: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542024219_7xjm6ghbg: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+ GET /api/admin/health 200 in 24ms
+ GET /api/admin/cron 200 in 23ms
+ GET /api/csv-watcher-status 200 in 28ms
+ GET /api/admin/logs 200 in 32ms
+ GET /api/admin/config 200 in 7ms
+💓 Heartbeat failed for subscriber sub_1753541911017_ion69yt49: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911023_by9jh0iu5: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753541911024_arpy2c0o0: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542232344_zmswvkfdd: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542239238_29vao08sf: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+ ○ Compiling /api/station-data ...
+ ✓ Compiled /api/station-data in 574ms (1613 modules)
+{"level":"info","time":"2025-07-26T15:13:07.633Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2221ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+🔍 [API station-data] Request: station=ort, interval=24h, page=1, pageSize=5, aggregate=null
+🔍 [API station-data] Environment: NODE_ENV=development, Platform=darwin
+🔍 [API station-data] Result: 5 rows for ort, totalCount: 35361
+[API station-data] Station: ort, Page: 1/7073, Rows: 5/35361
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=5 200 in 2996ms
+⏰ Scheduled 15-minute aggregation triggered...
+{"level":"info","time":"2025-07-26T15:13:07.634Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T15:13:07.651Z","pid":96658,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+{"level":"info","time":"2025-07-26T15:13:07.689Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T15:13:07.689Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:13:07.689Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:13:09.910Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+ ✓ Compiled in 1047ms (1325 modules)
+ GET /admin 200 in 67ms
+🔍 [API station-data] Request: station=ort, interval=24h, page=1, pageSize=50, aggregate=null
+🔍 [API station-data] Environment: NODE_ENV=development, Platform=darwin
+🔍 [API station-data] Result: 50 rows for ort, totalCount: 35357
+[API station-data] Station: ort, Page: 1/708, Rows: 50/35357
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50 200 in 15ms
+⏰ Scheduled 15-minute aggregation triggered...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1226ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2057ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+🔍 [API station-data] Request: station=ort, interval=24h, page=1, pageSize=1, aggregate=null
+🔍 [API station-data] Environment: NODE_ENV=development, Platform=darwin
+🔍 [API station-data] Result: 1 rows for ort, totalCount: 35349
+[API station-data] Station: ort, Page: 1/35349, Rows: 1/35349
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1 200 in 60ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+{"level":"info","time":"2025-07-26T15:13:26.109Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1864ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/admin/health 200 in 1882ms
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1306ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+{"level":"info","time":"2025-07-26T15:13:26.109Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:13:26.110Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:13:27.974Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /api/admin/logs 200 in 3196ms
+ GET /api/admin/cron 200 in 3201ms
+{"level":"info","time":"2025-07-26T15:13:29.316Z","pid":96658,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1557ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+✅ Automatic aggregation scheduled successfully
+ GET /api/csv-watcher-status 200 in 4803ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+{"level":"info","time":"2025-07-26T15:13:29.317Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T15:13:29.326Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T15:13:30.885Z","pid":96658,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /api/admin/config 200 in 1695ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+⏰ Scheduled 15-minute aggregation triggered...
+ ✓ Compiled in 1959ms (1325 modules)
+ GET /admin 200 in 18ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2397ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1301ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 1184ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+ ✓ Compiled in 1840ms (2938 modules)
+ GET /admin 200 in 95ms
+ ✓ Compiled in 1605ms (2938 modules)
+ GET /admin 200 in 123ms
+ ✓ Compiled in 1739ms (2938 modules)
+ GET /admin 200 in 98ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+💓 Heartbeat failed for subscriber sub_1753542494469_vxw4j3523: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542494486_k8lxg1opa: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+ ✓ Compiled in 1481ms (2938 modules)
+ GET /admin 200 in 45ms
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2466ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+⏰ Scheduled 15-minute aggregation triggered...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+⏰ Scheduled 15-minute aggregation triggered...
+⏳ Aggregation already pending, skipping...
+💓 Heartbeat failed for subscriber sub_1753542024211_l7c3b8w4w: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542024218_d3xmcsysh: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+💓 Heartbeat failed for subscriber sub_1753542024219_7xjm6ghbg: TypeError: Invalid state: Controller is already closed
+    at eval (app/api/updates/route.ts:62:34)
+    at Array.forEach (<anonymous>)
+    at Timeout.eval [as _onTimeout] (app/api/updates/route.ts:58:18)
+  60 |           try {
+  61 |             const encoder = new TextEncoder()
+> 62 |             subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+     |                                  ^
+  63 |           } catch (error) {
+  64 |             console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+  65 |             problematicControllers.add(subscriber.id) {
+  code: 'ERR_INVALID_STATE'
+}
+🔄 Starting 15-minute aggregation update...
+✅ 15-minute aggregation completed in 2026ms
+📊 Aggregation statistics: [
+  { station: 'band', count: 40 },
+  { station: 'heuballern', count: 42 },
+  { station: 'ort', count: 46 },
+  { station: 'techno', count: 41 },
+  { station: 'teststation', count: 248 }
+]
+{"level":"info","time":"2025-07-26T15:14:27.025Z","pid":96658,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+🔄 Running database migrations from version 6...
+✅ All database migrations completed successfully
+🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...
+🔄 Starting 15-minute aggregation update...
