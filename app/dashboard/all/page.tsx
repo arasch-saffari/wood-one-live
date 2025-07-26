@@ -583,43 +583,67 @@ export default function AllLocationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {config && config.thresholdsByStationAndTime &&
                   Object.entries(config.thresholdsByStationAndTime).map(([station, blocks]) => {
-                  let showBlocks = blocks as ThresholdBlock[];
-                  if (station === "ort" && Array.isArray(blocks) && blocks.length > 2) {
-                    showBlocks = blocks.slice(0, 2);
-                  }
-                  return (
-                    <Card key={station} className="rounded-xl bg-white/90 dark:bg-gray-900/70 border-0 shadow-md p-4">
-                      <CardHeader className="pb-2 flex flex-col items-center gap-2 text-center">
-                        <span className="text-base font-semibold text-gray-700 dark:text-gray-300 w-full text-center">
-                          {station.charAt(0).toUpperCase() + station.slice(1)}
-                        </span>
-                      </CardHeader>
-                      <CardContent className="space-y-2 pt-0">
-                        {showBlocks.map((block: ThresholdBlock, i: number) => (
-                          <div
-                            key={i}
-                            className="flex flex-col gap-1 p-2 rounded-lg mb-2 last:mb-0 transition-all hover:shadow-lg hover:ring-2 hover:ring-yellow-300/40 dark:hover:ring-yellow-500/30"
-                          >
-                            <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-1 text-center w-full">
-                              <Calendar className="w-4 h-4 text-blue-400" />
-                              <span>{block.from} - {block.to}</span>
+                    // Default-Blöcke pro Station
+                    const defaultBlocks: ThresholdBlock[] =
+                      station === 'ort' ? [
+                        { from: '10:00', to: '22:00', warning: 52, alarm: 55, las: 50, laf: 52 },
+                        { from: '22:00', to: '10:00', warning: 42, alarm: 45, las: 48, laf: 50 }
+                      ] :
+                      station === 'techno' ? [
+                        { from: '10:00', to: '22:00', warning: 77, alarm: 80, las: 75, laf: 77 },
+                        { from: '22:00', to: '10:00', warning: 77, alarm: 80, las: 75, laf: 77 }
+                      ] :
+                      station === 'heuballern' ? [
+                        { from: '10:00', to: '22:00', warning: 84, alarm: 87, las: 82, laf: 84 },
+                        { from: '22:00', to: '10:00', warning: 80, alarm: 83, las: 78, laf: 80 }
+                      ] :
+                      station === 'band' ? [
+                        { from: '10:00', to: '22:00', warning: 95, alarm: 98, las: 93, laf: 95 },
+                        { from: '22:00', to: '10:00', warning: 92, alarm: 95, las: 90, laf: 92 }
+                      ] : [];
+                    // Ergänze fehlende Blöcke
+                    let showBlocks = Array.isArray(blocks) ? [...blocks] : [];
+                    if (showBlocks.length < 2) {
+                      // Füge fehlende Blöcke aus Default hinzu
+                      for (let i = showBlocks.length; i < 2; i++) {
+                        showBlocks.push(defaultBlocks[i]);
+                      }
+                    }
+                    showBlocks = showBlocks.slice(0, 2);
+                    return (
+                      <Card key={station} className="rounded-xl bg-white/90 dark:bg-gray-900/70 border-0 shadow-md p-4">
+                        <CardHeader className="pb-2 flex flex-col items-center gap-2 text-center">
+                          <span className="text-base font-semibold text-gray-700 dark:text-gray-300 w-full text-center">
+                            {station.charAt(0).toUpperCase() + station.slice(1)}
+                          </span>
+                        </CardHeader>
+                        <CardContent className="space-y-2 pt-0">
+                          {showBlocks.map((block: ThresholdBlock, i: number) => (
+                            <div
+                              key={i}
+                              className="flex flex-col gap-1 p-2 rounded-lg mb-2 last:mb-0 transition-all hover:shadow-lg hover:ring-2 hover:ring-yellow-300/40 dark:hover:ring-yellow-500/30"
+                            >
+                              <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-1 text-center w-full">
+                                <Calendar className="w-4 h-4 text-blue-400" />
+                                <span>{block.from} - {block.to}</span>
+                              </div>
+                              <div className="flex items-center justify-center gap-2">
+                                <Badge className="bg-yellow-400/20 text-yellow-700 border-yellow-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-yellow-400/80 hover:text-yellow-900 hover:shadow-md justify-center">
+                                  <AlertTriangle className="w-4 h-4" /> Warnung: ≥ {block.warning} dB
+                                </Badge>
+                              </div>
+                              <div className="flex items-center justify-center gap-2">
+                                <Badge className="bg-red-400/20 text-red-700 border-red-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-red-400/80 hover:text-red-900 hover:shadow-md justify-center">
+                                  <AlertTriangle className="w-4 h-4" /> Alarm: ≥ {block.alarm} dB
+                                </Badge>
+                              </div>
                             </div>
-                            <div className="flex items-center justify-center gap-2">
-                              <Badge className="bg-yellow-400/20 text-yellow-700 border-yellow-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-yellow-400/80 hover:text-yellow-900 hover:shadow-md justify-center">
-                                <AlertTriangle className="w-4 h-4" /> Warnung: ≥ {block.warning} dB
-                              </Badge>
-                            </div>
-                            <div className="flex items-center justify-center gap-2">
-                              <Badge className="bg-red-400/20 text-red-700 border-red-400/30 px-3 py-1 min-w-[170px] rounded-md flex items-center gap-1 text-base font-semibold transition-colors hover:bg-red-400/80 hover:text-red-900 hover:shadow-md justify-center">
-                                <AlertTriangle className="w-4 h-4" /> Alarm: ≥ {block.alarm} dB
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  )
-                })}
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )
+                  })
+                }
               </div>
             </CardContent>
           </Card>

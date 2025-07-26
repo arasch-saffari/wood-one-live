@@ -1075,128 +1075,157 @@ export default function AdminDashboard() {
                     Schwellenwerte
                     <span className="text-base font-normal text-gray-400 ml-4">Grenzwerte & Zeitblöcke pro Station</span>
                   </h1>
-                  {Object.entries(config.thresholdsByStationAndTime).map(([station, blocks], stationIdx) => (
-                    <div key={station} className="space-y-8">
-                      <h2 className={cn("flex items-center gap-3 text-2xl font-bold mb-6", stationIdx > 0 ? "mt-32" : "mt-12")}>
-                        {station === 'ort' && <MapPin className="w-7 h-7 text-emerald-400" />}
-                        {station === 'techno' && <Settings2 className="w-7 h-7 text-fuchsia-400" />}
-                        {station === 'heuballern' && <Sun className="w-7 h-7 text-cyan-400" />}
-                        {station === 'band' && <DatabaseZap className="w-7 h-7 text-orange-400" />}
-                        <span className="capitalize">{station}</span>
-                        <Badge className="ml-2 bg-blue-100 text-blue-700 text-xs">2 Blöcke: Tag & Nacht</Badge>
-                      </h2>
-                      
-                      {/* Validation message if more than 2 blocks */}
-                      {(blocks as ThresholdBlock[]).length > 2 && (
-                        <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg">
-                          <strong>Warnung:</strong> Nur 2 Blöcke (Tag und Nacht) sind erlaubt. Überschüssige Blöcke werden automatisch entfernt.
-                        </div>
-                      )}
-                      
-                      <div className="flex flex-col gap-8">
-                        {(blocks as ThresholdBlock[]).slice(0, 2).map((block, idx) => {
-                          const isDay = block.from < block.to
-                          const blockType = idx === 0 ? 'Tag' : 'Nacht'
-                          return (
-                            <div
-                              key={idx}
-                              className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl flex flex-col gap-6"
-                              aria-label={`${blockType}-Block ${block.from} - ${block.to}`}
-                            >
-                              <h3 className="flex items-center gap-3 text-xl font-semibold mb-2">
-                                {isDay ? <Sun className="w-6 h-6 text-yellow-400" /> : <Moon className="w-6 h-6 text-blue-400" />}
-                                {blockType}-Block: {block.from} - {block.to}
-                                <span className={cn("ml-2 px-3 py-1 rounded-full text-xs font-bold", isDay ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700")}>{blockType}</span>
-                              </h3>
-                              <form
-                                className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                                onSubmit={e => { e.preventDefault(); handleSave(); }}
-                                aria-label={`Schwellenwerte für ${block.from} - ${block.to}`}
+                  {Object.entries(config.thresholdsByStationAndTime).map(([station, blocks], stationIdx) => {
+                    // Default-Blöcke pro Station
+                    const defaultBlocks: ThresholdBlock[] =
+                      station === 'ort' ? [
+                        { from: '10:00', to: '22:00', warning: 52, alarm: 55, las: 50, laf: 52 },
+                        { from: '22:00', to: '10:00', warning: 42, alarm: 45, las: 48, laf: 50 }
+                      ] :
+                      station === 'techno' ? [
+                        { from: '10:00', to: '22:00', warning: 77, alarm: 80, las: 75, laf: 77 },
+                        { from: '22:00', to: '10:00', warning: 77, alarm: 80, las: 75, laf: 77 }
+                      ] :
+                      station === 'heuballern' ? [
+                        { from: '10:00', to: '22:00', warning: 84, alarm: 87, las: 82, laf: 84 },
+                        { from: '22:00', to: '10:00', warning: 80, alarm: 83, las: 78, laf: 80 }
+                      ] :
+                      station === 'band' ? [
+                        { from: '10:00', to: '22:00', warning: 95, alarm: 98, las: 93, laf: 95 },
+                        { from: '22:00', to: '10:00', warning: 92, alarm: 95, las: 90, laf: 92 }
+                      ] : [];
+                    // Ergänze fehlende Blöcke
+                    let showBlocks = Array.isArray(blocks) ? [...blocks] : [];
+                    if (showBlocks.length < 2) {
+                      // Füge fehlende Blöcke aus Default hinzu
+                      for (let i = showBlocks.length; i < 2; i++) {
+                        showBlocks.push(defaultBlocks[i]);
+                      }
+                    }
+                    showBlocks = showBlocks.slice(0, 2);
+                    return (
+                      <div key={station} className="space-y-8">
+                        <h2 className={cn("flex items-center gap-3 text-2xl font-bold mb-6", stationIdx > 0 ? "mt-32" : "mt-12")}>
+                          {station === 'ort' && <MapPin className="w-7 h-7 text-emerald-400" />}
+                          {station === 'techno' && <Settings2 className="w-7 h-7 text-fuchsia-400" />}
+                          {station === 'heuballern' && <Sun className="w-7 h-7 text-cyan-400" />}
+                          {station === 'band' && <DatabaseZap className="w-7 h-7 text-orange-400" />}
+                          <span className="capitalize">{station}</span>
+                          <Badge className="ml-2 bg-blue-100 text-blue-700 text-xs">2 Blöcke: Tag & Nacht</Badge>
+                        </h2>
+                        
+                        {/* Validation message if more than 2 blocks */}
+                        {(blocks as ThresholdBlock[]).length > 2 && (
+                          <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg">
+                            <strong>Warnung:</strong> Nur 2 Blöcke (Tag und Nacht) sind erlaubt. Überschüssige Blöcke werden automatisch entfernt.
+                          </div>
+                        )}
+                        
+                        <div className="flex flex-col gap-8">
+                          {showBlocks.map((block, idx) => {
+                            const isDay = block.from < block.to
+                            const blockType = idx === 0 ? 'Tag' : 'Nacht'
+                            return (
+                              <div
+                                key={idx}
+                                className="w-full min-w-[min(100vw,900px)] max-w-[1200px] mx-auto p-8 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl flex flex-col gap-6"
+                                aria-label={`${blockType}-Block ${block.from} - ${block.to}`}
                               >
-                                <label className="flex flex-col gap-1">
-                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-yellow-500" /> Warnung</span>
-                                  <input
-                                    type="number"
-                                    className="input input-lg focus:ring-2 focus:ring-yellow-400 rounded-lg border border-yellow-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
-                                    value={block.warning}
-                                    onChange={e => handleThresholdChange(station, idx, 'warning', Number(e.target.value))}
-                                    min={0}
-                                    aria-label="Warnung dB"
-                                  />
-                                </label>
-                                <label className="flex flex-col gap-1">
-                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-500" /> Alarm</span>
-                                  <input
-                                    type="number"
-                                    className="input input-lg focus:ring-2 focus:ring-red-400 rounded-lg border border-red-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
-                                    value={block.alarm}
-                                    onChange={e => handleThresholdChange(station, idx, 'alarm', Number(e.target.value))}
-                                    min={0}
-                                    aria-label="Alarm dB"
-                                  />
-                                </label>
-                                <label className="flex flex-col gap-1">
-                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">LAS</span>
-                                  <input
-                                    type="number"
-                                    className="input input-lg focus:ring-2 focus:ring-emerald-400 rounded-lg border border-emerald-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
-                                    value={block.las}
-                                    onChange={e => handleThresholdChange(station, idx, 'las', Number(e.target.value))}
-                                    min={0}
-                                    aria-label="LAS dB"
-                                  />
-                                </label>
-                                <label className="flex flex-col gap-1">
-                                  <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">LAF</span>
-                                  <input
-                                    type="number"
-                                    className="input input-lg focus:ring-2 focus:ring-cyan-400 rounded-lg border border-cyan-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
-                                    value={block.laf}
-                                    onChange={e => handleThresholdChange(station, idx, 'laf', Number(e.target.value))}
-                                    min={0}
-                                    aria-label="LAF dB"
-                                  />
-                                </label>
-                                <div className="flex gap-4 col-span-1 md:col-span-2">
-                                  <label className="flex flex-col gap-1 flex-1">
-                                    <span className="font-medium text-gray-700 dark:text-gray-200">Von</span>
-                                    <input
-                                      type="text"
-                                      className="input input-lg focus:ring-2 focus:ring-violet-400 rounded-lg border border-violet-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
-                                      value={block.from}
-                                      onChange={e => handleThresholdChange(station, idx, 'from', e.target.value)}
-                                      placeholder="HH:MM"
-                                      aria-label="Von Uhrzeit"
-                                    />
-                                  </label>
-                                  <label className="flex flex-col gap-1 flex-1">
-                                    <span className="font-medium text-gray-700 dark:text-gray-200">Bis</span>
-                                    <input
-                                      type="text"
-                                      className="input input-lg focus:ring-2 focus:ring-violet-400 rounded-lg border border-violet-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
-                                      value={block.to}
-                                      onChange={e => handleThresholdChange(station, idx, 'to', e.target.value)}
-                                      placeholder="HH:MM"
-                                      aria-label="Bis Uhrzeit"
-                                    />
-                                  </label>
-                                </div>
-                                <Button
-                                  type="submit"
-                                  className="mt-8 w-full py-3 text-lg font-bold rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg hover:scale-[1.02] transition-all"
-                                  disabled={saving}
-                                  aria-label="Schwellenwerte speichern"
+                                <h3 className="flex items-center gap-3 text-xl font-semibold mb-2">
+                                  {isDay ? <Sun className="w-6 h-6 text-yellow-400" /> : <Moon className="w-6 h-6 text-blue-400" />}
+                                  {blockType}-Block: {block.from} - {block.to}
+                                  <span className={cn("ml-2 px-3 py-1 rounded-full text-xs font-bold", isDay ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700")}>{blockType}</span>
+                                </h3>
+                                <form
+                                  className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                                  onSubmit={e => { e.preventDefault(); handleSave(); }}
+                                  aria-label={`Schwellenwerte für ${block.from} - ${block.to}`}
                                 >
-                                  {saving ? 'Speichern...' : 'Speichern'}
-                                </Button>
-                                {configError && <div className="text-red-500 font-semibold text-sm mt-2">{configError}</div>}
-                              </form>
-                            </div>
-                          )
-                        })}
+                                  <label className="flex flex-col gap-1">
+                                    <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-yellow-500" /> Warnung</span>
+                                    <input
+                                      type="number"
+                                      className="input input-lg focus:ring-2 focus:ring-yellow-400 rounded-lg border border-yellow-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                      value={block.warning}
+                                      onChange={e => handleThresholdChange(station, idx, 'warning', Number(e.target.value))}
+                                      min={0}
+                                      aria-label="Warnung dB"
+                                    />
+                                  </label>
+                                  <label className="flex flex-col gap-1">
+                                    <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-500" /> Alarm</span>
+                                    <input
+                                      type="number"
+                                      className="input input-lg focus:ring-2 focus:ring-red-400 rounded-lg border border-red-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                      value={block.alarm}
+                                      onChange={e => handleThresholdChange(station, idx, 'alarm', Number(e.target.value))}
+                                      min={0}
+                                      aria-label="Alarm dB"
+                                    />
+                                  </label>
+                                  <label className="flex flex-col gap-1">
+                                    <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">LAS</span>
+                                    <input
+                                      type="number"
+                                      className="input input-lg focus:ring-2 focus:ring-emerald-400 rounded-lg border border-emerald-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                      value={block.las}
+                                      onChange={e => handleThresholdChange(station, idx, 'las', Number(e.target.value))}
+                                      min={0}
+                                      aria-label="LAS dB"
+                                    />
+                                  </label>
+                                  <label className="flex flex-col gap-1">
+                                    <span className="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">LAF</span>
+                                    <input
+                                      type="number"
+                                      className="input input-lg focus:ring-2 focus:ring-cyan-400 rounded-lg border border-cyan-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                      value={block.laf}
+                                      onChange={e => handleThresholdChange(station, idx, 'laf', Number(e.target.value))}
+                                      min={0}
+                                      aria-label="LAF dB"
+                                    />
+                                  </label>
+                                  <div className="flex gap-4 col-span-1 md:col-span-2">
+                                    <label className="flex flex-col gap-1 flex-1">
+                                      <span className="font-medium text-gray-700 dark:text-gray-200">Von</span>
+                                      <input
+                                        type="text"
+                                        className="input input-lg focus:ring-2 focus:ring-violet-400 rounded-lg border border-violet-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                        value={block.from}
+                                        onChange={e => handleThresholdChange(station, idx, 'from', e.target.value)}
+                                        placeholder="HH:MM"
+                                        aria-label="Von Uhrzeit"
+                                      />
+                                    </label>
+                                    <label className="flex flex-col gap-1 flex-1">
+                                      <span className="font-medium text-gray-700 dark:text-gray-200">Bis</span>
+                                      <input
+                                        type="text"
+                                        className="input input-lg focus:ring-2 focus:ring-violet-400 rounded-lg border border-violet-200 bg-white dark:bg-gray-900 px-4 py-2 text-lg font-semibold shadow-sm"
+                                        value={block.to}
+                                        onChange={e => handleThresholdChange(station, idx, 'to', e.target.value)}
+                                        placeholder="HH:MM"
+                                        aria-label="Bis Uhrzeit"
+                                      />
+                                    </label>
+                                  </div>
+                                  <Button
+                                    type="submit"
+                                    className="mt-8 w-full py-3 text-lg font-bold rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg hover:scale-[1.02] transition-all"
+                                    disabled={saving}
+                                    aria-label="Schwellenwerte speichern"
+                                  >
+                                    {saving ? 'Speichern...' : 'Speichern'}
+                                  </Button>
+                                  {configError && <div className="text-red-500 font-semibold text-sm mt-2">{configError}</div>}
+                                </form>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </section>
               )}
               {segment === 'system' && (
