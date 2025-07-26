@@ -97,12 +97,12 @@ export async function GET(req: Request) {
     
     const aggCountResult = aggCountStmt.get(station) as { total: number }
     
-    // Wenn aggregierte Daten vorhanden sind, verwende sie
-    if (aggCountResult.total > 0) {
+    // Wenn aggregierte Daten vorhanden sind UND genug Einträge (mindestens 10), verwende sie
+    if (aggCountResult.total > 10) {
       console.log(`[API station-data] Verwende 15min aggregierte Daten für ${station}: ${aggCountResult.total} Einträge`)
       
       const stmt = db.prepare(`
-        SELECT bucket, avg_las as avgLas
+        SELECT bucket, avgLas
         FROM measurements_15min_agg
         WHERE station = ? AND bucket >= datetime('now', '-${interval === '7d' ? '7 days' : '24 hours'}')
         ORDER BY bucket ${sortOrder.toUpperCase()}
@@ -127,8 +127,8 @@ export async function GET(req: Request) {
       })
     }
     
-    // Wenn keine aggregierten Daten vorhanden sind, verwende direkte Messwerte
-    console.log(`[API station-data] Keine aggregierten Daten für ${station}, verwende direkte Messwerte`)
+    // Wenn keine oder zu wenige aggregierten Daten vorhanden sind, verwende direkte Messwerte
+    console.log(`[API station-data] Keine ausreichenden aggregierten Daten für ${station} (${aggCountResult.total} Einträge), verwende direkte Messwerte`)
     
     // Prüfe ob datetime Spalte existiert
     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
