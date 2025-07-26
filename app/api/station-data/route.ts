@@ -88,6 +88,68 @@ export async function GET(req: Request) {
     })
   }
   if (aggregate === "15min") {
+    // Prüfe zuerst, ob Daten in der aggregierten Tabelle vorhanden sind
+    const aggCountStmt = db.prepare(`
+      SELECT COUNT(*) as total
+      FROM measurements_15min_agg
+      WHERE station = ? AND bucket >= datetime('now', '-${interval === '7d' ? '7 days' : '24 hours'}')
+    `)
+    
+    const aggCountResult = aggCountStmt.get(station) as { total: number }
+    
+    // Wenn keine aggregierten Daten vorhanden sind, verwende direkte Messwerte
+    if (aggCountResult.total === 0) {
+      console.log(`[API station-data] Keine aggregierten Daten für ${station}, verwende direkte Messwerte`)
+      
+      // Prüfe zuerst 24h, dann 7d falls keine Daten vorhanden
+      let timeFilter = "datetime('now', '-24 hours')"
+      let countStmt = db.prepare(`
+        SELECT COUNT(DISTINCT strftime('%Y-%m-%d %H:%M:00', datetime)) as total
+        FROM measurements
+        WHERE station = ? AND datetime >= ${timeFilter}
+      `)
+      
+      let countResult = countStmt.get(station) as { total: number }
+      
+      // Falls keine Daten in den letzten 24h, verwende 7d
+      if (countResult.total === 0) {
+        console.log(`[API station-data] Keine Daten in den letzten 24h für ${station}, verwende 7d`)
+        timeFilter = "datetime('now', '-7 days')"
+        countStmt = db.prepare(`
+          SELECT COUNT(DISTINCT strftime('%Y-%m-%d %H:%M:00', datetime)) as total
+          FROM measurements
+          WHERE station = ? AND datetime >= ${timeFilter}
+        `)
+        countResult = countStmt.get(station) as { total: number }
+      }
+      
+      const stmt = db.prepare(`
+        SELECT strftime('%Y-%m-%d %H:%M:00', datetime) as bucket, AVG(las) as avgLas
+        FROM measurements
+        WHERE station = ? AND datetime >= ${timeFilter}
+        GROUP BY strftime('%Y-%m-%d %H:%M:00', datetime)
+        ORDER BY bucket ${sortOrder.toUpperCase()}
+        LIMIT ? OFFSET ?
+      `)
+      
+      const offset = (page - 1) * pageSize
+      const results = stmt.all(station, pageSize, offset) as Array<{ bucket: string, avgLas: number }>
+      
+      const paged = results.map(b => ({
+        time: b.bucket.slice(11, 16),
+        las: b.avgLas,
+        datetime: b.bucket
+      }))
+      
+      apiLatencyEnd()
+      return NextResponse.json({ 
+        data: paged, 
+        totalCount: countResult.total, 
+        page, 
+        pageSize 
+      })
+    }
+    
     // SQL-Level-Pagination auch für 15min aggregation
     const stmt = db.prepare(`
       SELECT bucket, avgLas

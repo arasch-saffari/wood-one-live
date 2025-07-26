@@ -368,3 +368,448 @@ Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
 {"level":"info","time":"2025-07-26T00:21:17.123Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
 {"level":"info","time":"2025-07-26T00:21:17.124Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
 {"level":"info","time":"2025-07-26T00:21:17.124Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 23ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 24ms
+ GET /api/weather?station=global&time=now 200 in 15ms
+ GET /api/csv-watcher-status 200 in 15ms
+ GET /api/admin/health 200 in 17ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/weather?station=global&time=now 200 in 13ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/admin/health 200 in 16ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+ GET /api/csv-watcher-status 200 in 6ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 6ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 9ms
+ GET /api/weather?station=global&time=now 200 in 13ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 16ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 16ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/csv-watcher-status 200 in 12ms
+ GET /api/admin/health 200 in 14ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 26ms
+ GET /api/weather?station=global&time=now 200 in 14ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/admin/health 200 in 16ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/csv-watcher-status 200 in 4ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 16ms
+ GET /api/weather?station=global&time=now 200 in 18ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/admin/health 200 in 7ms
+ GET /api/csv-watcher-status 200 in 9ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 27ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 26ms
+ GET /api/weather?station=global&time=now 200 in 31ms
+ GET /api/admin/health 200 in 15ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/csv-watcher-status 200 in 4ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/weather?station=global&time=now 200 in 23ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 26ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/admin/health 200 in 11ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/csv-watcher-status 200 in 14ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 16ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+ GET /api/weather?station=global&time=now 200 in 10ms
+ GET /api/admin/health 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/csv-watcher-status 200 in 5ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/weather?station=global&time=now 200 in 14ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/admin/health 200 in 7ms
+ GET /api/csv-watcher-status 200 in 8ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 27ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 24ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 24ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/weather?station=global&time=now 200 in 10ms
+ GET /api/admin/health 200 in 13ms
+ GET /api/csv-watcher-status 200 in 8ms
+ GET /api/weather?station=global&time=now 200 in 7ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/admin/health 200 in 7ms
+ GET /api/csv-watcher-status 200 in 10ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 37ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 35ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 35ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/weather?station=global&time=now 200 in 13ms
+ GET /api/admin/health 200 in 16ms
+ GET /api/csv-watcher-status 200 in 14ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 18ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 23ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/weather?station=global&time=now 200 in 27ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/admin/health 200 in 14ms
+ GET /api/csv-watcher-status 200 in 9ms
+[API station-data] Station: techno, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10 200 in 23ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 42ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 42ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 50ms
+ GET /api/weather?station=global&time=now 200 in 47ms
+ GET /api/admin/health 200 in 54ms
+ GET /api/csv-watcher-status 200 in 25ms
+ ✓ Compiled /api/admin/rebuild-db in 404ms (544 modules)
+{"level":"info","time":"2025-07-26T00:35:20.151Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+ POST /api/admin/rebuild-db 200 in 472ms
+{"level":"info","time":"2025-07-26T00:35:20.152Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+ ✓ Compiled /api/admin/cron in 136ms (546 modules)
+ POST /api/admin/cron 405 in 170ms
+ ✓ Compiled in 1595ms (272 modules)
+{"level":"info","time":"2025-07-26T00:35:50.727Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 175ms
+{"level":"info","time":"2025-07-26T00:35:50.729Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:35:50.768Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 5ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 37ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 7ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 7ms
+ GET /api/weather?station=global&time=now 200 in 72ms
+{"level":"info","time":"2025-07-26T00:36:17.146Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+(node:55985) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 21 SIGTERM listeners added to [process]. MaxListeners is 20. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:55985) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 21 SIGINT listeners added to [process]. MaxListeners is 20. Use emitter.setMaxListeners() to increase limit
+ GET /api/admin/health 200 in 85ms
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/csv-watcher-status 200 in 95ms
+{"level":"info","time":"2025-07-26T00:36:17.147Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:36:17.148Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:36:17.148Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T00:36:17.159Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T00:36:17.159Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:36:17.160Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:36:17.160Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 47ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 18ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ ✓ Compiled in 393ms (270 modules)
+{"level":"info","time":"2025-07-26T00:36:34.847Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 85ms
+{"level":"info","time":"2025-07-26T00:36:34.848Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:36:34.870Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 7ms
+[API station-data] Station: techno, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10 200 in 6ms
+[API station-data] Station: band, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=10 200 in 16ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/weather?station=global&time=now 200 in 17ms
+{"level":"info","time":"2025-07-26T00:37:17.030Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/admin/health 200 in 27ms
+{"level":"info","time":"2025-07-26T00:37:17.031Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:37:17.032Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:37:17.032Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T00:37:17.070Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/csv-watcher-status 200 in 8ms
+{"level":"info","time":"2025-07-26T00:37:17.070Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:37:17.071Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:37:17.071Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/weather?station=global&time=now 200 in 16ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/admin/health 200 in 9ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 9ms
+ GET /api/csv-watcher-status 200 in 12ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 7ms
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/weather?station=global&time=now 200 in 19ms
+ GET /api/admin/health 200 in 21ms
+[API station-data] Keine aggregierten Daten für ort, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für ort, verwende 7d
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 19ms
+[API station-data] Keine aggregierten Daten für techno, verwende direkte Messwerte
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+[API station-data] Keine aggregierten Daten für band, verwende direkte Messwerte
+[API station-data] Keine aggregierten Daten für heuballern, verwende direkte Messwerte
+[API station-data] Keine Daten in den letzten 24h für heuballern, verwende 7d
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/csv-watcher-status 200 in 5ms
