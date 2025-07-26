@@ -337,37 +337,50 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
       </div>
       {/* Chart */}
       <div className="mb-10 w-full">
-        <ChartPlayground
-          data={chartData.map(d => ({ time: d.time, las: d.las }))}
-          lines={[
-            { key: 'las', label: 'Lärmpegel (15min Mittelwert)', color: meta.chartColor as unknown as string, yAxisId: 'left', visible: true },
-          ]}
-          axes={[
-            { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] },
-          ]}
-          thresholds={[
-            { value: thresholds.warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
-            { value: thresholds.alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
-          ]}
-          title=""
-          icon={null}
-          tooltipFormatter={(value, name) => {
-            // Fange alle nicht-numerischen Fälle ab
-            if (value === undefined || value === null) return ['–', name || 'Wert'];
-            if (typeof value === 'object') return ['–', name || 'Wert'];
-            if (Array.isArray(value)) return ['–', name || 'Wert'];
-            if (typeof value === 'number' && !isFinite(value)) return ['–', name || 'Wert'];
-            const rounded = typeof value === 'number' ? Math.round(value) : value;
-            if (name === 'ws') return [`${rounded} km/h`, 'Windgeschwindigkeit'];
-            if (name === 'rh') return [`${rounded} %`, 'Luftfeuchte'];
-            if (name === 'las') return [`${rounded} dB`, 'Lärmpegel'];
-            if (name === 'temp') return [`${rounded}°C`, 'Temperatur'];
-            if (typeof rounded === 'number' && rounded === thresholds.warning) return [`${rounded} dB`, 'Warnung (Grenzwert)'];
-            if (typeof rounded === 'number' && rounded === thresholds.alarm) return [`${rounded} dB`, 'Alarm (Grenzwert)'];
-            if (!name) return [String(rounded), 'Wert'];
-            return [String(rounded), name];
-          }}
-        />
+        {/* Intelligente Chart-Datenverarbeitung wie im All-Dashboard */}
+        {(() => {
+          // Chart-Datenverarbeitung wie im All-Dashboard
+          const chartTimes = chartData.map(d => d.time).filter(Boolean).sort();
+          const chartSlicedTimes = chartTimes.slice(chartTimes.length > 500 ? chartTimes.length - 500 : 0);
+          const processedChartData = chartSlicedTimes.map(time => {
+            const entry = chartData.find(d => d.time === time);
+            return { time, las: entry?.las ?? null };
+          });
+          
+          return (
+            <ChartPlayground
+              data={processedChartData}
+              lines={[
+                { key: 'las', label: 'Lärmpegel (15min Mittelwert)', color: meta.chartColor as unknown as string, yAxisId: 'left', visible: true },
+              ]}
+              axes={[
+                { id: 'left', orientation: 'left', domain: [30, 90], label: 'Lärmpegel (dB)', ticks: [30, 40, 50, 60, 70, 80, 90] },
+              ]}
+              thresholds={[
+                { value: thresholds.warning, label: 'Warnung', color: '#facc15', yAxisId: 'left' },
+                { value: thresholds.alarm, label: 'Alarm', color: '#ef4444', yAxisId: 'left' },
+              ]}
+              title=""
+              icon={null}
+              tooltipFormatter={(value, name) => {
+                // Fange alle nicht-numerischen Fälle ab
+                if (value === undefined || value === null) return ['–', name || 'Wert'];
+                if (typeof value === 'object') return ['–', name || 'Wert'];
+                if (Array.isArray(value)) return ['–', name || 'Wert'];
+                if (typeof value === 'number' && !isFinite(value)) return ['–', name || 'Wert'];
+                const rounded = typeof value === 'number' ? Math.round(value) : value;
+                if (name === 'ws') return [`${rounded} km/h`, 'Windgeschwindigkeit'];
+                if (name === 'rh') return [`${rounded} %`, 'Luftfeuchte'];
+                if (name === 'las') return [`${rounded} dB`, 'Lärmpegel'];
+                if (name === 'temp') return [`${rounded}°C`, 'Temperatur'];
+                if (typeof rounded === 'number' && rounded === thresholds.warning) return [`${rounded} dB`, 'Warnung (Grenzwert)'];
+                if (typeof rounded === 'number' && rounded === thresholds.alarm) return [`${rounded} dB`, 'Alarm (Grenzwert)'];
+                if (!name) return [String(rounded), 'Wert'];
+                return [String(rounded), name];
+              }}
+            />
+          );
+        })()}
       </div>
       {/* Exakte Tabellenansicht wie im All-Dashboard, aber für eine Station */}
     </div>
