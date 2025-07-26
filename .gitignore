@@ -26,15 +26,28 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# CSV files and data
+public/csv/
 public/csv/*
-data.sqlite
-logs/
-logs/system.log
+*.csv
 
-# Ignore SQLite database files
+# Database files
+data.sqlite
+data.sqlite-shm
+data.sqlite-wal
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
 
-backups/*.sqlite
+# Logs
+logs/
+logs/system.log
+
+# Cache and backups
+backups/
+cache/
 cache/*.json
+
+# Large files that shouldn't be in git
+*.db
+*.sqlite3
