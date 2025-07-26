@@ -2,7 +2,7 @@ import { setupGlobalErrorHandlers } from './middleware/error-handler';
 import { logger } from './logger';
 import { config } from './config';
 import { checkDatabaseHealth } from './database';
-import { runMigrations } from './db';
+import { runMigrations, trigger15MinAggregation } from './db';
 import fs from 'fs';
 import path from 'path';
 
@@ -65,7 +65,36 @@ export function initializeApplication() {
     process.exit(1);
   }
 
+  // Setup automatic 15-minute aggregation
+  setupAutomaticAggregation();
+
   logger.info('Application initialized successfully');
+}
+
+// Setup automatic 15-minute aggregation every 5 minutes
+function setupAutomaticAggregation() {
+  try {
+    console.log('🔄 Setting up automatic 15-minute aggregation (every 5 minutes)...')
+    
+    // Initial aggregation on startup
+    trigger15MinAggregation(true)
+    
+    // Schedule regular aggregation every 5 minutes
+    setInterval(() => {
+      try {
+        console.log('⏰ Scheduled 15-minute aggregation triggered...')
+        trigger15MinAggregation()
+      } catch (error) {
+        console.error('❌ Scheduled aggregation failed:', error)
+        logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Scheduled aggregation failed')
+      }
+    }, 5 * 60 * 1000) // 5 minutes
+    
+    console.log('✅ Automatic aggregation scheduled successfully')
+  } catch (error) {
+    console.error('❌ Failed to setup automatic aggregation:', error)
+    logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Failed to setup automatic aggregation')
+  }
 }
 
 // Export for use in Next.js middleware or other entry points

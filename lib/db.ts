@@ -51,6 +51,22 @@ try {
 // measurements: id, station, time, las, source_file
 // weather: id, station, time, windSpeed, windDir, relHumidity, created_at
 
+// Schema version tracking
+db.exec(`
+  CREATE TABLE IF NOT EXISTS schema_version (
+    id INTEGER PRIMARY KEY,
+    version INTEGER NOT NULL,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    description TEXT
+  );
+`)
+
+// Initialize schema version if not exists
+const versionCheck = db.prepare("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1").get() as { version: number } | undefined
+if (!versionCheck) {
+  db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(0, "Initial schema version")
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS measurements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -188,157 +204,221 @@ if (typeof db.pragma === 'function') {
 // Exportiere stattdessen Setup-Funktionen
 
 export function runMigrations() {
-  // Migration 1: Add created_at column to weather table
-  try {
-    const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
-    console.log('Spalten in weather:', columns.map(c => c.name))
-    const hasCreatedAt = columns.some(col => col.name === 'created_at')
-    if (!hasCreatedAt) {
-      db.exec('BEGIN TRANSACTION')
-      try {
-        db.exec('ALTER TABLE weather ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP')
-        db.prepare('UPDATE weather SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL').run()
-        db.exec('COMMIT')
-      } catch (migrationError) {
-        db.exec('ROLLBACK')
-        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
-        throw migrationError
-      }
-    } else {
-      console.log('Spalte created_at existiert bereits, Migration wird übersprungen.')
-    }
-  } catch (e) {
-    // Nur loggen, nicht crashen
-    console.error('❌ Migration check failed:', e)
-  }
-  // Migration 2: Add source_file column to measurements table
-  try {
-    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
-    console.log('Spalten in measurements:', columns.map(c => c.name))
-    const hasSourceFile = columns.some(col => col.name === 'source_file')
-    if (!hasSourceFile) {
-      db.exec('BEGIN TRANSACTION')
-      try {
-        db.exec('ALTER TABLE measurements ADD COLUMN source_file TEXT')
-        db.exec('COMMIT')
-      } catch (migrationError) {
-        db.exec('ROLLBACK')
-        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
-        throw migrationError
-      }
-    } else {
-      console.log('Spalte source_file existiert bereits, Migration wird übersprungen.')
-    }
-  } catch (e) {
-    console.error('❌ Migration check failed:', e)
-  }
-  // Migration 3: Add temperature column to weather table
-  try {
-    const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
-    console.log('Spalten in weather:', columns.map(c => c.name))
-    const hasTemperature = columns.some(col => col.name === 'temperature')
-    if (!hasTemperature) {
-      db.exec('BEGIN TRANSACTION')
-      try {
-        db.exec('ALTER TABLE weather ADD COLUMN temperature REAL')
-        db.exec('COMMIT')
-      } catch (migrationError) {
-        db.exec('ROLLBACK')
-        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
-        throw migrationError
-      }
-    } else {
-      console.log('Spalte temperature existiert bereits, Migration wird übersprungen.')
-    }
-  } catch (e) {
-    console.error('❌ Migration check failed:', e)
-  }
-  // Migration 4: Add datetime column to measurements table
-  try {
-    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
-    console.log('Spalten in measurements:', columns.map(c => c.name))
-    const hasDatetime = columns.some(col => col.name === 'datetime')
-    if (!hasDatetime) {
-      db.exec('BEGIN TRANSACTION')
-      try {
-        db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME')
-        const now = new Date()
-        const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
-        db.prepare('UPDATE measurements SET datetime = ? || " " || time WHERE datetime IS NULL').run(today)
-        db.exec('COMMIT')
-      } catch (migrationError) {
-        db.exec('ROLLBACK')
-        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
-        throw migrationError
-      }
-    } else {
-      console.log('Spalte datetime existiert bereits, Migration wird übersprungen.')
-    }
-  } catch (e) {
-    console.error('❌ Migration check failed:', e)
-  }
-  // Migration 5: Add all_csv_fields column to measurements table
-  try {
-    const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
-    console.log('Spalten in measurements:', columns.map(c => c.name))
-    const hasAllCsvFields = columns.some(col => col.name === 'all_csv_fields')
-    if (!hasAllCsvFields) {
-      db.exec('BEGIN TRANSACTION')
-      try {
-        db.exec('ALTER TABLE measurements ADD COLUMN all_csv_fields TEXT')
-        db.exec('COMMIT')
-      } catch (migrationError) {
-        db.exec('ROLLBACK')
-        logError(migrationError instanceof Error ? migrationError : new Error(String(migrationError)))
-        throw migrationError
-      }
-    } else {
-      console.log('Spalte all_csv_fields existiert bereits, Migration wird übersprungen.')
-    }
-  } catch (e) {
-    console.error('❌ Migration check failed:', e)
-  }
-  // Migration 6: Add alarm_threshold column to thresholds table if missing
-  try {
-    const columns = db.prepare("PRAGMA table_info(thresholds)").all() as Array<{ name: string }>
-    const hasAlarmThreshold = columns.some(col => col.name === 'alarm_threshold')
-    if (!hasAlarmThreshold) {
-      try {
-        // Add alarm_threshold column and populate it with the existing alarm values
-        db.exec('ALTER TABLE thresholds ADD COLUMN alarm_threshold REAL')
-        db.prepare("UPDATE thresholds SET alarm_threshold = alarm WHERE alarm_threshold IS NULL").run()
-        console.log('✅ Added alarm_threshold column to thresholds table')
-      } catch (e: unknown) {
-        const error = e as Error
-        if (error.message && error.message.includes('duplicate column name')) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Spalte alarm_threshold existiert bereits, Migration wird übersprungen.')
-          }
-        } else {
-          throw e
+  const currentVersion = db.prepare("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1").get() as { version: number } | undefined
+  const currentVersionNumber = currentVersion?.version || 0
+  
+  console.log(`🔄 Running database migrations from version ${currentVersionNumber}...`)
+  
+  // Migration 1: Add created_at column to weather table (version 1)
+  if (currentVersionNumber < 1) {
+    try {
+      const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
+      console.log('Spalten in weather:', columns.map(c => c.name))
+      const hasCreatedAt = columns.some(col => col.name === 'created_at')
+      if (!hasCreatedAt) {
+        db.exec('BEGIN TRANSACTION')
+        try {
+          db.exec('ALTER TABLE weather ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP')
+          db.prepare('UPDATE weather SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL').run()
+          db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(1, "Added created_at column to weather table")
+          db.exec('COMMIT')
+          console.log('✅ Migration 1 completed: Added created_at column to weather table')
+        } catch (migrationError) {
+          db.exec('ROLLBACK')
+          const error = migrationError instanceof Error ? migrationError : new Error(String(migrationError))
+          console.error('❌ Migration 1 failed:', error.message)
+          logError(error)
+          throw error
         }
+      } else {
+        console.log('Spalte created_at existiert bereits, Migration wird übersprungen.')
+        db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(1, "created_at column already exists")
       }
-    }
-    
-    // Create default threshold records if none exist
-    const thresholdCount = db.prepare("SELECT COUNT(*) as count FROM thresholds").get() as { count: number }
-    if (thresholdCount.count === 0) {
-      const stations = ['ort', 'techno', 'heuballern', 'band']
-      for (const station of stations) {
-        db.prepare(`
-          INSERT INTO thresholds (station, from_time, to_time, warning, alarm, alarm_threshold, las, laf)
-          VALUES (?, '00:00', '23:59', 50, 60, 60, 60, 60)
-        `).run(station)
-      }
-      console.log('✅ Created default threshold records for all stations')
-    }
-  } catch (e) {
-    if (e instanceof Error) {
-      console.error('❌ Migration for alarm_threshold column failed:', e.message)
-    } else {
-      console.error('❌ Migration for alarm_threshold column failed:', e)
+    } catch (e) {
+      console.error('❌ Migration 1 check failed:', e)
+      throw e
     }
   }
+  
+  // Migration 2: Add source_file column to measurements table (version 2)
+  if (currentVersionNumber < 2) {
+    try {
+      const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+      console.log('Spalten in measurements:', columns.map(c => c.name))
+      const hasSourceFile = columns.some(col => col.name === 'source_file')
+      if (!hasSourceFile) {
+        db.exec('BEGIN TRANSACTION')
+        try {
+          db.exec('ALTER TABLE measurements ADD COLUMN source_file TEXT')
+          db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(2, "Added source_file column to measurements table")
+          db.exec('COMMIT')
+          console.log('✅ Migration 2 completed: Added source_file column to measurements table')
+        } catch (migrationError) {
+          db.exec('ROLLBACK')
+          const error = migrationError instanceof Error ? migrationError : new Error(String(migrationError))
+          console.error('❌ Migration 2 failed:', error.message)
+          logError(error)
+          throw error
+        }
+      } else {
+        console.log('Spalte source_file existiert bereits, Migration wird übersprungen.')
+        db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(2, "source_file column already exists")
+      }
+    } catch (e) {
+      console.error('❌ Migration 2 check failed:', e)
+      throw e
+    }
+  }
+  
+  // Migration 3: Add temperature column to weather table (version 3)
+  if (currentVersionNumber < 3) {
+    try {
+      const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
+      console.log('Spalten in weather:', columns.map(c => c.name))
+      const hasTemperature = columns.some(col => col.name === 'temperature')
+      if (!hasTemperature) {
+        db.exec('BEGIN TRANSACTION')
+        try {
+          db.exec('ALTER TABLE weather ADD COLUMN temperature REAL')
+          db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(3, "Added temperature column to weather table")
+          db.exec('COMMIT')
+          console.log('✅ Migration 3 completed: Added temperature column to weather table')
+        } catch (migrationError) {
+          db.exec('ROLLBACK')
+          const error = migrationError instanceof Error ? migrationError : new Error(String(migrationError))
+          console.error('❌ Migration 3 failed:', error.message)
+          logError(error)
+          throw error
+        }
+      } else {
+        console.log('Spalte temperature existiert bereits, Migration wird übersprungen.')
+        db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(3, "temperature column already exists")
+      }
+    } catch (e) {
+      console.error('❌ Migration 3 check failed:', e)
+      throw e
+    }
+  }
+  
+  // Migration 4: Add datetime column to measurements table (version 4)
+  if (currentVersionNumber < 4) {
+    try {
+      const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+      console.log('Spalten in measurements:', columns.map(c => c.name))
+      const hasDatetime = columns.some(col => col.name === 'datetime')
+      if (!hasDatetime) {
+        db.exec('BEGIN TRANSACTION')
+        try {
+          db.exec('ALTER TABLE measurements ADD COLUMN datetime DATETIME')
+          const now = new Date()
+          const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+          db.prepare('UPDATE measurements SET datetime = ? || " " || time WHERE datetime IS NULL').run(today)
+          db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(4, "Added datetime column to measurements table")
+          db.exec('COMMIT')
+          console.log('✅ Migration 4 completed: Added datetime column to measurements table')
+        } catch (migrationError) {
+          db.exec('ROLLBACK')
+          const error = migrationError instanceof Error ? migrationError : new Error(String(migrationError))
+          console.error('❌ Migration 4 failed:', error.message)
+          logError(error)
+          throw error
+        }
+      } else {
+        console.log('Spalte datetime existiert bereits, Migration wird übersprungen.')
+        db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(4, "datetime column already exists")
+      }
+    } catch (e) {
+      console.error('❌ Migration 4 check failed:', e)
+      throw e
+    }
+  }
+  
+  // Migration 5: Add all_csv_fields column to measurements table (version 5)
+  if (currentVersionNumber < 5) {
+    try {
+      const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+      console.log('Spalten in measurements:', columns.map(c => c.name))
+      const hasAllCsvFields = columns.some(col => col.name === 'all_csv_fields')
+      if (!hasAllCsvFields) {
+        db.exec('BEGIN TRANSACTION')
+        try {
+          db.exec('ALTER TABLE measurements ADD COLUMN all_csv_fields TEXT')
+          db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(5, "Added all_csv_fields column to measurements table")
+          db.exec('COMMIT')
+          console.log('✅ Migration 5 completed: Added all_csv_fields column to measurements table')
+        } catch (migrationError) {
+          db.exec('ROLLBACK')
+          const error = migrationError instanceof Error ? migrationError : new Error(String(migrationError))
+          console.error('❌ Migration 5 failed:', error.message)
+          logError(error)
+          throw error
+        }
+      } else {
+        console.log('Spalte all_csv_fields existiert bereits, Migration wird übersprungen.')
+        db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(5, "all_csv_fields column already exists")
+      }
+    } catch (e) {
+      console.error('❌ Migration 5 check failed:', e)
+      throw e
+    }
+  }
+  
+  // Migration 6: Add alarm_threshold column to thresholds table (version 6)
+  if (currentVersionNumber < 6) {
+    try {
+      const columns = db.prepare("PRAGMA table_info(thresholds)").all() as Array<{ name: string }>
+      const hasAlarmThreshold = columns.some(col => col.name === 'alarm_threshold')
+      if (!hasAlarmThreshold) {
+        db.exec('BEGIN TRANSACTION')
+        try {
+          // Add alarm_threshold column and populate it with the existing alarm values
+          db.exec('ALTER TABLE thresholds ADD COLUMN alarm_threshold REAL')
+          db.prepare("UPDATE thresholds SET alarm_threshold = alarm WHERE alarm_threshold IS NULL").run()
+          db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(6, "Added alarm_threshold column to thresholds table")
+          db.exec('COMMIT')
+          console.log('✅ Migration 6 completed: Added alarm_threshold column to thresholds table')
+        } catch (e: unknown) {
+          db.exec('ROLLBACK')
+          const error = e as Error
+          if (error.message && error.message.includes('duplicate column name')) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Spalte alarm_threshold existiert bereits, Migration wird übersprungen.')
+            }
+            db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(6, "alarm_threshold column already exists")
+          } else {
+            console.error('❌ Migration 6 failed:', error.message)
+            logError(error)
+            throw e
+          }
+        }
+      } else {
+        console.log('Spalte alarm_threshold existiert bereits, Migration wird übersprungen.')
+        db.prepare("INSERT INTO schema_version (version, description) VALUES (?, ?)").run(6, "alarm_threshold column already exists")
+      }
+      
+      // Create default threshold records if none exist
+      const thresholdCount = db.prepare("SELECT COUNT(*) as count FROM thresholds").get() as { count: number }
+      if (thresholdCount.count === 0) {
+        const stations = ['ort', 'techno', 'heuballern', 'band']
+        for (const station of stations) {
+          db.prepare(`
+            INSERT INTO thresholds (station, from_time, to_time, warning, alarm, alarm_threshold, las, laf)
+            VALUES (?, '00:00', '23:59', 50, 60, 60, 60, 60)
+          `).run(station)
+        }
+        console.log('✅ Created default threshold records for all stations')
+      }
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error('❌ Migration for alarm_threshold column failed:', e.message)
+      } else {
+        console.error('❌ Migration for alarm_threshold column failed:', e)
+      }
+      throw e
+    }
+  }
+  
+  console.log('✅ All database migrations completed successfully')
 }
 
 export function startCsvWatcher() {
@@ -364,15 +444,91 @@ db.exec(`
 
 // Aktualisiert die 15min-Aggregate für die letzten 7 Tage
 export function update15MinAggregates() {
-  db.exec(`
-    INSERT OR REPLACE INTO measurements_15min_agg (station, bucket, avgLas)
-    SELECT station,
-           strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes') as bucket,
-           AVG(las) as avgLas
-    FROM measurements
-    WHERE datetime >= datetime('now', '-7 days')
-    GROUP BY station, bucket;
-  `)
+  const startTime = Date.now()
+  console.log('🔄 Starting 15-minute aggregation update...')
+  
+  try {
+    // Prüfe ob die Aggregationstabelle existiert
+    const tableExists = db.prepare(`
+      SELECT name FROM sqlite_master 
+      WHERE type='table' AND name='measurements_15min_agg'
+    `).get()
+    
+    if (!tableExists) {
+      console.error('❌ measurements_15min_agg table does not exist, creating it...')
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS measurements_15min_agg (
+          station TEXT NOT NULL,
+          bucket DATETIME NOT NULL,
+          avgLas REAL NOT NULL,
+          PRIMARY KEY (station, bucket)
+        );
+      `)
+    }
+    
+    // Führe die Aggregation durch
+    const result = db.exec(`
+      INSERT OR REPLACE INTO measurements_15min_agg (station, bucket, avgLas)
+      SELECT station,
+             strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes') as bucket,
+             AVG(las) as avgLas
+      FROM measurements
+      WHERE datetime >= datetime('now', '-7 days')
+      GROUP BY station, bucket;
+    `)
+    
+    const duration = Date.now() - startTime
+    console.log(`✅ 15-minute aggregation completed in ${duration}ms`)
+    
+    // Log aggregation statistics
+    const stats = db.prepare(`
+      SELECT station, COUNT(*) as count 
+      FROM measurements_15min_agg 
+      WHERE bucket >= datetime('now', '-1 day')
+      GROUP BY station
+    `).all() as Array<{ station: string, count: number }>
+    
+    console.log('📊 Aggregation statistics:', stats)
+    
+    return { success: true, duration, stats }
+  } catch (error) {
+    const duration = Date.now() - startTime
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error(`❌ 15-minute aggregation failed after ${duration}ms:`, errorMessage)
+    logError(error)
+    return { success: false, duration, error: errorMessage }
+  }
+}
+
+// Debounced aggregation trigger
+let aggregationTimeout: NodeJS.Timeout | null = null
+let aggregationPending = false
+
+export function trigger15MinAggregation(immediate = false) {
+  if (aggregationPending && !immediate) {
+    console.log('⏳ Aggregation already pending, skipping...')
+    return
+  }
+  
+  if (immediate) {
+    // Immediate execution
+    if (aggregationTimeout) {
+      clearTimeout(aggregationTimeout)
+      aggregationTimeout = null
+    }
+    aggregationPending = false
+    update15MinAggregates()
+  } else {
+    // Debounced execution (5 seconds)
+    aggregationPending = true
+    if (aggregationTimeout) {
+      clearTimeout(aggregationTimeout)
+    }
+    aggregationTimeout = setTimeout(() => {
+      aggregationPending = false
+      update15MinAggregates()
+    }, 5000)
+  }
 }
 
 export function insertMeasurement(station: string, time: string, las: number) {
@@ -437,8 +593,8 @@ export function getMeasurementsForStation(
   // Count-Query für totalCount mit Zeitfilter
   const countStmt = db.prepare(`
     SELECT COUNT(*) as total
-    FROM measurements
-    WHERE station = ? ${timeCondition}
+    FROM measurements m
+    WHERE m.station = ? ${timeCondition}
   `)
   
   const results = stmt.all(station, limit, offset) as Array<{ 

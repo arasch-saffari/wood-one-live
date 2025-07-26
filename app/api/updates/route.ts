@@ -21,7 +21,7 @@ let isProcessingCSV = false
 // Circuit Breaker für SSE-Controller-Fehler
 let sseCircuitBreakerOpen = false
 let controllerErrorCount = 0
-const MAX_CONTROLLER_ERRORS = 2 // Reduziert von 3 auf 2 für schnellere Reaktion
+const MAX_CONTROLLER_ERRORS = 5 // Erhöht von 2 auf 5 für weniger empfindliche Reaktion
 const CIRCUIT_BREAKER_TIMEOUT = 60000 // 1 Minute
 let lastControllerError = 0
 
@@ -30,6 +30,10 @@ const problematicControllers = new Set<string>()
 
 // Controller cleanup timer
 let controllerCleanupTimer: NodeJS.Timeout | null = null
+
+// Heartbeat mechanism
+let heartbeatInterval: NodeJS.Timeout | null = null
+const HEARTBEAT_INTERVAL = 120000 // 2 minutes
 
 // Funktion zum Bereinigen alter problematischer Controller
 function cleanupProblematicControllers() {
@@ -42,6 +46,34 @@ function cleanupProblematicControllers() {
   controllerCleanupTimer = setTimeout(cleanupProblematicControllers, 30000)
 }
 
+// Setup heartbeat mechanism
+function setupHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval)
+  }
+  
+  heartbeatInterval = setInterval(() => {
+    try {
+      // Send heartbeat to all active subscribers
+      subscribers.forEach(subscriber => {
+        if (!subscriber.closed && controllerStates.get(subscriber.id)) {
+          try {
+            const encoder = new TextEncoder()
+            subscriber.controller.enqueue(encoder.encode(':\n\n')) // Heartbeat comment
+          } catch (error) {
+            console.debug(`💓 Heartbeat failed for subscriber ${subscriber.id}:`, error)
+            problematicControllers.add(subscriber.id)
+          }
+        }
+      })
+    } catch (error) {
+      console.debug('💓 Heartbeat mechanism error:', error)
+    }
+  }, HEARTBEAT_INTERVAL)
+  
+  console.debug('💓 SSE heartbeat mechanism started')
+}
+
 // Global rate limiting für SSE-Updates
 let lastGlobalUpdate = 0
 const MIN_GLOBAL_UPDATE_INTERVAL = 10000 // 10 Sekunden zwischen globalen Updates
@@ -52,6 +84,9 @@ export async function GET() {
     try {
       initializeApplication()
       initialized = true
+      
+      // Setup heartbeat mechanism on first connection
+      setupHeartbeat()
     } catch (error) {
       console.error('Application initialization failed:', error)
       // Continue anyway, don't fail the SSE connection
@@ -74,6 +109,7 @@ export async function GET() {
         subscriber.closed = true
         controllerStates.set(subscriberId, false)
         subscribers = subscribers.filter(s => s !== subscriber)
+        problematicControllers.delete(subscriberId) // Remove from problematic controllers on cleanup
         try {
           controller.close()
         } catch {
@@ -95,12 +131,12 @@ export async function GET() {
 
 export function triggerDeltaUpdate(updateData?: Record<string, unknown>) {
   // Intelligente SSE-Deaktivierung Check - nur bei zu vielen problematischen Controllern blockieren
-  if (problematicControllers.size > 5) { // Nur blockieren wenn mehr als 5 problematische Controller
+  if (problematicControllers.size > 10) { // Erhöht von 5 auf 10 für weniger empfindliche Reaktion
     console.debug(`🛡️  SSE blocked for ${problematicControllers.size} problematic controllers`)
     return
   }
   
-  // Circuit Breaker Check - komplett deaktivieren wenn zu viele Controller-Fehler
+  // Circuit Breaker Check - nur bei sehr vielen Controller-Fehlern deaktivieren
   const now = Date.now()
   if (sseCircuitBreakerOpen) {
     if (now - lastControllerError < CIRCUIT_BREAKER_TIMEOUT) {

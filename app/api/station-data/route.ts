@@ -3,17 +3,30 @@ import { getMeasurementsForStation } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 import db from '@/lib/database'
-import { getMinuteAveragesForStation, get15MinAveragesForStation } from '@/lib/db'
 import { apiLatency } from '../metrics/route'
+import { initializeApplication } from '@/lib/app-init'
+
+// Initialize application on first API call
+let initialized = false
 
 // File-Cache für große Zeiträume
 const CACHE_DIR = path.join(process.cwd(), 'cache')
 if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true })
 }
-const FILE_CACHE_DURATION_MS = 5 * 60 * 1000 // 5 Minuten
 
 export async function GET(req: Request) {
+  // Initialize application on first API call
+  if (!initialized) {
+    try {
+      initializeApplication()
+      initialized = true
+    } catch (error) {
+      console.error('Application initialization failed:', error)
+      // Continue anyway, don't fail the API call
+    }
+  }
+
   const apiLatencyEnd = apiLatency.startTimer({ route: '/api/station-data' })
   const { searchParams } = new URL(req.url)
   const station = searchParams.get("station")
@@ -97,8 +110,8 @@ export async function GET(req: Request) {
     
     const aggCountResult = aggCountStmt.get(station) as { total: number }
     
-    // Wenn aggregierte Daten vorhanden sind UND genug Einträge (mindestens 50), verwende sie
-    if (aggCountResult.total > 50) {
+    // Wenn aggregierte Daten vorhanden sind UND genug Einträge (mindestens 40), verwende sie
+    if (aggCountResult.total > 40) {
       console.log(`[API station-data] Verwende 15min aggregierte Daten für ${station}: ${aggCountResult.total} Einträge`)
       
       const stmt = db.prepare(`
@@ -123,7 +136,9 @@ export async function GET(req: Request) {
         data: paged, 
         totalCount: aggCountResult.total, 
         page, 
-        pageSize 
+        pageSize,
+        aggregation_state: "ok",
+        aggregation_count: aggCountResult.total
       })
     }
     
@@ -160,7 +175,9 @@ export async function GET(req: Request) {
         data: paged, 
         totalCount: results.length, 
         page, 
-        pageSize 
+        pageSize,
+        aggregation_state: "fallback_no_datetime",
+        aggregation_count: aggCountResult.total
       })
     }
     
@@ -209,7 +226,9 @@ export async function GET(req: Request) {
       data: paged, 
       totalCount: countResult.total, 
       page, 
-      pageSize 
+      pageSize,
+      aggregation_state: "fallback_insufficient_data",
+      aggregation_count: aggCountResult.total
     })
   }
   // Aggregation: 15min-Alarme (optimiert mit SQL-Level-Filtering)

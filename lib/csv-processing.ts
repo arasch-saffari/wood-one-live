@@ -361,6 +361,18 @@ export async function processAllCSVFiles(): Promise<number> {
       console.error(`❌ [CSV Processing] Error checking database:`, dbError)
     }
     
+    // Trigger 15-minute aggregation after successful CSV processing
+    if (totalInserted > 0) {
+      try {
+        console.log('🔄 Triggering 15-minute aggregation after CSV import...')
+        const { trigger15MinAggregation } = await import('./db')
+        trigger15MinAggregation()
+        console.log('✅ Aggregation triggered successfully')
+      } catch (aggError) {
+        console.error('❌ Failed to trigger aggregation after CSV import:', aggError)
+      }
+    }
+    
     return totalInserted
   } finally {
     // Timeout löschen und SSE-Schutz deaktivieren

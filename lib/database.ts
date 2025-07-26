@@ -42,6 +42,7 @@ try {
     db.pragma('cache_size = 50000'); // ca. 50MB
     db.pragma('temp_store = MEMORY');
     db.pragma('synchronous = NORMAL');
+    db.pragma('busy_timeout = 5000'); // 5 second timeout for database locked errors
     
     logger.info('SQLite performance pragmas applied successfully');
   } catch (pragmaError) {

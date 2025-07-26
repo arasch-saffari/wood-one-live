@@ -20,6 +20,7 @@ export interface TableDataOptions {
   searchQuery?: string
   showOnlyAlarms?: boolean
   pollInterval?: number
+  aggregate?: string // Add aggregate parameter support
 }
 
 export interface TableDataResult {
@@ -42,7 +43,8 @@ export function useTableData(options: TableDataOptions = {}): TableDataResult {
     dateFilter,
     searchQuery,
     showOnlyAlarms = false,
-    pollInterval = 60000 // 1 Minute Standard
+    pollInterval = 60000, // 1 Minute Standard
+    aggregate
   } = options
 
   const [data, setData] = useState<TableDataPoint[]>([])
@@ -68,7 +70,8 @@ export function useTableData(options: TableDataOptions = {}): TableDataResult {
         ...(station && station !== '__all__' && { station }),
         ...(dateFilter && { dateFilter }),
         ...(searchQuery && { searchQuery }),
-        ...(showOnlyAlarms && { showOnlyAlarms: 'true' })
+        ...(showOnlyAlarms && { showOnlyAlarms: 'true' }),
+        ...(aggregate && { aggregate })
       })
 
       const response = await fetch(`/api/table-data?${params}`, {
@@ -104,7 +107,7 @@ export function useTableData(options: TableDataOptions = {}): TableDataResult {
   // Effect für initiales Laden und bei Änderungen
   useEffect(() => {
     fetchData()
-  }, [page, pageSize, sortBy, sortOrder, station, dateFilter, searchQuery, showOnlyAlarms])
+  }, [page, pageSize, sortBy, sortOrder, station, dateFilter, searchQuery, showOnlyAlarms, aggregate])
 
   // Polling-Effect
   useEffect(() => {
