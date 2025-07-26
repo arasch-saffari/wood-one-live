@@ -751,3 +751,55 @@ cron.schedule('30 3 * * *', async () => {
 // })
 
 export default db 
+
+// Manual database initialization to ensure tables are created
+console.log('🔧 Initializing database tables...')
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS measurements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      station TEXT NOT NULL,
+      time TEXT NOT NULL,
+      las REAL NOT NULL,
+      source_file TEXT,
+      datetime DATETIME,
+      all_csv_fields TEXT,
+      UNIQUE(station, datetime)
+    );
+    CREATE TABLE IF NOT EXISTS weather (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      station TEXT NOT NULL,
+      time TEXT NOT NULL,
+      windSpeed REAL,
+      windDir TEXT,
+      relHumidity REAL,
+      temperature REAL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(station, time)
+    );
+    CREATE TABLE IF NOT EXISTS thresholds (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      station TEXT NOT NULL,
+      from_time TEXT NOT NULL,
+      to_time TEXT NOT NULL,
+      warning REAL NOT NULL,
+      alarm REAL NOT NULL,
+      alarm_threshold REAL,
+      las REAL,
+      laf REAL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(station, from_time, to_time)
+    );
+    CREATE TABLE IF NOT EXISTS measurements_15min_agg (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      station TEXT NOT NULL,
+      bucket DATETIME NOT NULL,
+      avgLas REAL NOT NULL,
+      UNIQUE(station, bucket)
+    );
+  `)
+  console.log('✅ Database tables initialized successfully')
+} catch (error) {
+  console.error('❌ Database initialization failed:', error)
+} 

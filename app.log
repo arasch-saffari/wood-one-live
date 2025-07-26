@@ -1,0 +1,370 @@
+
+> my-v0-project@0.1.0 dev /Users/araschsaffari/code/cursor/wood-one-live
+> next dev
+
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.178.23:3000
+
+ ✓ Starting...
+ ✓ Ready in 1551ms
+ ○ Compiling /api/updates ...
+ ✓ Compiled /api/updates in 1087ms (531 modules)
+{"level":"info","time":"2025-07-26T00:20:01.290Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+✅ Event manager registered for SIGINT/SIGTERM
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+{"level":"info","time":"2025-07-26T00:20:01.314Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+{"level":"info","time":"2025-07-26T00:20:01.318Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:20:01.382Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T00:20:01.383Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:20:01.385Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:20:01.385Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ ○ Compiling /api/station-data ...
+ ✓ Compiled /api/station-data in 571ms (533 modules)
+{"level":"info","time":"2025-07-26T00:20:02.810Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+[DEBUG] API station-data called with station: techno, page: 1, pageSize: 10
+[DEBUG] getMeasurementsForStation returned: { totalCount: 0, dataLength: 0, page: 1, pageSize: 10 }
+[DEBUG] Final result length: 0
+[API station-data] Station: techno, Page: 1/0, Rows: 0/0
+ GET /api/station-data?station=techno&page=1&pageSize=10 200 in 668ms
+{"level":"info","time":"2025-07-26T00:20:02.810Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:20:02.832Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+ ✓ Compiled /api/weather in 238ms (539 modules)
+{"level":"info","time":"2025-07-26T00:20:17.295Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 335ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 336ms
+ GET /api/weather?station=global&time=now 200 in 347ms
+{"level":"info","time":"2025-07-26T00:20:17.296Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:20:17.317Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ ✓ Compiled /api/csv-watcher-status in 391ms (543 modules)
+{"level":"info","time":"2025-07-26T00:20:17.772Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 454ms
+{"level":"info","time":"2025-07-26T00:20:17.773Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:20:17.784Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+{"level":"info","time":"2025-07-26T00:20:17.804Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/admin/health 200 in 463ms
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/csv-watcher-status 200 in 462ms
+{"level":"info","time":"2025-07-26T00:20:17.805Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:20:17.806Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:20:17.806Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+{"level":"info","time":"2025-07-26T00:20:17.813Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T00:20:17.814Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:20:17.814Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:20:17.814Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+[DEBUG] API station-data called with station: techno, page: 1, pageSize: 10
+[DEBUG] getMeasurementsForStation returned: { totalCount: 2, dataLength: 2, page: 1, pageSize: 10 }
+[DEBUG] Final result length: 2
+[API station-data] Station: techno, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=techno&page=1&pageSize=10 200 in 9ms
+[DEBUG] API station-data called with station: band, page: 1, pageSize: 10
+[DEBUG] getMeasurementsForStation returned: { totalCount: 2, dataLength: 2, page: 1, pageSize: 10 }
+[DEBUG] Final result length: 2
+[API station-data] Station: band, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=band&page=1&pageSize=10 200 in 6ms
+ ✓ Compiled in 129ms (269 modules)
+{"level":"info","time":"2025-07-26T00:20:53.036Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+🔧 Initializing database tables...
+✅ Database tables initialized successfully
+[API station-data] Station: techno, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10 200 in 98ms
+{"level":"info","time":"2025-07-26T00:20:53.037Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"SQLite performance pragmas applied successfully"}
+{"level":"info","time":"2025-07-26T00:20:53.063Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+[API station-data] Station: band, Page: 1/1, Rows: 2/2
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=10 200 in 5ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 19ms
+{"level":"info","time":"2025-07-26T00:21:17.084Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/admin/health 200 in 34ms
+{"level":"info","time":"2025-07-26T00:21:17.084Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:21:17.085Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:21:17.085Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
+ GET /api/weather?station=global&time=now 200 in 49ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 37ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+{"level":"info","time":"2025-07-26T00:21:17.123Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte created_at existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte source_file existiert bereits, Migration wird übersprungen.
+Spalten in weather: [
+  'id',
+  'station',
+  'time',
+  'windSpeed',
+  'windDir',
+  'relHumidity',
+  'temperature',
+  'created_at'
+]
+Spalte temperature existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte datetime existiert bereits, Migration wird übersprungen.
+Spalten in measurements: [
+  'id',
+  'station',
+  'time',
+  'las',
+  'source_file',
+  'datetime',
+  'all_csv_fields'
+]
+Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
+ GET /api/csv-watcher-status 200 in 18ms
+{"level":"info","time":"2025-07-26T00:21:17.123Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T00:21:17.124Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"info","time":"2025-07-26T00:21:17.124Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Application initialized successfully"}
