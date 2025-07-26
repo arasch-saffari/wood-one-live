@@ -278,6 +278,10 @@ export async function GET(req: Request) {
   }
   // Direkte SQL-Level-Pagination ohne Cache für bessere Performance
   try {
+    // Debug-Logging für Deployment
+    console.log(`🔍 [API station-data] Request: station=${station}, interval=${interval}, page=${page}, pageSize=${pageSize}, aggregate=${aggregate}`)
+    console.log(`🔍 [API station-data] Environment: NODE_ENV=${process.env.NODE_ENV}, Platform=${process.platform}`)
+    
     // console.log(`[DEBUG] API station-data called with station: ${station}, page: ${page}, pageSize: ${pageSize}`) // Added and removed
     
     const paginatedResult = getMeasurementsForStation(station, {
@@ -304,6 +308,9 @@ export async function GET(req: Request) {
     }));
     
     // console.log(`[DEBUG] Final result length: ${result.length}`) // Added and removed
+    
+    // Debug-Logging für Deployment
+    console.log(`🔍 [API station-data] Result: ${result.length} rows for ${station}, totalCount: ${paginatedResult.totalCount}`)
     
     if (process.env.NODE_ENV === 'development') {
       console.log(`[API station-data] Station: ${station}, Page: ${page}/${paginatedResult.totalPages}, Rows: ${result.length}/${paginatedResult.totalCount}`)

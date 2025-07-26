@@ -238,6 +238,8 @@ export async function processAllCSVFiles(): Promise<number> {
   // Debug-Logging für Deployment
   console.log(`🔍 [CSV Processing] Database path: ${process.env.DATABASE_PATH || './data.sqlite'}`)
   console.log(`🔍 [CSV Processing] Current working directory: ${process.cwd()}`)
+  console.log(`🔍 [CSV Processing] NODE_ENV: ${process.env.NODE_ENV}`)
+  console.log(`🔍 [CSV Processing] Platform: ${process.platform}`)
   
   // SSE-Schutz aktivieren
   setCSVProcessingState(true)
@@ -258,9 +260,23 @@ export async function processAllCSVFiles(): Promise<number> {
       const csvFiles = fs.readdirSync(csvDir).filter(file => file.endsWith('.csv'))
       console.log(`📊 Gefunden: ${csvFiles.length} CSV-Dateien in ${station}`)
       
+      // Debug: Zeige die ersten paar CSV-Dateien
+      if (csvFiles.length > 0) {
+        console.log(`📄 Erste CSV-Dateien in ${station}:`, csvFiles.slice(0, 3))
+      }
+      
       for (const csvFile of csvFiles) {
         const csvPath = path.join(csvDir, csvFile)
         console.log(`📄 Processing: ${csvPath}`)
+        
+        // Debug: Prüfe Dateigröße
+        try {
+          const stats = fs.statSync(csvPath)
+          console.log(`📊 Dateigröße: ${stats.size} bytes`)
+        } catch (err) {
+          console.error(`❌ Fehler beim Lesen der Datei: ${csvPath}`, err)
+        }
+        
         const insertedCount = await processCSVFile(station, csvPath)
         totalInserted += insertedCount
         console.log(`📊 ${station}: ${csvFile} - ${insertedCount} rows inserted`)
@@ -274,6 +290,12 @@ export async function processAllCSVFiles(): Promise<number> {
       const db = (await import('./database')).default
       const result = db.prepare('SELECT station, COUNT(*) as count FROM measurements GROUP BY station').all()
       console.log(`🔍 [CSV Processing] Database contents after import:`, result)
+      
+      // Debug: Prüfe spezifisch techno und band
+      const technoCount = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station = ?').get('techno') as { count: number } | undefined
+      const bandCount = db.prepare('SELECT COUNT(*) as count FROM measurements WHERE station = ?').get('band') as { count: number } | undefined
+      console.log(`🔍 [CSV Processing] Techno count: ${technoCount?.count}, Band count: ${bandCount?.count}`)
+      
     } catch (dbError) {
       console.error(`❌ [CSV Processing] Error checking database:`, dbError)
     }

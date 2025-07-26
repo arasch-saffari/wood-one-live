@@ -1464,3 +1464,521 @@ Spalte all_csv_fields existiert bereits, Migration wird übersprungen.
 📡 SSE Update sent: 0 success, 0 errors, updates: 0
  GET /api/station-data?station=techno&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 10ms
  GET /api/station-data?station=band&interval=24h&page=1&pageSize=10&aggregate=15min 200 in 9ms
+ GET /api/weather?station=global&time=now 200 in 48ms
+ GET /api/csv-watcher-status 200 in 51ms
+ GET /api/admin/health 200 in 59ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 24ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 23ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 6ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 7ms
+ GET /api/weather?station=global&time=now 200 in 10ms
+ GET /api/admin/health 200 in 12ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/csv-watcher-status 200 in 4ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/weather?station=global&time=now 200 in 13ms
+ GET /api/admin/health 200 in 15ms
+ GET /api/csv-watcher-status 200 in 12ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 5ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/weather?station=global&time=now 200 in 8ms
+ GET /api/admin/health 200 in 12ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/csv-watcher-status 200 in 6ms
+[Backup] Backup erstellt in 1934ms: backup-2025-07-26_03-00.sqlite
+[Backup] Backup erstellt in 1937ms: backup-2025-07-26_03-00.sqlite
+[Backup] Backup erstellt in 1941ms: backup-2025-07-26_03-00.sqlite
+[Backup] Backup erstellt in 1957ms: backup-2025-07-26_03-00.sqlite
+[Backup] Backup erstellt in 2849ms: backup-2025-07-26_03-00.sqlite
+[Backup] Backup erstellt in 2848ms: backup-2025-07-26_03-00.sqlite
+[Backup] Backup erstellt in 2849ms: backup-2025-07-26_03-00.sqlite
+[Backup] Backup erstellt in 2859ms: backup-2025-07-26_03-00.sqlite
+[Backup] Backup erstellt in 3709ms: backup-2025-07-26_03-00.sqlite
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 16ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 16ms
+ GET /api/weather?station=global&time=now 200 in 9ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/admin/health 200 in 7ms
+ GET /api/csv-watcher-status 200 in 11ms
+ GET /api/weather?station=global&time=now 200 in 8ms
+ GET /api/admin/health 200 in 11ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/csv-watcher-status 200 in 4ms
+ GET /api/weather?station=global&time=now 200 in 26ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/admin/health 200 in 10ms
+ GET /api/csv-watcher-status 200 in 15ms
+ GET /api/weather?station=global&time=now 200 in 11ms
+ GET /api/admin/health 200 in 16ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 19ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/csv-watcher-status 200 in 10ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 6ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/weather?station=global&time=now 200 in 14ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/admin/health 200 in 8ms
+ GET /api/csv-watcher-status 200 in 11ms
+ GET /api/weather?station=global&time=now 200 in 19ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/admin/health 200 in 26ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/csv-watcher-status 200 in 5ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/weather?station=global&time=now 200 in 10ms
+ GET /api/csv-watcher-status 200 in 16ms
+ GET /api/admin/health 200 in 18ms
+ GET /api/weather?station=global&time=now 200 in 10ms
+ GET /api/admin/health 200 in 14ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/csv-watcher-status 200 in 6ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 30ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 23ms
+ GET /api/weather?station=global&time=now 200 in 27ms
+ GET /api/admin/health 200 in 12ms
+ GET /api/csv-watcher-status 200 in 18ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 18ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 6ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 3ms
+ GET /api/weather?station=global&time=now 200 in 17ms
+ GET /api/admin/health 200 in 19ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 21ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/csv-watcher-status 200 in 7ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 29ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 22ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 6ms
+ GET /api/weather?station=global&time=now 200 in 8ms
+ GET /api/admin/health 200 in 11ms
+ GET /api/csv-watcher-status 200 in 15ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 4ms
+ GET /api/weather?station=global&time=now 200 in 7ms
+ GET /api/admin/health 200 in 10ms
+ GET /api/csv-watcher-status 200 in 13ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/weather?station=global&time=now 200 in 14ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/admin/health 200 in 5ms
+ GET /api/csv-watcher-status 200 in 9ms
+ GET /api/weather?station=global&time=now 200 in 19ms
+ GET /api/admin/health 200 in 24ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 29ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 16ms
+ GET /api/csv-watcher-status 200 in 8ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 6ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/weather?station=global&time=now 200 in 13ms
+ GET /api/admin/health 200 in 12ms
+ GET /api/csv-watcher-status 200 in 13ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 18ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/weather?station=global&time=now 200 in 8ms
+ GET /api/admin/health 200 in 12ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/csv-watcher-status 200 in 6ms
+ GET /api/weather?station=global&time=now 200 in 6ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/admin/health 200 in 6ms
+ GET /api/csv-watcher-status 200 in 8ms
+ GET /api/weather?station=global&time=now 200 in 8ms
+ GET /api/admin/health 200 in 12ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/csv-watcher-status 200 in 5ms
+ GET /api/weather?station=global&time=now 200 in 24ms
+ GET /api/admin/health 200 in 26ms
+ GET /api/csv-watcher-status 200 in 31ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 17ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 16ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 15ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 14ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 6ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 9ms
+ GET /api/weather?station=global&time=now 200 in 8ms
+ GET /api/admin/health 200 in 12ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 13ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/csv-watcher-status 200 in 5ms
+ GET /api/weather?station=global&time=now 200 in 7ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/admin/health 200 in 6ms
+ GET /api/csv-watcher-status 200 in 10ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/weather?station=global&time=now 200 in 9ms
+ GET /api/admin/health 200 in 12ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/csv-watcher-status 200 in 5ms
+ GET /api/weather?station=global&time=now 200 in 8ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 12ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 7ms
+ GET /api/admin/health 200 in 6ms
+ GET /api/csv-watcher-status 200 in 9ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/weather?station=global&time=now 200 in 12ms
+ GET /api/admin/health 200 in 11ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/csv-watcher-status 200 in 8ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 9ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 10ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 6ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=1&aggregate=15min 200 in 7ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 10ms
+ GET /api/weather?station=global&time=now 200 in 11ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 6ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/admin/health 200 in 9ms
+ GET /api/csv-watcher-status 200 in 13ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 19ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 23ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 23ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 9ms
+ GET /api/weather?station=global&time=now 200 in 7ms
+ GET /api/admin/health 200 in 11ms
+ GET /api/csv-watcher-status 200 in 13ms
+ GET /api/weather?station=global&time=now 200 in 7ms
+ GET /api/station-data?station=ort&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=band&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 11ms
+ GET /api/station-data?station=techno&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/station-data?station=heuballern&interval=24h&page=1&pageSize=50&aggregate=15min 200 in 8ms
+ GET /api/admin/health 200 in 5ms
+ GET /api/csv-watcher-status 200 in 8ms
+ GET /api/updates 200 in 4000152ms
+ GET /api/updates 200 in 4000210ms
+ GET /api/updates 200 in 4000170ms
+ ○ Compiling /api/updates ...
+ ✓ Compiled /api/updates in 1108ms (257 modules)
+{"level":"info","time":"2025-07-26T01:27:28.702Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+ ⨯ SqliteError: disk I/O error
+    at eval (lib/db.ts:54:3)
+    at <unknown> (rsc)/./lib/db.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:99:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./lib/app-init.ts:12:61)
+    at <unknown> (rsc)/./lib/app-init.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:44:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./app/api/updates/route.ts:8:71)
+    at <unknown> (rsc)/./app/api/updates/route.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:33:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_exec__ (.next/server/app/api/updates/route.js:536:39)
+    at <unknown> (.next/server/app/api/updates/route.js:537:784)
+    at __webpack_require__.X (.next/server/webpack-runtime.js:186:21)
+    at <unknown> (.next/server/app/api/updates/route.js:537:47)
+    at Object.<anonymous> (.next/server/app/api/updates/route.js:540:3)
+  52 | // weather: id, station, time, windSpeed, windDir, relHumidity, created_at
+  53 |
+> 54 | db.exec(`
+     |   ^
+  55 |   CREATE TABLE IF NOT EXISTS measurements (
+  56 |     id INTEGER PRIMARY KEY AUTOINCREMENT,
+  57 |     station TEXT NOT NULL, {
+  code: 'SQLITE_IOERR_SHORT_READ',
+  page: '/api/updates'
+}
+ ⨯ SqliteError: disk I/O error
+    at eval (lib/db.ts:54:3)
+    at <unknown> (rsc)/./lib/db.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:99:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./lib/app-init.ts:12:61)
+    at <unknown> (rsc)/./lib/app-init.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:44:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./app/api/updates/route.ts:8:71)
+    at <unknown> (rsc)/./app/api/updates/route.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:33:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_exec__ (.next/server/app/api/updates/route.js:536:39)
+    at <unknown> (.next/server/app/api/updates/route.js:537:784)
+    at __webpack_require__.X (.next/server/webpack-runtime.js:186:21)
+    at <unknown> (.next/server/app/api/updates/route.js:537:47)
+    at Object.<anonymous> (.next/server/app/api/updates/route.js:540:3)
+  52 | // weather: id, station, time, windSpeed, windDir, relHumidity, created_at
+  53 |
+> 54 | db.exec(`
+     |   ^
+  55 |   CREATE TABLE IF NOT EXISTS measurements (
+  56 |     id INTEGER PRIMARY KEY AUTOINCREMENT,
+  57 |     station TEXT NOT NULL, {
+  code: 'SQLITE_IOERR_SHORT_READ',
+  page: '/api/updates'
+}
+ ⨯ SqliteError: disk I/O error
+    at eval (lib/db.ts:54:3)
+    at <unknown> (rsc)/./lib/db.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:99:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./lib/app-init.ts:12:61)
+    at <unknown> (rsc)/./lib/app-init.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:44:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./app/api/updates/route.ts:8:71)
+    at <unknown> (rsc)/./app/api/updates/route.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/updates/route.js:33:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_exec__ (.next/server/app/api/updates/route.js:536:39)
+    at <unknown> (.next/server/app/api/updates/route.js:537:784)
+    at __webpack_require__.X (.next/server/webpack-runtime.js:186:21)
+    at <unknown> (.next/server/app/api/updates/route.js:537:47)
+    at Object.<anonymous> (.next/server/app/api/updates/route.js:540:3)
+  52 | // weather: id, station, time, windSpeed, windDir, relHumidity, created_at
+  53 |
+> 54 | db.exec(`
+     |   ^
+  55 |   CREATE TABLE IF NOT EXISTS measurements (
+  56 |     id INTEGER PRIMARY KEY AUTOINCREMENT,
+  57 |     station TEXT NOT NULL, {
+  code: 'SQLITE_IOERR_SHORT_READ',
+  page: '/api/updates'
+}
+{"level":"info","time":"2025-07-26T01:27:28.736Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+{"level":"warn","time":"2025-07-26T01:27:28.742Z","pid":55985,"hostname":"MacBookPro.fritz.box","error":{"code":"SQLITE_IOERR_SHORT_READ"},"msg":"Could not set SQLite pragmas"}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1404ms (953 modules)
+ GET /api/updates 500 in 4593ms
+ GET /api/updates 500 in 4593ms
+ GET /api/updates 500 in 4609ms
+ ✓ Compiled /api/admin/health in 99ms (440 modules)
+ ✓ Compiled (448 modules)
+{"level":"info","time":"2025-07-26T01:27:52.574Z","pid":55985,"hostname":"MacBookPro.fritz.box","dbPath":"./data.sqlite","msg":"Database connection established"}
+✅ Event manager registered for SIGINT/SIGTERM
+ ⨯ SqliteError: disk I/O error
+    at eval (lib/db.ts:54:3)
+    at <unknown> (rsc)/./lib/db.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/station-data/route.js:110:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./app/api/station-data/route.ts:6:65)
+    at <unknown> (rsc)/./app/api/station-data/route.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/station-data/route.js:33:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_exec__ (.next/server/app/api/station-data/route.js:547:39)
+    at <unknown> (.next/server/app/api/station-data/route.js:548:784)
+    at __webpack_require__.X (.next/server/webpack-runtime.js:186:21)
+    at <unknown> (.next/server/app/api/station-data/route.js:548:47)
+    at Object.<anonymous> (.next/server/app/api/station-data/route.js:551:3)
+  52 | // weather: id, station, time, windSpeed, windDir, relHumidity, created_at
+  53 |
+> 54 | db.exec(`
+     |   ^
+  55 |   CREATE TABLE IF NOT EXISTS measurements (
+  56 |     id INTEGER PRIMARY KEY AUTOINCREMENT,
+  57 |     station TEXT NOT NULL, {
+  code: 'SQLITE_IOERR_SHORT_READ',
+  page: '/api/station-data'
+}
+ ⨯ SqliteError: disk I/O error
+    at eval (lib/db.ts:54:3)
+    at <unknown> (rsc)/./lib/db.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/station-data/route.js:110:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./app/api/station-data/route.ts:6:65)
+    at <unknown> (rsc)/./app/api/station-data/route.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/station-data/route.js:33:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_exec__ (.next/server/app/api/station-data/route.js:547:39)
+    at <unknown> (.next/server/app/api/station-data/route.js:548:784)
+    at __webpack_require__.X (.next/server/webpack-runtime.js:186:21)
+    at <unknown> (.next/server/app/api/station-data/route.js:548:47)
+    at Object.<anonymous> (.next/server/app/api/station-data/route.js:551:3)
+  52 | // weather: id, station, time, windSpeed, windDir, relHumidity, created_at
+  53 |
+> 54 | db.exec(`
+     |   ^
+  55 |   CREATE TABLE IF NOT EXISTS measurements (
+  56 |     id INTEGER PRIMARY KEY AUTOINCREMENT,
+  57 |     station TEXT NOT NULL, {
+  code: 'SQLITE_IOERR_SHORT_READ',
+  page: '/api/station-data'
+}
+ ⨯ SqliteError: disk I/O error
+    at eval (lib/db.ts:54:3)
+    at <unknown> (rsc)/./lib/db.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/station-data/route.js:110:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./app/api/station-data/route.ts:6:65)
+    at <unknown> (rsc)/./app/api/station-data/route.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/station-data/route.js:33:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_exec__ (.next/server/app/api/station-data/route.js:547:39)
+    at <unknown> (.next/server/app/api/station-data/route.js:548:784)
+    at __webpack_require__.X (.next/server/webpack-runtime.js:186:21)
+    at <unknown> (.next/server/app/api/station-data/route.js:548:47)
+    at Object.<anonymous> (.next/server/app/api/station-data/route.js:551:3)
+  52 | // weather: id, station, time, windSpeed, windDir, relHumidity, created_at
+  53 |
+> 54 | db.exec(`
+     |   ^
+  55 |   CREATE TABLE IF NOT EXISTS measurements (
+  56 |     id INTEGER PRIMARY KEY AUTOINCREMENT,
+  57 |     station TEXT NOT NULL, {
+  code: 'SQLITE_IOERR_SHORT_READ',
+  page: '/api/station-data'
+}
+ ⨯ SqliteError: disk I/O error
+    at eval (lib/db.ts:54:3)
+    at <unknown> (rsc)/./lib/db.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/station-data/route.js:110:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at eval (webpack-internal:///(rsc)/./app/api/station-data/route.ts:6:65)
+    at <unknown> (rsc)/./app/api/station-data/route.ts (/Users/araschsaffari/code/cursor/wood-one-live/.next/server/app/api/station-data/route.js:33:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at __webpack_exec__ (.next/server/app/api/station-data/route.js:547:39)
+    at <unknown> (.next/server/app/api/station-data/route.js:548:784)
+    at __webpack_require__.X (.next/server/webpack-runtime.js:186:21)
+    at <unknown> (.next/server/app/api/station-data/route.js:548:47)
+    at Object.<anonymous> (.next/server/app/api/station-data/route.js:551:3)
+  52 | // weather: id, station, time, windSpeed, windDir, relHumidity, created_at
+  53 |
+> 54 | db.exec(`
+     |   ^
+  55 |   CREATE TABLE IF NOT EXISTS measurements (
+  56 |     id INTEGER PRIMARY KEY AUTOINCREMENT,
+  57 |     station TEXT NOT NULL, {
+  code: 'SQLITE_IOERR_SHORT_READ',
+  page: '/api/station-data'
+}
+ GET /api/weather?station=global&time=now 500 in 416ms
+🧹 Cleared old logs for fresh deployment
+🧹 Cleared 1 log files for fresh deployment
+❌ Migration check failed: SqliteError: disk I/O error
+    at runMigrations (lib/db.ts:193:23)
+    at initializeApplication (lib/app-init.ts:54:17)
+    at GET (app/api/admin/health/route.ts:17:27)
+  191 |   // Migration 1: Add created_at column to weather table
+  192 |   try {
+> 193 |     const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
+      |                       ^
+  194 |     console.log('Spalten in weather:', columns.map(c => c.name))
+  195 |     const hasCreatedAt = columns.some(col => col.name === 'created_at')
+  196 |     if (!hasCreatedAt) { {
+  code: 'SQLITE_IOERR_SHORT_READ'
+}
+❌ Migration check failed: SqliteError: disk I/O error
+    at runMigrations (lib/db.ts:216:23)
+    at initializeApplication (lib/app-init.ts:54:17)
+    at GET (app/api/admin/health/route.ts:17:27)
+  214 |   // Migration 2: Add source_file column to measurements table
+  215 |   try {
+> 216 |     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+      |                       ^
+  217 |     console.log('Spalten in measurements:', columns.map(c => c.name))
+  218 |     const hasSourceFile = columns.some(col => col.name === 'source_file')
+  219 |     if (!hasSourceFile) { {
+  code: 'SQLITE_IOERR_SHORT_READ'
+}
+❌ Migration check failed: SqliteError: disk I/O error
+    at runMigrations (lib/db.ts:237:23)
+    at initializeApplication (lib/app-init.ts:54:17)
+    at GET (app/api/admin/health/route.ts:17:27)
+  235 |   // Migration 3: Add temperature column to weather table
+  236 |   try {
+> 237 |     const columns = db.prepare("PRAGMA table_info(weather)").all() as Array<{ name: string }>
+      |                       ^
+  238 |     console.log('Spalten in weather:', columns.map(c => c.name))
+  239 |     const hasTemperature = columns.some(col => col.name === 'temperature')
+  240 |     if (!hasTemperature) { {
+  code: 'SQLITE_IOERR_SHORT_READ'
+}
+❌ Migration check failed: SqliteError: disk I/O error
+    at runMigrations (lib/db.ts:258:23)
+    at initializeApplication (lib/app-init.ts:54:17)
+    at GET (app/api/admin/health/route.ts:17:27)
+  256 |   // Migration 4: Add datetime column to measurements table
+  257 |   try {
+> 258 |     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+      |                       ^
+  259 |     console.log('Spalten in measurements:', columns.map(c => c.name))
+  260 |     const hasDatetime = columns.some(col => col.name === 'datetime')
+  261 |     if (!hasDatetime) { {
+  code: 'SQLITE_IOERR_SHORT_READ'
+}
+❌ Migration check failed: SqliteError: disk I/O error
+    at runMigrations (lib/db.ts:282:23)
+    at initializeApplication (lib/app-init.ts:54:17)
+    at GET (app/api/admin/health/route.ts:17:27)
+  280 |   // Migration 5: Add all_csv_fields column to measurements table
+  281 |   try {
+> 282 |     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
+      |                       ^
+  283 |     console.log('Spalten in measurements:', columns.map(c => c.name))
+  284 |     const hasAllCsvFields = columns.some(col => col.name === 'all_csv_fields')
+  285 |     if (!hasAllCsvFields) { {
+  code: 'SQLITE_IOERR_SHORT_READ'
+}
+❌ Migration for alarm_threshold column failed: disk I/O error
+{"level":"warn","time":"2025-07-26T01:27:52.574Z","pid":55985,"hostname":"MacBookPro.fritz.box","error":{"code":"SQLITE_IOERR_SHORT_READ"},"msg":"Could not set SQLite pragmas"}
+{"level":"info","time":"2025-07-26T01:27:52.602Z","pid":55985,"hostname":"MacBookPro.fritz.box","config":{"database":{"path":"[REDACTED]"},"server":{"port":3000,"nodeEnv":"development"},"cors":{"origin":"*"},"logging":{"level":"info"},"rateLimit":{"windowMs":900000,"maxRequests":100},"csv":{"uploadDir":"./uploads","watchDir":"./csv-data"},"cache":{"ttlSeconds":300},"thresholds":{"windSpeed":25,"temperature":30}},"msg":"Configuration loaded"}
+{"level":"info","time":"2025-07-26T01:27:52.722Z","pid":55985,"hostname":"MacBookPro.fritz.box","nodeEnv":"development","port":3000,"dbPath":"./data.sqlite","logLevel":"info","msg":"Application initializing..."}
+{"level":"info","time":"2025-07-26T01:27:52.722Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Running database migrations..."}
+{"level":"info","time":"2025-07-26T01:27:52.904Z","pid":55985,"hostname":"MacBookPro.fritz.box","msg":"Database migrations completed successfully"}
+{"level":"error","time":"2025-07-26T01:27:52.905Z","pid":55985,"hostname":"MacBookPro.fritz.box","error":{"code":"SQLITE_IOERR_SHORT_READ"},"msg":"Database health check failed"}
+{"level":"fatal","time":"2025-07-26T01:27:52.905Z","pid":55985,"hostname":"MacBookPro.fritz.box","error":"disk I/O error","msg":"Database health check failed during startup"}
+[?25h
