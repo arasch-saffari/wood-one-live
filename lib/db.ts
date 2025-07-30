@@ -463,17 +463,19 @@ export function update15MinAggregates() {
           avgLas REAL NOT NULL,
           PRIMARY KEY (station, bucket)
         );
+        CREATE INDEX IF NOT EXISTS idx_measurements_15min_agg_station_bucket 
+        ON measurements_15min_agg(station, bucket);
       `)
     }
     
-    // Führe die Aggregation durch
+    // Führe die Aggregation durch - erweitere auf 14 Tage für bessere Datenverfügbarkeit
     const result = db.exec(`
       INSERT OR REPLACE INTO measurements_15min_agg (station, bucket, avgLas)
       SELECT station,
              strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes') as bucket,
              AVG(las) as avgLas
       FROM measurements
-      WHERE datetime >= datetime('now', '-7 days')
+      WHERE datetime >= datetime('now', '-14 days')
       GROUP BY station, bucket;
     `)
     
@@ -490,7 +492,17 @@ export function update15MinAggregates() {
     
     console.log('📊 Aggregation statistics:', stats)
     
-    return { success: true, duration, stats }
+    // Zusätzliche Validierung: Prüfe ob genügend Daten vorhanden sind
+    const totalAggregates = db.prepare(`
+      SELECT COUNT(*) as total FROM measurements_15min_agg 
+      WHERE bucket >= datetime('now', '-24 hours')
+    `).get() as { total: number }
+    
+    if (totalAggregates.total < 20) {
+      console.warn(`⚠️ Only ${totalAggregates.total} 15-minute aggregates in last 24h - aggregation may need more frequent runs`)
+    }
+    
+    return { success: true, duration, stats, totalAggregates: totalAggregates.total }
   } catch (error) {
     const duration = Date.now() - startTime
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -519,7 +531,7 @@ export function trigger15MinAggregation(immediate = false) {
     aggregationPending = false
     update15MinAggregates()
   } else {
-    // Debounced execution (5 seconds)
+    // Reduziere Debounce-Zeit von 5 auf 2 Sekunden für schnellere Reaktion
     aggregationPending = true
     if (aggregationTimeout) {
       clearTimeout(aggregationTimeout)
@@ -527,7 +539,7 @@ export function trigger15MinAggregation(immediate = false) {
     aggregationTimeout = setTimeout(() => {
       aggregationPending = false
       update15MinAggregates()
-    }, 5000)
+    }, 2000) // Reduziert von 5000ms auf 2000ms
   }
 }
 

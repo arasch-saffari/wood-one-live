@@ -110,8 +110,11 @@ export async function GET(req: Request) {
     
     const aggCountResult = aggCountStmt.get(station) as { total: number }
     
-    // Wenn aggregierte Daten vorhanden sind UND genug Einträge (mindestens 40), verwende sie
-    if (aggCountResult.total > 40) {
+    // Reduziere Schwellenwert von 40 auf 20 für bessere Verfügbarkeit
+    const MIN_AGGREGATE_ENTRIES = 20
+    
+    // Wenn aggregierte Daten vorhanden sind UND genug Einträge, verwende sie
+    if (aggCountResult.total >= MIN_AGGREGATE_ENTRIES) {
       console.log(`[API station-data] Verwende 15min aggregierte Daten für ${station}: ${aggCountResult.total} Einträge`)
       
       const stmt = db.prepare(`
@@ -143,31 +146,34 @@ export async function GET(req: Request) {
     }
     
     // Wenn keine oder zu wenige aggregierten Daten vorhanden sind, verwende direkte Messwerte
-    console.log(`[API station-data] Keine ausreichenden aggregierten Daten für ${station} (${aggCountResult.total} Einträge), verwende direkte Messwerte`)
+    // ABER: Gruppiere sie in 15-Minuten-Intervallen
+    console.log(`[API station-data] Keine ausreichenden aggregierten Daten für ${station} (${aggCountResult.total} Einträge), verwende 15min gruppierte Rohdaten`)
     
     // Prüfe ob datetime Spalte existiert
     const columns = db.prepare("PRAGMA table_info(measurements)").all() as Array<{ name: string }>
     const hasDatetime = columns.some(col => col.name === 'datetime')
     
     if (!hasDatetime) {
-      console.log(`[API station-data] Keine datetime Spalte für ${station}, verwende alle Daten`)
-      // Fallback: Verwende alle Daten ohne Zeitfilter
+      console.log(`[API station-data] Keine datetime Spalte für ${station}, verwende alle Daten in 15min Gruppen`)
+      // Fallback: Verwende alle Daten in 15-Minuten-Intervallen gruppiert
       const stmt = db.prepare(`
-        SELECT time, AVG(las) as avgLas
+        SELECT 
+          strftime('%Y-%m-%d %H:%M:00', time, '-' || (CAST(strftime('%M', time) AS INTEGER) % 15) || ' minutes') as bucket,
+          AVG(las) as avgLas
         FROM measurements
         WHERE station = ?
-        GROUP BY time
-        ORDER BY time ${sortOrder.toUpperCase()}
+        GROUP BY bucket
+        ORDER BY bucket ${sortOrder.toUpperCase()}
         LIMIT ? OFFSET ?
       `)
       
       const offset = (page - 1) * pageSize
-      const results = stmt.all(station, pageSize, offset) as Array<{ time: string, avgLas: number }>
+      const results = stmt.all(station, pageSize, offset) as Array<{ bucket: string, avgLas: number }>
       
       const paged = results.map(b => ({
-        time: b.time,
+        time: b.bucket.slice(11, 16),
         las: b.avgLas,
-        datetime: `${new Date().toISOString().slice(0, 10)} ${b.time}`
+        datetime: b.bucket
       }))
       
       apiLatencyEnd()
@@ -176,7 +182,7 @@ export async function GET(req: Request) {
         totalCount: results.length, 
         page, 
         pageSize,
-        aggregation_state: "fallback_no_datetime",
+        aggregation_state: "fallback_15min_grouped",
         aggregation_count: aggCountResult.total
       })
     }
@@ -184,7 +190,7 @@ export async function GET(req: Request) {
     // Prüfe zuerst 24h, dann 7d falls keine Daten vorhanden
     let timeFilter = "datetime('now', '-24 hours')"
     let countStmt = db.prepare(`
-      SELECT COUNT(DISTINCT strftime('%Y-%m-%d %H:%M:00', datetime)) as total
+      SELECT COUNT(DISTINCT strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes')) as total
       FROM measurements
       WHERE station = ? AND datetime >= ${timeFilter}
     `)
@@ -196,18 +202,21 @@ export async function GET(req: Request) {
       console.log(`[API station-data] Keine Daten in den letzten 24h für ${station}, verwende 7d`)
       timeFilter = "datetime('now', '-7 days')"
       countStmt = db.prepare(`
-        SELECT COUNT(DISTINCT strftime('%Y-%m-%d %H:%M:00', datetime)) as total
+        SELECT COUNT(DISTINCT strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes')) as total
         FROM measurements
         WHERE station = ? AND datetime >= ${timeFilter}
       `)
       countResult = countStmt.get(station) as { total: number }
     }
     
+    // WICHTIG: Gruppiere in 15-Minuten-Intervallen, nicht pro Minute
     const stmt = db.prepare(`
-      SELECT strftime('%Y-%m-%d %H:%M:00', datetime) as bucket, AVG(las) as avgLas
+      SELECT 
+        strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes') as bucket,
+        AVG(las) as avgLas
       FROM measurements
       WHERE station = ? AND datetime >= ${timeFilter}
-      GROUP BY strftime('%Y-%m-%d %H:%M:00', datetime)
+      GROUP BY strftime('%Y-%m-%d %H:%M:00', datetime, '-' || (CAST(strftime('%M', datetime) AS INTEGER) % 15) || ' minutes')
       ORDER BY bucket ${sortOrder.toUpperCase()}
       LIMIT ? OFFSET ?
     `)
@@ -227,7 +236,7 @@ export async function GET(req: Request) {
       totalCount: countResult.total, 
       page, 
       pageSize,
-      aggregation_state: "fallback_insufficient_data",
+      aggregation_state: "fallback_15min_grouped",
       aggregation_count: aggCountResult.total
     })
   }

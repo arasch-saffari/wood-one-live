@@ -12,64 +12,6 @@ import { KpiCard } from "@/components/KpiCard"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { GlobalLoader } from "@/components/GlobalLoader"
 
-// Fallback components for missing dependencies
-const FallbackIcon = ({ className }: { className?: string }) => (
-  <div className={className || 'w-4 h-4 bg-gray-300 rounded'} />
-);
-
-const FallbackBadge = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <span className={`px-2 py-1 rounded text-xs ${className || 'bg-gray-200 text-gray-800'}`}>
-    {children}
-  </span>
-);
-
-const FallbackCard = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={`border rounded-lg ${className || ''}`}>{children}</div>
-);
-
-const FallbackCardHeader = ({ children }: { children: React.ReactNode }) => (
-  <div className="p-4 pb-2">{children}</div>
-);
-
-const FallbackCardTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <h3 className={`font-semibold ${className || ''}`}>{children}</h3>
-);
-
-const FallbackCardContent = ({ children }: { children: React.ReactNode }) => (
-  <div className="p-4 pt-0">{children}</div>
-);
-
-const FallbackKpiCard = ({ children, icon, value, unit, label, color, ...props }: any) => (
-  <div className="p-4 border rounded bg-white">
-    <div className="flex items-center gap-2 mb-2">
-      {icon || <FallbackIcon />}
-      <span className="text-sm font-medium">{label}</span>
-    </div>
-    <div className="text-2xl font-bold">
-      {value} {unit && <span className="text-sm font-normal">{unit}</span>}
-    </div>
-    {children}
-  </div>
-);
-
-const FallbackChartPlayground = ({ data, title }: any) => (
-  <div className="p-8 border rounded bg-gray-50 text-center">
-    <p className="text-gray-600">Chart component not available</p>
-    <p className="text-sm text-gray-500 mt-2">
-      {data?.length || 0} data points available
-    </p>
-  </div>
-);
-
-const FallbackGlobalLoader = ({ text, icon }: { text?: string; icon?: React.ReactNode }) => (
-  <div className="flex items-center justify-center p-8">
-    <div className="text-center">
-      {icon && <div className="mb-4">{icon}</div>}
-      <p>{text || 'Loading...'}</p>
-    </div>
-  </div>
-);
-
 const STATION_META = {
   ort: {
     name: "Ort",
@@ -167,7 +109,7 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
   // Chart: Nur die letzten 500 minütlichen Mittelwerte laden
   const CHART_PAGE_SIZE = 100 // Reduziert von 500 auf 100 für bessere Performance
   const [chartPage, setChartPage] = React.useState(1)
-  const { data: chartData, totalCount: chartTotal, loading: dataLoading } = useStationData(station, "24h", 60000, chartPage, CHART_PAGE_SIZE, "15min")
+  const { data: chartData, totalCount: chartTotal, loading: dataLoading } = useStationData(station, "7d", 60000, chartPage, CHART_PAGE_SIZE, "15min")
   React.useEffect(() => {
     setChartPage(Math.max(1, Math.ceil(chartTotal / CHART_PAGE_SIZE)))
   }, [chartTotal])
@@ -176,9 +118,22 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
   const [kpi, setKpi] = useState<{ max?: number; avg?: number; trend?: number } | null>(null)
   useEffect(() => {
     async function fetchKpi() {
-      const res = await fetch(`/api/station-data?station=${station}&interval=24h&aggregate=kpi`)
+      // Verwende das gleiche Intervall wie die Chart-Daten (7d)
+      const res = await fetch(`/api/station-data?station=${station}&interval=7d&aggregate=kpi`)
       if (res.ok) {
-        setKpi(await res.json())
+        const kpiData = await res.json()
+        // Falls KPI-Daten leer sind, berechne sie aus den Chart-Daten
+        if (!kpiData.avg || kpiData.avg === 0) {
+          if (chartData.length > 0) {
+            const avg = chartData.reduce((sum, d) => sum + (d.las || 0), 0) / chartData.length
+            const max = Math.max(...chartData.map(d => d.las || 0))
+            setKpi({ avg, max, trend: 0 })
+          } else {
+            setKpi({ avg: 0, max: 0, trend: 0 })
+          }
+        } else {
+          setKpi(kpiData)
+        }
       }
     }
     fetchKpi()
@@ -191,7 +146,7 @@ export function StationDashboardPage({ station }: StationDashboardPageProps) {
       es.removeEventListener('update', handler)
       es.close()
     }
-  }, [station])
+  }, [station, chartData])
 
   // Show loading state while config or data is loading
   if (!globalConfig || dataLoading) {

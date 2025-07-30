@@ -1,97 +1,81 @@
 #!/usr/bin/env tsx
-
-import { update15MinAggregates, trigger15MinAggregation } from '../lib/db'
+import { update15MinAggregates } from '../lib/db'
 import db from '../lib/database'
 
 async function testAggregation() {
-  console.log('🧪 Testing 15-minute aggregation system...')
+  console.log('🧪 Testing 15-minute aggregation...')
   
-  try {
-    // Test 1: Check if aggregation table exists
-    console.log('\n📊 Test 1: Checking aggregation table...')
-    const tableExists = db.prepare(`
-      SELECT name FROM sqlite_master 
-      WHERE type='table' AND name='measurements_15min_agg'
-    `).get()
+  // Prüfe aktuelle Datenlage
+  const measurementCount = db.prepare(`
+    SELECT station, COUNT(*) as count 
+    FROM measurements 
+    WHERE datetime >= datetime('now', '-24 hours')
+    GROUP BY station
+  `).all() as Array<{ station: string, count: number }>
+  
+  console.log('📊 Current measurements in last 24h:', measurementCount)
+  
+  // Führe Aggregation durch
+  console.log('🔄 Running aggregation...')
+  const result = await update15MinAggregates()
+  
+  if (result.success) {
+    console.log('✅ Aggregation completed successfully')
+    console.log(`⏱️ Duration: ${result.duration}ms`)
+    console.log('📈 Statistics:', result.stats)
+    console.log(`📊 Total aggregates: ${result.totalAggregates}`)
     
-    if (tableExists) {
-      console.log('✅ Aggregation table exists')
-    } else {
-      console.log('❌ Aggregation table does not exist')
-    }
-    
-    // Test 2: Check current aggregation data
-    console.log('\n📊 Test 2: Checking current aggregation data...')
-    const aggStats = db.prepare(`
-      SELECT station, COUNT(*) as count 
-      FROM measurements_15min_agg 
-      WHERE bucket >= datetime('now', '-1 day')
-      GROUP BY station
-    `).all() as Array<{ station: string, count: number }>
-    
-    console.log('📈 Current aggregation statistics:', aggStats)
-    
-    // Test 3: Run aggregation
-    console.log('\n📊 Test 3: Running aggregation...')
-    const result = update15MinAggregates()
-    console.log('📊 Aggregation result:', result)
-    
-    // Test 4: Check aggregation after update
-    console.log('\n📊 Test 4: Checking aggregation after update...')
-    const newAggStats = db.prepare(`
-      SELECT station, COUNT(*) as count 
-      FROM measurements_15min_agg 
-      WHERE bucket >= datetime('now', '-1 day')
-      GROUP BY station
-    `).all() as Array<{ station: string, count: number }>
-    
-    console.log('📈 Updated aggregation statistics:', newAggStats)
-    
-    // Test 5: Test trigger mechanism
-    console.log('\n📊 Test 5: Testing trigger mechanism...')
-    trigger15MinAggregation(true)
-    console.log('✅ Trigger mechanism works')
-    
-    // Test 6: Validate data integrity
-    console.log('\n📊 Test 6: Validating data integrity...')
-    const integrityCheck = db.prepare(`
+    // Prüfe Qualität der Aggregation
+    const qualityCheck = db.prepare(`
       SELECT 
-        COUNT(*) as total_measurements,
-        COUNT(DISTINCT station) as stations,
-        MIN(datetime) as earliest,
-        MAX(datetime) as latest
-      FROM measurements
-      WHERE datetime >= datetime('now', '-7 days')
-    `).get() as { total_measurements: number, stations: number, earliest: string, latest: string }
+        station,
+        COUNT(*) as aggregate_count,
+        MIN(bucket) as earliest,
+        MAX(bucket) as latest,
+        AVG(avgLas) as avg_las
+      FROM measurements_15min_agg 
+      WHERE bucket >= datetime('now', '-24 hours')
+      GROUP BY station
+    `).all() as Array<{ station: string, aggregate_count: number, earliest: string, latest: string, avg_las: number }>
     
-    console.log('📊 Data integrity check:', integrityCheck)
+    console.log('🔍 Quality check:', qualityCheck)
     
-    // Test 7: Check API endpoint simulation
-    console.log('\n📊 Test 7: Simulating API endpoint...')
-    const stations = ['ort', 'techno', 'heuballern', 'band']
-    for (const station of stations) {
-      const aggCount = db.prepare(`
-        SELECT COUNT(*) as total
-        FROM measurements_15min_agg
-        WHERE station = ? AND bucket >= datetime('now', '-24 hours')
-      `).get(station) as { total: number }
+    // Prüfe ob genügend 15-Minuten-Intervalle vorhanden sind (96 pro Tag)
+    for (const station of qualityCheck) {
+      const expectedIntervals = 96 // 24h * 4 intervals per hour
+      const coverage = (station.aggregate_count / expectedIntervals) * 100
+      console.log(`${station.station}: ${station.aggregate_count}/${expectedIntervals} intervals (${coverage.toFixed(1)}% coverage)`)
       
-      console.log(`📊 ${station}: ${aggCount.total} aggregated entries in last 24h`)
+      if (coverage < 50) {
+        console.warn(`⚠️ Low coverage for ${station.station} - may need more frequent aggregation`)
+      }
     }
     
-    console.log('\n✅ All aggregation tests completed successfully!')
+  } else {
+    console.error('❌ Aggregation failed:', result.error)
+  }
+  
+  // Teste API-Endpunkt mit 15min Aggregation
+  console.log('\n🧪 Testing API endpoint with 15min aggregation...')
+  try {
+    const response = await fetch('http://localhost:3000/api/station-data?station=ort&aggregate=15min&interval=24h')
+    const data = await response.json()
+    
+    console.log('📡 API Response:', {
+      dataLength: data.data?.length || 0,
+      aggregationState: data.aggregation_state,
+      aggregationCount: data.aggregation_count
+    })
+    
+    if (data.data && data.data.length > 0) {
+      console.log('📊 Sample data points:', data.data.slice(0, 3))
+    }
     
   } catch (error) {
-    console.error('❌ Aggregation test failed:', error)
-    process.exit(1)
+    console.error('❌ API test failed:', error)
   }
+  
+  process.exit(0)
 }
 
-// Run the test
-testAggregation().then(() => {
-  console.log('🎉 Aggregation test completed')
-  process.exit(0)
-}).catch(error => {
-  console.error('💥 Aggregation test failed:', error)
-  process.exit(1)
-}) 
+testAggregation().catch(console.error) 

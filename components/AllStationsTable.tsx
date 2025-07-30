@@ -126,11 +126,11 @@ export function normalizeTableRow(row: Record<string, unknown>, station: Station
   if (station === 'heuballern') stationLabel = 'Heuballern';
   if (station === 'ort') stationLabel = 'Ort';
   return {
-    datetime: row.datetime,
+    datetime: typeof row.datetime === 'string' ? row.datetime : undefined,
     time,
     las: typeof row.las === 'number' ? row.las : undefined,
     ws: typeof row.ws === 'number' ? row.ws : undefined,
-    wd: row.wd,
+    wd: typeof row.wd === 'string' || typeof row.wd === 'number' ? row.wd : undefined,
     rh: typeof row.rh === 'number' ? row.rh : undefined,
     station: stationLabel,
   };
@@ -160,22 +160,38 @@ export function getAlarmThresholdForRow(row: TableRowType, config: ConfigType): 
   let stationKey = typeof row.station === 'string' ? row.station.toLowerCase() : '';
   if (stationKey === "techno floor") stationKey = "techno";
   if (stationKey === "band bühne") stationKey = "band";
+  if (stationKey === "heuballern") stationKey = "heuballern";
+  if (stationKey === "ort") stationKey = "ort";
+  
   // Zeit im Format HH:MM extrahieren - unterstützt verschiedene Formate
   let time = row.time;
   if (time.includes(' ')) {
-    // Format: "2025-07-26 02:40:50" -> "02:40"
-    time = time.split(' ')[1].slice(0, 5);
+    // Format: "2025-07-26 01:13:39" -> "01:13"
+    const timePart = time.split(' ')[1];
+    time = timePart.slice(0, 5);
   } else if (time.includes('T')) {
-    // Format: "2025-07-26T02:40:50" -> "02:40"
-    time = time.split('T')[1].slice(0, 5);
-  } else {
-    // Format: "02:40" (bereits korrekt)
+    // Format: "2025-07-26T01:13:39" -> "01:13"
+    const timePart = time.split('T')[1];
+    time = timePart.slice(0, 5);
+  } else if (time.includes(':')) {
+    // Format: "01:13" (bereits korrekt) oder "01:13:39" -> "01:13"
     time = time.slice(0, 5);
+  } else {
+    // Unbekanntes Format
+    console.warn('[getAlarmThresholdForRow] Unknown time format:', time);
+    return undefined;
   }
+  
   const blocks = config.thresholdsByStationAndTime[stationKey as StationKey];
   if (!blocks) return undefined;
+  
   // Zeit als Minuten seit Mitternacht
   const [h, m] = time.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) {
+    console.warn('[getAlarmThresholdForRow] Invalid time format:', time);
+    return undefined;
+  }
+  
   const minutes = h * 60 + m;
   for (const block of blocks) {
     const [fromH, fromM] = block.from.split(":").map(Number);
@@ -193,26 +209,43 @@ export function getAlarmThresholdForRow(row: TableRowType, config: ConfigType): 
 }
 
 // Hilfsfunktion: Hole den passenden Warn-Schwellenwert für eine Tabellenzeile
-function getWarningThresholdForRow(row: TableRowType, config: ConfigType): number | undefined {
+export function getWarningThresholdForRow(row: TableRowType, config: ConfigType): number | undefined {
   if (!config?.thresholdsByStationAndTime || !row.station || !row.time) return undefined;
   let stationKey = typeof row.station === 'string' ? row.station.toLowerCase() : '';
   if (stationKey === "techno floor") stationKey = "techno";
   if (stationKey === "band bühne") stationKey = "band";
+  if (stationKey === "heuballern") stationKey = "heuballern";
+  if (stationKey === "ort") stationKey = "ort";
+  
   // Zeit im Format HH:MM extrahieren - unterstützt verschiedene Formate
   let time = row.time;
   if (time.includes(' ')) {
-    // Format: "2025-07-26 02:40:50" -> "02:40"
-    time = time.split(' ')[1].slice(0, 5);
+    // Format: "2025-07-26 01:13:39" -> "01:13"
+    const timePart = time.split(' ')[1];
+    time = timePart.slice(0, 5);
   } else if (time.includes('T')) {
-    // Format: "2025-07-26T02:40:50" -> "02:40"
-    time = time.split('T')[1].slice(0, 5);
-  } else {
-    // Format: "02:40" (bereits korrekt)
+    // Format: "2025-07-26T01:13:39" -> "01:13"
+    const timePart = time.split('T')[1];
+    time = timePart.slice(0, 5);
+  } else if (time.includes(':')) {
+    // Format: "01:13" (bereits korrekt) oder "01:13:39" -> "01:13"
     time = time.slice(0, 5);
+  } else {
+    // Unbekanntes Format
+    console.warn('[getWarningThresholdForRow] Unknown time format:', time);
+    return undefined;
   }
+  
   const blocks = config.thresholdsByStationAndTime[stationKey as StationKey];
   if (!blocks) return undefined;
+  
+  // Zeit als Minuten seit Mitternacht
   const [h, m] = time.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) {
+    console.warn('[getWarningThresholdForRow] Invalid time format:', time);
+    return undefined;
+  }
+  
   const minutes = h * 60 + m;
   for (const block of blocks) {
     const [fromH, fromM] = block.from.split(":").map(Number);
@@ -308,6 +341,8 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
       let stationKey = typeof row.station === 'string' ? row.station.toLowerCase() : '';
       if (stationKey === "techno floor") stationKey = "techno";
       if (stationKey === "band bühne") stationKey = "band";
+      if (stationKey === "heuballern") stationKey = "heuballern";
+      if (stationKey === "ort") stationKey = "ort";
       // chartColor aus STATION_META
       const chartColor = STATION_META[stationKey as StationKey]?.chartColor;
       let bg = "";
@@ -354,34 +389,36 @@ export function AllStationsTable({ ortData, heuballernData, technoData, bandData
 
   // Sortierung sollte serverseitig erfolgen, nicht im Frontend
   const filteredRows = useMemo(() => {
-    // Wenn wir serverseitige Pagination haben, sind die Daten bereits sortiert
-    if (page !== undefined && pageSize !== undefined && totalCount !== undefined) {
-      return tableRows; // Bereits serverseitig sortiert
+    let rows = tableRows;
+    
+    // Station-Filter anwenden
+    if (effectiveFilterStation && effectiveFilterStation !== "__all__") {
+      rows = rows.filter(row => row.station === effectiveFilterStation);
     }
     
-    // Fallback: Frontend-Sortierung nur für lokale Daten
-    let rows = tableRows;
-    const col = tableColumns.find(c => c.key === sortKey);
-    if (col && typeof col.sortFn === 'function') {
-      rows = [...rows].sort((a, b) => col.sortFn!(a, b, sortDir));
-    } else {
-      rows = [...rows].sort((a, b) => {
-        const aVal = a[sortKey as keyof TableRowType];
-        const bVal = b[sortKey as keyof TableRowType];
-        if (aVal == null && bVal == null) return 0;
-        if (aVal == null) return 1;
-        if (bVal == null) return -1;
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-          return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
-        }
-        return sortDir === 'asc'
-          ? String(aVal).localeCompare(String(bVal))
-          : String(bVal).localeCompare(String(aVal));
+    // Datum-Filter anwenden
+    if (filterDate && filterDate !== "") {
+      rows = rows.filter(row => {
+        const d = parseDate(row.datetime);
+        if (!d) return false;
+        const rowDate = d.toLocaleDateString('de-DE');
+        return rowDate === filterDate;
       });
     }
+    
+    // Such-Filter anwenden
+    if (search && search.trim() !== "") {
+      const searchLower = search.toLowerCase();
+      rows = rows.filter(row => 
+        row.station.toLowerCase().includes(searchLower) ||
+        (row.time && row.time.toLowerCase().includes(searchLower)) ||
+        (row.las !== undefined && row.las.toString().includes(searchLower))
+      );
+    }
+    
     return rows;
-  }, [tableRows, sortKey, sortDir, tableColumns, page, pageSize, totalCount]);
-
+  }, [tableRows, effectiveFilterStation, filterDate, search]);
+  
   // Filterung: "Nur Alarme" zeigt ausschließlich Datensätze, die als Alarm eingestuft sind
   const effectivePage = page ?? 1
   const effectiveSetPage = setPage ?? (() => {})
